@@ -1,0 +1,228 @@
+<div class="space-y-6 py-2">
+    <div>
+        <h3 class="text-sm font-medium text-gray-400 mb-3">Tuning Visibility</h3>
+        <p class="text-xs text-gray-500 mb-4">Toggle which built-in tunings appear in the tuner menu.</p>
+        <div id="tuner-visibility-list" class="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+            <!-- Populated by JS -->
+        </div>
+    </div>
+
+    <div class="pt-4 border-t border-gray-800">
+        <h3 class="text-sm font-medium text-gray-400 mb-3">Custom Tunings</h3>
+        <div id="tuner-custom-list" class="space-y-2 mb-4">
+            <!-- Populated by JS -->
+        </div>
+
+        <div class="bg-dark-900/50 p-3 rounded-xl border border-gray-800/50">
+            <p class="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-3">Add Custom Tuning</p>
+            <div class="space-y-3">
+                <input type="text" id="tuner-new-name" placeholder="Tuning Name (e.g. DADGAD)" 
+                       class="w-full bg-dark-800 border-none rounded-lg px-3 py-2 text-xs text-white focus:ring-1 focus:ring-accent outline-none">
+                
+                <div class="flex flex-col gap-1">
+                    <label class="text-[10px] text-gray-500 ml-1">Notes or Frequencies (e.g. E2, A2, D3, G3 or 82.41, 110.0...)</label>
+                    <input type="text" id="tuner-new-freqs" placeholder="E2, A2, D3, G3, B3, E4" 
+                           class="w-full bg-dark-800 border-none rounded-lg px-3 py-2 text-xs text-white focus:ring-1 focus:ring-accent outline-none font-mono">
+                </div>
+
+                <button onclick="window._tunerAddCustom()" 
+                        class="w-full bg-accent/20 hover:bg-accent/30 text-accent text-xs font-bold py-2 rounded-lg transition-colors border border-accent/20">
+                    Add Tuning
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <p class="text-[11px] text-gray-600 italic">Settings are saved automatically.</p>
+
+    <script>
+        (function() {
+            const DEFAULT_TUNINGS = {
+                "Guitar": {
+                    "Guitar Standard": [82.41, 110.00, 146.83, 196.00, 246.94, 329.63],
+                    "Guitar Drop D": [73.42, 110.00, 146.83, 196.00, 246.94, 329.63],
+                    "Guitar Open G": [73.42, 98.00, 146.83, 196.00, 246.94, 293.66],
+                    "Guitar DADGAD": [73.42, 110.00, 146.83, 196.00, 220.00, 293.66],
+                    "Guitar Open E": [82.41, 123.47, 164.81, 207.65, 246.94, 329.63]
+                },
+                "Bass": {
+                    "Bass 4-string Standard": [41.20, 55.00, 73.42, 98.00],
+                    "Bass 4-string Drop D": [36.71, 55.00, 73.42, 98.00],
+                    "Bass 4-string D-Standard": [36.71, 48.99, 65.41, 87.31],
+                    "Bass 4-string Drop C": [32.70, 48.99, 65.41, 87.31],
+                    "Bass 5-string Standard": [30.87, 41.20, 55.00, 73.42, 98.00],
+                }
+            };
+
+            let config = { customTunings: {}, disabledTunings: [] };
+
+            async function load() {
+                try {
+                    const resp = await fetch('/api/plugins/tuner/config');
+                    config = await resp.json();
+                    render();
+                } catch (e) { console.error('Tuner settings: load failed', e); }
+            }
+
+            async function save() {
+                try {
+                    await fetch('/api/plugins/tuner/config', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(config)
+                    });
+                    // Notify screen.js if it's active
+                    if (window._tunerReloadConfig) window._tunerReloadConfig();
+                } catch (e) { console.error('Tuner settings: save failed', e); }
+            }
+
+            function render() {
+                const visList = document.getElementById('tuner-visibility-list');
+                visList.innerHTML = '';
+                
+                Object.keys(DEFAULT_TUNINGS).forEach(groupName => {
+                    const group = DEFAULT_TUNINGS[groupName];
+                    const groupTunings = Object.keys(group);
+                    
+                    // Group header
+                    const header = document.createElement('div');
+                    header.className = 'flex items-center justify-between p-2 mt-2 bg-dark-900/80 rounded-t-lg border-x border-t border-gray-800/50';
+                    
+                    const groupLabel = document.createElement('span');
+                    groupLabel.className = 'text-[11px] font-bold text-gray-400 uppercase tracking-wider';
+                    groupLabel.textContent = groupName;
+                    
+                    const groupToggle = document.createElement('input');
+                    groupToggle.type = 'checkbox';
+                    const allEnabled = groupTunings.every(n => !config.disabledTunings.includes(n));
+                    const someEnabled = groupTunings.some(n => !config.disabledTunings.includes(n));
+                    groupToggle.checked = allEnabled;
+                    groupToggle.indeterminate = someEnabled && !allEnabled;
+                    groupToggle.className = 'accent-accent';
+                    
+                    groupToggle.onchange = () => {
+                        if (groupToggle.checked) {
+                            // Enable all in group
+                            config.disabledTunings = config.disabledTunings.filter(n => !groupTunings.includes(n));
+                        } else {
+                            // Disable all in group
+                            groupTunings.forEach(n => {
+                                if (!config.disabledTunings.includes(n)) config.disabledTunings.push(n);
+                            });
+                        }
+                        save();
+                        render();
+                    };
+                    
+                    header.appendChild(groupLabel);
+                    header.appendChild(groupToggle);
+                    visList.appendChild(header);
+
+                    const groupContainer = document.createElement('div');
+                    groupContainer.className = 'border-x border-b border-gray-800/50 rounded-b-lg overflow-hidden mb-4';
+
+                    groupTunings.forEach((name, idx) => {
+                        const div = document.createElement('div');
+                        div.className = 'flex items-center justify-between p-2 bg-dark-800/30 hover:bg-dark-800/50 transition-colors border-t border-gray-800/20';
+                        if (idx === 0) div.style.borderTop = 'none';
+                        
+                        const label = document.createElement('span');
+                        label.className = 'text-xs text-gray-300';
+                        label.textContent = name;
+                        
+                        const toggle = document.createElement('input');
+                        toggle.type = 'checkbox';
+                        toggle.checked = !config.disabledTunings.includes(name);
+                        toggle.className = 'accent-accent';
+                        toggle.onchange = () => {
+                            if (toggle.checked) {
+                                config.disabledTunings = config.disabledTunings.filter(n => n !== name);
+                            } else {
+                                if (!config.disabledTunings.includes(name)) config.disabledTunings.push(name);
+                            }
+                            save();
+                            render();
+                        };
+                        
+                        div.appendChild(label);
+                        div.appendChild(toggle);
+                        groupContainer.appendChild(div);
+                    });
+                    visList.appendChild(groupContainer);
+                });
+
+                const customList = document.getElementById('tuner-custom-list');
+                customList.innerHTML = '';
+                const customNames = Object.keys(config.customTunings);
+                if (customNames.length === 0) {
+                    customList.innerHTML = '<p class="text-[10px] text-gray-600 italic ml-1">No custom tunings added.</p>';
+                } else {
+                    customNames.forEach(name => {
+                        const div = document.createElement('div');
+                        div.className = 'flex items-center justify-between p-2 bg-dark-800/30 rounded-lg border border-gray-800/50';
+                        
+                        const info = document.createElement('div');
+                        info.className = 'flex flex-col';
+                        const nEl = document.createElement('span');
+                        nEl.className = 'text-xs text-white font-medium';
+                        nEl.textContent = name;
+                        const fEl = document.createElement('span');
+                        fEl.className = 'text-[10px] text-gray-500 font-mono';
+                        fEl.textContent = config.customTunings[name].join(', ');
+                        info.appendChild(nEl);
+                        info.appendChild(fEl);
+
+                        const del = document.createElement('button');
+                        del.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>';
+                        del.className = 'text-gray-600 hover:text-red-400 transition-colors p-1';
+                        del.onclick = () => {
+                            delete config.customTunings[name];
+                            save();
+                            render();
+                        };
+
+                        div.appendChild(info);
+                        div.appendChild(del);
+                        customList.appendChild(div);
+                    });
+                }
+            }
+
+            function noteToFreq(note) {
+                const notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+                const res = note.toUpperCase().match(/^([A-G]#?)(\d)$/);
+                if (!res) return null;
+                const name = res[1];
+                const octave = parseInt(res[2]);
+                const semitones = notes.indexOf(name) + (octave + 1) * 12;
+                return 440 * Math.pow(2, (semitones - 69) / 12);
+            }
+
+            window._tunerAddCustom = () => {
+                const nameInput = document.getElementById('tuner-new-name');
+                const freqsInput = document.getElementById('tuner-new-freqs');
+                const name = nameInput.value.trim();
+                const inputStr = freqsInput.value.trim();
+
+                if (!name || !inputStr) return alert('Please enter name and notes/frequencies.');
+                
+                const freqs = inputStr.split(',').map(s => {
+                    s = s.trim();
+                    const f = parseFloat(s);
+                    if (!isNaN(f)) return f;
+                    return noteToFreq(s);
+                }).filter(f => f !== null && !isNaN(f));
+
+                if (freqs.length === 0) return alert('Invalid notes or frequencies.');
+
+                config.customTunings[name] = freqs;
+                save();
+                render();
+                nameInput.value = '';
+                freqsInput.value = '';
+            };
+
+            load();
+        })();
+    </script>
+</div>
