@@ -13,6 +13,9 @@
     let accumBuffer = new Float32Array(0);
     let pendingBuffer = null;
     let detectInterval = null;
+    let refreshInterval = null;
+    let lastPlayerActive = false;
+    let lastSongId = null;
     let processingFrame = false;
 
     let uiContainer = null;
@@ -30,6 +33,30 @@
     
     let selectedTuning = null;
     let selectedTuningName = "Guitar Standard";
+
+    let selectedDeviceId = '';
+    let selectedChannel = 'mono';
+    const _TUNER_STORAGE_KEY = 'slopsmith_tuner_settings';
+
+    function loadSettings() {
+        try {
+            const saved = localStorage.getItem(_TUNER_STORAGE_KEY);
+            if (saved) {
+                const s = JSON.parse(saved);
+                if (s.deviceId !== undefined) selectedDeviceId = s.deviceId;
+                if (['mono', 'left', 'right'].includes(s.channel)) selectedChannel = s.channel;
+            }
+        } catch (e) { /* unavailable */ }
+    }
+
+    function saveSettings() {
+        try {
+            localStorage.setItem(_TUNER_STORAGE_KEY, JSON.stringify({
+                deviceId: selectedDeviceId,
+                channel: selectedChannel,
+            }));
+        } catch (e) { /* unavailable */ }
+    }
 
     async function loadConfig() {
         try {
@@ -80,12 +107,38 @@
     function renderTuningOptions() {
         if (!tuningSelect) return;
         tuningSelect.innerHTML = '';
+
+        // Add "Current Song" if in player
+        const isPlayer = document.getElementById('player')?.classList.contains('active');
+        if (isPlayer && window.highway && typeof window.highway.getSongInfo === 'function') {
+            const info = window.highway.getSongInfo();
+            if (info && info.tuning) {
+                const sc = info.stringCount || info.tuning.length;
+                const realTuning = info.tuning.slice(0, sc);
+                const isBass = (info.arrangement || '').toLowerCase().includes('bass');
+                const freqs = offsetsToFreqs(realTuning, isBass);
+                const tName = getTuningName(realTuning);
+
+                const name = `Current Song [${tName}]`;
+                const opt = document.createElement('option');
+                opt.value = '_current';
+                opt.textContent = name;
+                tuningSelect.appendChild(opt);
+
+                // If this is currently selected, map it
+                if (selectedTuningName === '_current') {
+                    selectedTuning = freqs;
+                }
+            }
+        }
+
         for (const name in tunings) {
             const opt = document.createElement('option');
             opt.value = name;
             opt.textContent = name;
             tuningSelect.appendChild(opt);
         }
+
         if (selectedTuningName) {
             tuningSelect.value = selectedTuningName;
         }
@@ -108,24 +161,54 @@
     function initUI() {
         if (uiContainer) return;
 
+        loadSettings();
+
         uiContainer = document.createElement('div');
         uiContainer.id = 'tuner-plugin-ui';
         uiContainer.className = 'fixed bottom-20 right-5 w-72 bg-dark-800/95 border border-gray-800 rounded-xl p-4 text-white z-[1000] hidden flex-col items-center shadow-2xl backdrop-blur-md';
 
+        const header = document.createElement('div');
+        header.className = 'flex justify-center items-center w-full mb-3 relative';
+        
         const title = document.createElement('div');
-        title.className = 'font-bold text-xs mb-3 text-gray-500 uppercase tracking-wider';
+        title.className = 'font-bold text-xs text-gray-500 uppercase tracking-wider';
         title.textContent = 'TUNER';
-        uiContainer.appendChild(title);
+        header.appendChild(title);
+
+        const settingsBtn = document.createElement('button');
+        settingsBtn.className = 'absolute right-0 text-gray-500 hover:text-white transition-colors';
+        settingsBtn.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+        `;
+        settingsBtn.onclick = showSettings;
+        header.appendChild(settingsBtn);
+
+        uiContainer.appendChild(header);
 
         tuningSelect = document.createElement('select');
         tuningSelect.className = 'w-full bg-dark-700 text-sm text-gray-200 border border-gray-800 mb-4 p-2 rounded-lg outline-none focus:border-accent transition';
         renderTuningOptions();
         tuningSelect.onchange = (e) => {
             selectedTuningName = e.target.value;
-            selectedTuning = tunings[selectedTuningName];
+            if (selectedTuningName === '_current') {
+                const info = window.highway?.getSongInfo();
+                if (info) {
+                    const sc = info.stringCount || info.tuning.length;
+                    const realTuning = info.tuning.slice(0, sc);
+                    const isBass = (info.arrangement || '').toLowerCase().includes('bass');
+                    selectedTuning = offsetsToFreqs(realTuning, isBass);
+                } else {
+                    selectedTuning = null;
+                }
+            } else {
+                selectedTuning = tunings[selectedTuningName];
+            }
             manualTargetFreq = null;
             renderStringNotes();
-            saveConfig();
+            if (selectedTuningName !== '_current') saveConfig();
         };
         uiContainer.appendChild(tuningSelect);
 
@@ -172,27 +255,170 @@
         document.body.appendChild(uiContainer);
     }
 
+    // ── Settings ──────────────────────────────────────────────────────
+    function showSettings() {
+        let panel = uiContainer.querySelector('.tuner-settings-panel');
+        if (panel) { panel.remove(); return; }
+
+        panel = document.createElement('div');
+        panel.className = 'tuner-settings-panel w-full bg-dark-700/50 border border-gray-800 rounded-lg p-3 mb-4 text-xs';
+        panel.innerHTML = `
+            <div class="flex justify-between items-center mb-2">
+                <span class="text-gray-400 font-semibold uppercase tracking-tighter">Audio Settings</span>
+                <button class="tuner-settings-close text-gray-500 hover:text-white">&times;</button>
+            </div>
+
+            <label class="block text-gray-500 mb-1">Microphone</label>
+            <select class="tuner-device-select w-full bg-dark-800 border border-gray-700 rounded px-2 py-1 text-gray-200 mb-2 outline-none focus:border-accent">
+                <option value="">Default</option>
+            </select>
+
+            <label class="block text-gray-500 mb-1">Input Channel</label>
+            <select class="tuner-channel-select w-full bg-dark-800 border border-gray-700 rounded px-2 py-1 text-gray-200 outline-none focus:border-accent">
+                <option value="mono" ${selectedChannel === 'mono' ? 'selected' : ''}>Mono (mix both)</option>
+                <option value="left" ${selectedChannel === 'left' ? 'selected' : ''}>Left (Channel 1)</option>
+                <option value="right" ${selectedChannel === 'right' ? 'selected' : ''}>Right (Channel 2)</option>
+            </select>
+        `;
+
+        // Insert above tuningSelect
+        uiContainer.insertBefore(panel, tuningSelect);
+
+        panel.querySelector('.tuner-settings-close').onclick = () => panel.remove();
+        panel.querySelector('.tuner-device-select').onchange = (e) => {
+            selectedDeviceId = e.target.value;
+            saveSettings();
+            if (enabled) restartAudio();
+        };
+        panel.querySelector('.tuner-channel-select').onchange = (e) => {
+            selectedChannel = e.target.value;
+            saveSettings();
+            if (enabled) restartAudio();
+        };
+
+        populateDevices(panel);
+    }
+
+    async function populateDevices(panel) {
+        try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const sel = panel.querySelector('.tuner-device-select');
+            if (!sel) return;
+            sel.innerHTML = '<option value="">Default</option>';
+            for (const d of devices) {
+                if (d.kind !== 'audioinput') continue;
+                const opt = document.createElement('option');
+                opt.value = d.deviceId;
+                opt.textContent = d.label || `Input ${d.deviceId.slice(0, 8)}`;
+                if (d.deviceId === selectedDeviceId) opt.selected = true;
+                sel.appendChild(opt);
+            }
+        } catch (e) { /* permission not yet granted */ }
+    }
+
+    async function restartAudio() {
+        const wasEnabled = enabled;
+        disable();
+        if (wasEnabled) await enable();
+    }
+
     async function enable() {
         if (enabled) return;
         await loadConfig();
+        
+        // Refresh options in case we entered/exited player since last load
+        lastPlayerActive = !!document.getElementById('player')?.classList.contains('active');
+        lastSongId = window.highway?.getSongInfo()?.filename || null;
+
+        // Auto-select "Current Song" if in player
+        if (lastPlayerActive) {
+            selectedTuningName = '_current';
+        }
+
+        renderTuningOptions();
+        // If we were on 'Current Song' but it's gone now, fallback
+        if (selectedTuningName === '_current' && (!tuningSelect || !tuningSelect.querySelector('option[value="_current"]'))) {
+             selectedTuningName = Object.keys(tunings)[0];
+             selectedTuning = tunings[selectedTuningName];
+             if (tuningSelect) renderTuningOptions();
+        }
+
         initUI();
         uiContainer.classList.remove('hidden');
         uiContainer.classList.add('flex');
 
+        if (!refreshInterval) {
+            refreshInterval = setInterval(() => {
+                const isPlayer = !!document.getElementById('player')?.classList.contains('active');
+                const songInfo = window.highway?.getSongInfo();
+                const songId = songInfo?.filename || null;
+
+                if (isPlayer !== lastPlayerActive || songId !== lastSongId) {
+                    const wasPlayer = lastPlayerActive;
+                    lastPlayerActive = isPlayer;
+                    lastSongId = songId;
+                    
+                    const wasCurrent = selectedTuningName === '_current';
+
+                    // Auto-select current if we just entered player
+                    if (isPlayer && !wasPlayer) {
+                        selectedTuningName = '_current';
+                    }
+
+                    renderTuningOptions();
+                    
+                    if (wasCurrent) {
+                        if (tuningSelect.querySelector('option[value="_current"]')) {
+                            // Still available, update tuning ref (might have changed arrangement/song)
+                            const sc = songInfo.stringCount || songInfo.tuning.length;
+                            const realTuning = songInfo.tuning.slice(0, sc);
+                            const isBass = (songInfo.arrangement || '').toLowerCase().includes('bass');
+                            selectedTuning = offsetsToFreqs(realTuning, isBass);
+                            renderStringNotes();
+                        } else {
+                            // Gone, fallback
+                            selectedTuningName = Object.keys(tunings)[0];
+                            selectedTuning = tunings[selectedTuningName];
+                            tuningSelect.value = selectedTuningName;
+                            renderStringNotes();
+                        }
+                    }
+                }
+            }, 1000);
+        }
+
         try {
-            stream = await navigator.mediaDevices.getUserMedia({
+            const constraints = {
                 audio: {
                     echoCancellation: false,
                     noiseSuppression: false,
                     autoGainControl: false,
+                    channelCount: 2,
                 }
-            });
+            };
+            if (selectedDeviceId) {
+                constraints.audio.deviceId = { exact: selectedDeviceId };
+            }
+
+            stream = await navigator.mediaDevices.getUserMedia(constraints);
 
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             sourceNode = audioCtx.createMediaStreamSource(stream);
+            const streamChannels = sourceNode.channelCount;
+
             gainNode = audioCtx.createGain();
             gainNode.gain.value = 1.0;
-            sourceNode.connect(gainNode);
+
+            if (streamChannels >= 2 && selectedChannel !== 'mono') {
+                const splitterNode = audioCtx.createChannelSplitter(2);
+                sourceNode.connect(splitterNode);
+                const mergerNode = audioCtx.createChannelMerger(1);
+                const chIdx = selectedChannel === 'left' ? 0 : 1;
+                splitterNode.connect(mergerNode, chIdx, 0);
+                mergerNode.connect(gainNode);
+            } else {
+                sourceNode.connect(gainNode);
+            }
 
             processor = audioCtx.createScriptProcessor(_TUNER_FRAME_SIZE, 1, 1);
             processor.onaudioprocess = (e) => {
@@ -239,6 +465,7 @@
             uiContainer.classList.remove('flex');
         }
         if (detectInterval) { clearInterval(detectInterval); detectInterval = null; }
+        if (refreshInterval) { clearInterval(refreshInterval); refreshInterval = null; }
         if (processor) { processor.disconnect(); processor = null; }
         if (gainNode) { gainNode.disconnect(); gainNode = null; }
         if (sourceNode) { sourceNode.disconnect(); sourceNode = null; }
@@ -293,6 +520,70 @@
     function midiToNote(m) {
         const rounded = Math.round(m);
         return noteNames[rounded % 12];
+    }
+
+    function midiToFreq(m) {
+        return Math.pow(2, (m - 69) / 12) * 440;
+    }
+
+    function offsetsToFreqs(offsets, isBass) {
+        // E Standard base (MIDI notes)
+        // Guitar: E2, A2, D3, G3, B3, E4
+        const guitarBase = [40, 45, 50, 55, 59, 64];
+        // Bass: E1, A1, D2, G2
+        const bassBase = [28, 33, 38, 43];
+
+        const base = isBass ? bassBase : guitarBase;
+        return offsets.map((offset, i) => {
+            if (i >= base.length) return midiToFreq(base[base.length - 1] + offset);
+            return midiToFreq(base[i] + offset);
+        });
+    }
+
+    function getTuningName(offsets) {
+        if (!offsets || offsets.length === 0) return 'Unknown';
+
+        // All pattern checks are gated on len == 6 (Guitar) or len == 4 (Bass).
+        const len = offsets.length;
+        if (len !== 6 && len !== 4) return offsets.join(' ');
+
+        // Standard tunings (all strings same offset)
+        const standard = {
+            0: "E Standard", "-1": "Eb Standard", "-2": "D Standard",
+            "-3": "C# Standard", "-4": "C Standard", "-5": "B Standard",
+            "-6": "Bb Standard", "-7": "A Standard",
+            "1": "F Standard", "2": "F# Standard",
+        };
+
+        if (offsets.every(o => o === offsets[0])) {
+            return standard[offsets[0]] || offsets.join(' ');
+        }
+
+        // Drop tunings (low string 2 semitones below the rest)
+        if (offsets[0] === offsets[1] - 2 && offsets.slice(1).every(o => o === offsets[1])) {
+            const noteNames = ["E", "F", "F#", "G", "Ab", "A", "Bb", "B", "C", "C#", "D", "Eb"];
+            let idx = (offsets[0] + (len === 4 ? 4 : 0)) % 12; // Bass E is offsets[0] relative to E1
+            if (idx < 0) idx += 12;
+            return `Drop ${noteNames[idx]}`;
+        }
+
+        // Common named tunings (6-string only)
+        if (len === 6) {
+            const named = {
+                "-2,0,0,0,0,0": "Drop D",
+                "-4,-2,-2,-2,-2,-2": "Drop C",
+                "-2,-2,0,0,0,0": "Double Drop D",
+                "0,0,0,-1,0,0": "Open G",
+                "-2,-2,0,0,-2,-2": "Open D",
+                "-2,0,0,0,-2,0": "DADGAD",
+                "0,2,2,1,0,0": "Open E",
+                "-2,0,0,2,3,2": "Open D (alt)",
+            };
+            const key = offsets.join(',');
+            if (named[key]) return named[key];
+        }
+
+        return offsets.join(' ');
     }
 
     function renderStringNotes() {
