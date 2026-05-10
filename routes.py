@@ -15,12 +15,17 @@ DEFAULT_TUNINGS = {
         "Guitar DADGAD": [73.42, 110.00, 146.83, 196.00, 220.00, 293.66],
         "Guitar Open E": [82.41, 123.47, 164.81, 207.65, 246.94, 329.63]
     },
-    "Bass": {
+    "Bass 4-string": {
         "Bass 4-string Standard": [41.20, 55.00, 73.42, 98.00],
         "Bass 4-string Drop D": [36.71, 55.00, 73.42, 98.00],
         "Bass 4-string D-Standard": [36.71, 48.99, 65.41, 87.31],
         "Bass 4-string Drop C": [32.70, 48.99, 65.41, 87.31],
+    },
+    "Bass 5-string": {
         "Bass 5-string Standard": [30.87, 41.20, 55.00, 73.42, 98.00],
+        "Bass 5-string Drop D": [30.87, 36.71, 55.00, 73.42, 98.00],
+        "Bass 5-string D-Standard": [27.50, 36.71, 48.99, 65.41, 87.31],
+        "Bass 5-string Drop C": [27.50, 32.70, 48.99, 65.41, 87.31],
     }
 }
 
