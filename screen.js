@@ -98,9 +98,9 @@
         if (tuningSelect) {
             renderTuningOptions();
         }
-            if (uiContainer && !uiContainer.classList.contains('hidden')) {
-                renderStringNotes();
-            }
+        if (uiContainer && !uiContainer.classList.contains('hidden')) {
+            renderStringNotes();
+        }
             updateFloatingButtonVisibility();
         } catch (e) {
             console.error('Tuner: Failed to load config', e);
@@ -132,7 +132,15 @@
                 if (selectedTuningName === '_current') {
                     selectedTuning = freqs;
                 }
+            } else {
+                // If song info is missing but we're in player, 
+                // we might want to clear selectedTuning if it was '_current'
+                if (selectedTuningName === '_current') {
+                    selectedTuning = null;
+                }
             }
+        } else if (selectedTuningName === '_current') {
+            selectedTuning = null;
         }
 
         for (const name in tunings) {
@@ -347,6 +355,7 @@
         }
 
         initUI();
+        if (selectedTuning) renderStringNotes();
         uiContainer.classList.remove('hidden');
         uiContainer.classList.add('flex');
 
@@ -370,22 +379,21 @@
 
                     renderTuningOptions();
                     
-                    if (wasCurrent) {
-                        if (tuningSelect.querySelector('option[value="_current"]')) {
-                            // Still available, update tuning ref (might have changed arrangement/song)
-                            const sc = songInfo.stringCount || songInfo.tuning.length;
-                            const realTuning = songInfo.tuning.slice(0, sc);
-                            const isBass = (songInfo.arrangement || '').toLowerCase().includes('bass');
-                            selectedTuning = offsetsToFreqs(realTuning, isBass);
-                            renderStringNotes();
-                        } else {
-                            // Gone, fallback
-                            selectedTuningName = Object.keys(tunings)[0];
-                            selectedTuning = tunings[selectedTuningName];
-                            tuningSelect.value = selectedTuningName;
-                            renderStringNotes();
-                        }
+                if (wasCurrent) {
+                    if (tuningSelect.querySelector('option[value="_current"]')) {
+                        // Still available, update tuning ref (might have changed arrangement/song)
+                        const sc = songInfo.stringCount || songInfo.tuning.length;
+                        const realTuning = songInfo.tuning.slice(0, sc);
+                        const isBass = (songInfo.arrangement || '').toLowerCase().includes('bass');
+                        selectedTuning = offsetsToFreqs(realTuning, isBass);
+                    } else {
+                        // Gone, fallback
+                        selectedTuningName = Object.keys(tunings)[0];
+                        selectedTuning = tunings[selectedTuningName];
+                        tuningSelect.value = selectedTuningName;
                     }
+                    renderStringNotes();
+                }
                 }
             }, 1000);
         }
@@ -592,6 +600,7 @@
     function renderStringNotes() {
         if (!stringNoteContainer) return;
         stringNoteContainer.innerHTML = '';
+        if (!selectedTuning) return;
         selectedTuning.forEach(f => {
             const btn = document.createElement('button');
             btn.dataset.freq = f;
