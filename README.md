@@ -43,11 +43,17 @@ Click the ⚙️ icon in the tuner window to access:
 - **Audio Input**: Select your preferred microphone or audio interface.
 - **Channel Selection**: Choose between Mono (mixed), Left, or Right channels (ideal for multi-channel audio interfaces).
 
+<img width="306" height="242" alt="grafik" src="https://github.com/user-attachments/assets/41746a5b-bee9-4358-a10a-0eee8d5651b5" />
+
+
 ### Plugin Manager
 Access advanced settings via the Slopsmith Plugin Manager (Settings -> Plugins -> Tuner):
 - **Floating Button**: Toggle the visibility of the tuner button on the main interface.
 - **Tuning Visibility**: Toggle which built-in tunings appear in your menu.
 - **Custom Tunings**: Define your own tuning presets by entering a name and a list of notes/frequencies.
+
+<img width="640" height="1025" alt="grafik" src="https://github.com/user-attachments/assets/d67585a2-f376-44bb-8c9b-64a0de732dbd" />
+
 
 ## License
 
