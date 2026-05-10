@@ -33,6 +33,7 @@
     
     let selectedTuning = null;
     let selectedTuningName = "Guitar Standard";
+    let showFloatingButton = true;
 
     let selectedDeviceId = '';
     let selectedChannel = 'mono';
@@ -64,6 +65,7 @@
             const config = await resp.json();
             
             defaultTunings = config.defaultTunings || {};
+            showFloatingButton = config.showFloatingButton !== false;
 
             // Rebuild tunings list
             tunings = {};
@@ -99,6 +101,7 @@
             if (uiContainer && !uiContainer.classList.contains('hidden')) {
                 renderStringNotes();
             }
+            updateFloatingButtonVisibility();
         } catch (e) {
             console.error('Tuner: Failed to load config', e);
         }
@@ -688,8 +691,23 @@
         updateButtons: () => {
             updateFloatingButton();
             updatePlayerButton();
+            updateFloatingButtonVisibility();
         }
     };
+
+    function updateFloatingButtonVisibility() {
+        const btn = document.getElementById('tuner-toggle-btn');
+        if (!btn) return;
+        
+        const isPlayer = document.querySelector('.screen.active')?.id === 'player';
+        const isPlaying = window.slopsmith?.isPlaying;
+
+        if (!showFloatingButton || isPlayer || isPlaying) {
+            btn.classList.add('hidden');
+        } else {
+            btn.classList.remove('hidden');
+        }
+    }
 
     function updateFloatingButton() {
         const btn = document.getElementById('tuner-toggle-btn');
@@ -702,6 +720,7 @@
         const isHidden = btn.classList.contains('hidden');
         btn.className = baseClasses;
         if (isHidden) btn.classList.add('hidden');
+        updateFloatingButtonVisibility();
     }
 
     function updatePlayerButton() {
@@ -725,9 +744,10 @@
         btn.onclick = window.tuner.toggle;
         document.body.appendChild(btn);
         updateFloatingButton();
+        updateFloatingButtonVisibility();
 
         const handlePlay = () => {
-            btn.classList.add('hidden');
+            updateFloatingButtonVisibility();
             if (enabled) {
                 // If tuner is open, we should probably close it to free the mic
                 // and keep the UI clean during playback.
@@ -735,8 +755,7 @@
             }
         };
         const handleStop = () => {
-            if (document.querySelector('.screen.active')?.id === 'player') return;
-            btn.classList.remove('hidden');
+            updateFloatingButtonVisibility();
         };
 
         if (window.slopsmith) {
@@ -756,6 +775,8 @@
             if (window.slopsmith.isPlaying || document.querySelector('.screen.active')?.id === 'player') {
                 handlePlay();
                 if (document.querySelector('.screen.active')?.id === 'player') injectPlayerButton();
+            } else {
+                updateFloatingButtonVisibility();
             }
         }
     }

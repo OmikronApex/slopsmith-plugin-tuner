@@ -45,6 +45,7 @@ Click the ⚙️ icon in the tuner window to access:
 
 ### Plugin Manager
 Access advanced settings via the Slopsmith Plugin Manager (Settings -> Plugins -> Tuner):
+- **Floating Button**: Toggle the visibility of the tuner button on the main interface.
 - **Tuning Visibility**: Toggle which built-in tunings appear in your menu.
 - **Custom Tunings**: Define your own tuning presets by entering a name and a list of notes/frequencies.
 

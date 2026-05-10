@@ -1,4 +1,15 @@
 <div class="space-y-6 py-2">
+    <div class="flex items-center justify-between bg-dark-900/50 p-3 rounded-xl border border-gray-800/50">
+        <div>
+            <h3 class="text-sm font-medium text-gray-200">Floating Button</h3>
+            <p class="text-[11px] text-gray-500">Show the tuner button on the main interface.</p>
+        </div>
+        <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="tuner-show-floating" class="sr-only peer" onchange="window._tunerToggleFloating(this.checked)">
+            <div class="w-9 h-5 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-accent"></div>
+        </label>
+    </div>
+
     <div>
         <h3 class="text-sm font-medium text-gray-400 mb-3">Tuning Visibility</h3>
         <p class="text-xs text-gray-500 mb-4">Toggle which built-in tunings appear in the tuner menu.</p>
@@ -37,15 +48,25 @@
 
     <script>
         (function() {
-            let config = { customTunings: {}, disabledTunings: [], defaultTunings: {} };
+            let config = { customTunings: {}, disabledTunings: [], defaultTunings: {}, showFloatingButton: true };
+            let expandedGroups = []; // Keep track of which groups are expanded
 
             async function load() {
                 try {
                     const resp = await fetch('/api/plugins/tuner/config');
                     config = await resp.json();
+                    
+                    const floatingToggle = document.getElementById('tuner-show-floating');
+                    if (floatingToggle) floatingToggle.checked = config.showFloatingButton !== false;
+
                     render();
                 } catch (e) { console.error('Tuner settings: load failed', e); }
             }
+
+            window._tunerToggleFloating = (enabled) => {
+                config.showFloatingButton = enabled;
+                save();
+            };
 
             async function save() {
                 try {
@@ -64,17 +85,36 @@
                 visList.innerHTML = '';
                 
                 const defaultTunings = config.defaultTunings || {};
+                
+                // Track collapsed state - use a local object to persist during this render session
+                // or just default to collapsed if not explicitly expanded.
+                // However, since render() is called frequently (on save), we might want to keep track.
+                // For "collapsed on default", we can just not render them expanded.
+                
                 Object.keys(defaultTunings).forEach(groupName => {
                     const group = defaultTunings[groupName];
                     const groupTunings = Object.keys(group);
                     
+                    const groupWrapper = document.createElement('div');
+                    groupWrapper.className = 'mb-4';
+                    
                     // Group header
                     const header = document.createElement('div');
-                    header.className = 'flex items-center justify-between p-2 mt-2 bg-dark-900/80 rounded-t-lg border-x border-t border-gray-800/50';
+                    header.className = 'flex items-center justify-between p-2 mt-2 bg-dark-900/80 rounded-t-lg border-x border-t border-gray-800/50 cursor-pointer hover:bg-dark-900 transition-colors';
+                    
+                    const left = document.createElement('div');
+                    left.className = 'flex items-center gap-2';
+                    
+                    const chevron = document.createElement('span');
+                    chevron.innerHTML = '<svg class="w-3 h-3 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>';
+                    chevron.className = 'text-gray-500';
                     
                     const groupLabel = document.createElement('span');
                     groupLabel.className = 'text-[11px] font-bold text-gray-400 uppercase tracking-wider';
                     groupLabel.textContent = groupName;
+                    
+                    left.appendChild(chevron);
+                    left.appendChild(groupLabel);
                     
                     const groupToggle = document.createElement('input');
                     groupToggle.type = 'checkbox';
@@ -84,12 +124,11 @@
                     groupToggle.indeterminate = someEnabled && !allEnabled;
                     groupToggle.className = 'accent-accent';
                     
+                    groupToggle.onclick = (e) => e.stopPropagation(); // Don't collapse when clicking checkbox
                     groupToggle.onchange = () => {
                         if (groupToggle.checked) {
-                            // Enable all in group
                             config.disabledTunings = config.disabledTunings.filter(n => !groupTunings.includes(n));
                         } else {
-                            // Disable all in group
                             groupTunings.forEach(n => {
                                 if (!config.disabledTunings.includes(n)) config.disabledTunings.push(n);
                             });
@@ -98,12 +137,30 @@
                         render();
                     };
                     
-                    header.appendChild(groupLabel);
+                    header.appendChild(left);
                     header.appendChild(groupToggle);
-                    visList.appendChild(header);
+                    groupWrapper.appendChild(header);
 
                     const groupContainer = document.createElement('div');
-                    groupContainer.className = 'border-x border-b border-gray-800/50 rounded-b-lg overflow-hidden mb-4';
+                    groupContainer.className = 'border-x border-b border-gray-800/50 rounded-b-lg overflow-hidden';
+                    
+                    const isExpanded = expandedGroups.includes(groupName);
+                    if (!isExpanded) {
+                        groupContainer.classList.add('hidden');
+                        chevron.style.transform = 'rotate(0deg)';
+                    } else {
+                        chevron.style.transform = 'rotate(90deg)';
+                    }
+                    
+                    header.onclick = () => {
+                        const idx = expandedGroups.indexOf(groupName);
+                        if (idx === -1) {
+                            expandedGroups.push(groupName);
+                        } else {
+                            expandedGroups.splice(idx, 1);
+                        }
+                        render();
+                    };
 
                     groupTunings.forEach((name, idx) => {
                         const div = document.createElement('div');
@@ -132,7 +189,8 @@
                         div.appendChild(toggle);
                         groupContainer.appendChild(div);
                     });
-                    visList.appendChild(groupContainer);
+                    groupWrapper.appendChild(groupContainer);
+                    visList.appendChild(groupWrapper);
                 });
 
                 const customList = document.getElementById('tuner-custom-list');
