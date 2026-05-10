@@ -407,6 +407,31 @@
         btn.className = 'fixed bottom-5 right-5 px-4 py-2.5 bg-dark-700 hover:bg-dark-600 border border-gray-800 text-gray-300 hover:text-white rounded-xl text-sm transition-all duration-200 active:scale-95 shadow-2xl z-[1001]';
         btn.onclick = window.tuner.toggle;
         document.body.appendChild(btn);
+        // Hide when playing
+        const handlePlay = () => {
+            btn.classList.add('hidden');
+            if (enabled) {
+                // If tuner is open, we should probably close it to free the mic
+                // and keep the UI clean during playback.
+                disable();
+            }
+        };
+        const handleStop = () => {
+            btn.classList.remove('hidden');
+        };
+
+        if (window.slopsmith) {
+            window.slopsmith.on('song:play', () => handlePlay());
+            window.slopsmith.on('song:pause', () => handleStop());
+            window.slopsmith.on('song:ended', () => handleStop());
+            window.slopsmith.on('screen:changed', (e) => {
+                if (e.detail.id === 'player') handlePlay();
+                else handleStop();
+            });
+
+            // Initial state check
+            if (window.slopsmith.isPlaying || document.querySelector('.screen.active')?.id === 'player') handlePlay();
+        }
     }
     addButton();
 
