@@ -224,6 +224,7 @@
             }, 50);
 
             enabled = true;
+            if (window.tuner && window.tuner.updateButtons) window.tuner.updateButtons();
         } catch (e) {
             console.error('Tuner: Failed to start audio', e);
             alert('Tuner: Could not access microphone.');
@@ -243,6 +244,7 @@
         if (sourceNode) { sourceNode.disconnect(); sourceNode = null; }
         if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
         if (audioCtx) { audioCtx.close(); audioCtx = null; }
+        if (window.tuner && window.tuner.updateButtons) window.tuner.updateButtons();
     }
 
     function _tunerYinDetect(buffer, sampleRate) {
@@ -391,8 +393,33 @@
     window.tuner = {
         enable,
         disable,
-        toggle: () => enabled ? disable() : enable()
+        toggle: () => enabled ? disable() : enable(),
+        updateButtons: () => {
+            updateFloatingButton();
+            updatePlayerButton();
+        }
     };
+
+    function updateFloatingButton() {
+        const btn = document.getElementById('tuner-toggle-btn');
+        if (!btn) return;
+        const baseClasses = enabled
+            ? 'fixed bottom-5 right-5 px-4 py-2.5 bg-green-700/40 hover:bg-green-700/60 border border-green-500/50 text-green-300 rounded-xl text-sm transition-all duration-200 active:scale-95 shadow-2xl z-[1001]'
+            : 'fixed bottom-5 right-5 px-4 py-2.5 bg-dark-700 hover:bg-dark-600 border border-gray-800 text-gray-300 hover:text-white rounded-xl text-sm transition-all duration-200 active:scale-95 shadow-2xl z-[1001]';
+        
+        // Preserve hidden state
+        const isHidden = btn.classList.contains('hidden');
+        btn.className = baseClasses;
+        if (isHidden) btn.classList.add('hidden');
+    }
+
+    function updatePlayerButton() {
+        const btn = document.getElementById('btn-tuner-player');
+        if (!btn) return;
+        btn.className = enabled
+            ? 'px-3 py-1.5 bg-green-700/40 hover:bg-green-700/60 rounded-lg text-xs text-green-300 transition'
+            : 'px-3 py-1.5 bg-dark-600 hover:bg-dark-500 rounded-lg text-xs text-gray-400 transition';
+    }
 
     console.log('Tuner plugin loaded. Use window.tuner.toggle() to open.');
     
@@ -404,10 +431,10 @@
         btn.id = 'tuner-toggle-btn';
         btn.textContent = 'Tuner';
         btn.title = 'Open Tuner';
-        btn.className = 'fixed bottom-5 right-5 px-4 py-2.5 bg-dark-700 hover:bg-dark-600 border border-gray-800 text-gray-300 hover:text-white rounded-xl text-sm transition-all duration-200 active:scale-95 shadow-2xl z-[1001]';
         btn.onclick = window.tuner.toggle;
         document.body.appendChild(btn);
-        // Hide when playing
+        updateFloatingButton();
+
         const handlePlay = () => {
             btn.classList.add('hidden');
             if (enabled) {
@@ -417,6 +444,7 @@
             }
         };
         const handleStop = () => {
+            if (document.querySelector('.screen.active')?.id === 'player') return;
             btn.classList.remove('hidden');
         };
 
@@ -425,14 +453,37 @@
             window.slopsmith.on('song:pause', () => handleStop());
             window.slopsmith.on('song:ended', () => handleStop());
             window.slopsmith.on('screen:changed', (e) => {
-                if (e.detail.id === 'player') handlePlay();
-                else handleStop();
+                if (e.detail.id === 'player') {
+                    handlePlay();
+                    injectPlayerButton();
+                } else {
+                    handleStop();
+                }
             });
 
             // Initial state check
-            if (window.slopsmith.isPlaying || document.querySelector('.screen.active')?.id === 'player') handlePlay();
+            if (window.slopsmith.isPlaying || document.querySelector('.screen.active')?.id === 'player') {
+                handlePlay();
+                if (document.querySelector('.screen.active')?.id === 'player') injectPlayerButton();
+            }
         }
     }
+
+    function injectPlayerButton() {
+        const controls = document.getElementById('player-controls');
+        if (!controls || document.getElementById('btn-tuner-player')) return;
+
+        const closeBtn = controls.querySelector('button:last-child');
+        const btn = document.createElement('button');
+        btn.id = 'btn-tuner-player';
+        btn.textContent = 'Tuner';
+        btn.title = 'Open Tuner';
+        btn.onclick = window.tuner.toggle;
+        if (closeBtn) controls.insertBefore(btn, closeBtn);
+        else controls.appendChild(btn);
+        updatePlayerButton();
+    }
+
     addButton();
 
 })();
