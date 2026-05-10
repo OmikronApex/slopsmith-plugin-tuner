@@ -37,24 +37,7 @@
 
     <script>
         (function() {
-            const DEFAULT_TUNINGS = {
-                "Guitar": {
-                    "Guitar Standard": [82.41, 110.00, 146.83, 196.00, 246.94, 329.63],
-                    "Guitar Drop D": [73.42, 110.00, 146.83, 196.00, 246.94, 329.63],
-                    "Guitar Open G": [73.42, 98.00, 146.83, 196.00, 246.94, 293.66],
-                    "Guitar DADGAD": [73.42, 110.00, 146.83, 196.00, 220.00, 293.66],
-                    "Guitar Open E": [82.41, 123.47, 164.81, 207.65, 246.94, 329.63]
-                },
-                "Bass": {
-                    "Bass 4-string Standard": [41.20, 55.00, 73.42, 98.00],
-                    "Bass 4-string Drop D": [36.71, 55.00, 73.42, 98.00],
-                    "Bass 4-string D-Standard": [36.71, 48.99, 65.41, 87.31],
-                    "Bass 4-string Drop C": [32.70, 48.99, 65.41, 87.31],
-                    "Bass 5-string Standard": [30.87, 41.20, 55.00, 73.42, 98.00],
-                }
-            };
-
-            let config = { customTunings: {}, disabledTunings: [] };
+            let config = { customTunings: {}, disabledTunings: [], defaultTunings: {} };
 
             async function load() {
                 try {
@@ -80,8 +63,9 @@
                 const visList = document.getElementById('tuner-visibility-list');
                 visList.innerHTML = '';
                 
-                Object.keys(DEFAULT_TUNINGS).forEach(groupName => {
-                    const group = DEFAULT_TUNINGS[groupName];
+                const defaultTunings = config.defaultTunings || {};
+                Object.keys(defaultTunings).forEach(groupName => {
+                    const group = defaultTunings[groupName];
                     const groupTunings = Object.keys(group);
                     
                     // Group header

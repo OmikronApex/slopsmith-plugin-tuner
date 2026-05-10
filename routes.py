@@ -7,6 +7,23 @@ from fastapi import FastAPI, Request
 
 DEFAULT_TUNING = "Guitar Standard"
 
+DEFAULT_TUNINGS = {
+    "Guitar": {
+        "Guitar Standard": [82.41, 110.00, 146.83, 196.00, 246.94, 329.63],
+        "Guitar Drop D": [73.42, 110.00, 146.83, 196.00, 246.94, 329.63],
+        "Guitar Open G": [73.42, 98.00, 146.83, 196.00, 246.94, 293.66],
+        "Guitar DADGAD": [73.42, 110.00, 146.83, 196.00, 220.00, 293.66],
+        "Guitar Open E": [82.41, 123.47, 164.81, 207.65, 246.94, 329.63]
+    },
+    "Bass": {
+        "Bass 4-string Standard": [41.20, 55.00, 73.42, 98.00],
+        "Bass 4-string Drop D": [36.71, 55.00, 73.42, 98.00],
+        "Bass 4-string D-Standard": [36.71, 48.99, 65.41, 87.31],
+        "Bass 4-string Drop C": [32.70, 48.99, 65.41, 87.31],
+        "Bass 5-string Standard": [30.87, 41.20, 55.00, 73.42, 98.00],
+    }
+}
+
 def setup(app: FastAPI, context: dict):
     config_dir = Path(context["config_dir"])
     config_file = config_dir / "tuner.json"
@@ -42,12 +59,19 @@ def setup(app: FastAPI, context: dict):
         config_dir.mkdir(parents=True, exist_ok=True)
         # Merge with existing to be safe, or just overwrite if we have full object
         current = _read()
+        # Remove defaultTunings from data before writing to file if it's there
+        # as it is a computed property from the backend
+        if "defaultTunings" in data:
+            data = data.copy()
+            del data["defaultTunings"]
         current.update(data)
         config_file.write_text(json.dumps(current, indent=2), encoding="utf-8")
 
     @app.get("/api/plugins/tuner/config")
     def get_config():
-        return _read()
+        config = _read()
+        config["defaultTunings"] = DEFAULT_TUNINGS
+        return config
 
     @app.post("/api/plugins/tuner/config")
     async def set_config(req: Request):

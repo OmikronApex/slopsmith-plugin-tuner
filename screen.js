@@ -25,30 +25,10 @@
     let stringNoteContainer = null;
     let manualTargetFreq = null;
 
-    const DEFAULT_TUNINGS = {
-        "Guitar": {
-            "Guitar Standard": [82.41, 110.00, 146.83, 196.00, 246.94, 329.63],
-            "Guitar Drop D": [73.42, 110.00, 146.83, 196.00, 246.94, 329.63],
-            "Guitar Open G": [73.42, 98.00, 146.83, 196.00, 246.94, 293.66],
-            "Guitar DADGAD": [73.42, 110.00, 146.83, 196.00, 220.00, 293.66],
-            "Guitar Open E": [82.41, 123.47, 164.81, 207.65, 246.94, 329.63]
-        },
-        "Bass": {
-            "Bass 4-string Standard": [41.20, 55.00, 73.42, 98.00],
-            "Bass 4-string Drop D": [36.71, 55.00, 73.42, 98.00],
-            "Bass 4-string D-Standard": [36.71, 48.99, 65.41, 87.31],
-            "Bass 4-string Drop C": [32.70, 48.99, 65.41, 87.31],
-            "Bass 5-string Standard": [30.87, 41.20, 55.00, 73.42, 98.00],
-        }
-    };
-
+    let defaultTunings = {};
     let tunings = {};
-    // Initial population (will be overwritten by loadConfig)
-    Object.keys(DEFAULT_TUNINGS).forEach(group => {
-        Object.assign(tunings, DEFAULT_TUNINGS[group]);
-    });
     
-    let selectedTuning = tunings["Guitar Standard"];
+    let selectedTuning = null;
     let selectedTuningName = "Guitar Standard";
 
     async function loadConfig() {
@@ -56,11 +36,13 @@
             const resp = await fetch('/api/plugins/tuner/config');
             const config = await resp.json();
             
+            defaultTunings = config.defaultTunings || {};
+
             // Rebuild tunings list
             tunings = {};
             // Add visible defaults
-            Object.keys(DEFAULT_TUNINGS).forEach(groupName => {
-                const group = DEFAULT_TUNINGS[groupName];
+            Object.keys(defaultTunings).forEach(groupName => {
+                const group = defaultTunings[groupName];
                 Object.keys(group).forEach(name => {
                     if (!config.disabledTunings || !config.disabledTunings.includes(name)) {
                         tunings[name] = group[name];
@@ -84,10 +66,9 @@
                 }
             }
 
-            if (tuningSelect) {
-                renderTuningOptions();
-                tuningSelect.value = selectedTuningName;
-            }
+        if (tuningSelect) {
+            renderTuningOptions();
+        }
             if (uiContainer && !uiContainer.classList.contains('hidden')) {
                 renderStringNotes();
             }
@@ -104,6 +85,9 @@
             opt.value = name;
             opt.textContent = name;
             tuningSelect.appendChild(opt);
+        }
+        if (selectedTuningName) {
+            tuningSelect.value = selectedTuningName;
         }
     }
 
@@ -136,7 +120,6 @@
         tuningSelect = document.createElement('select');
         tuningSelect.className = 'w-full bg-dark-700 text-sm text-gray-200 border border-gray-800 mb-4 p-2 rounded-lg outline-none focus:border-accent transition';
         renderTuningOptions();
-        tuningSelect.value = selectedTuningName;
         tuningSelect.onchange = (e) => {
             selectedTuningName = e.target.value;
             selectedTuning = tunings[selectedTuningName];
