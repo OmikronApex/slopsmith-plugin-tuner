@@ -34,7 +34,7 @@ docker compose restart
 
 ## Configuration
 
-Access the tuner settings via the Slopsmith Plugin Manager (Gear icon -> Plugins -> Tuner Settings):
+Access the tuner settings via the Slopsmith Plugin Manager (Settings -> Plugins -> Tuner):
 - **Tuning Visibility**: Toggle which built-in tunings appear in your menu.
 - **Custom Tunings**: Define your own tuning presets by entering a name and a list of notes/frequencies.
 
