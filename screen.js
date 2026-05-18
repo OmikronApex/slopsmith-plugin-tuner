@@ -61,16 +61,8 @@
     // Dynamically loads visualization/<name>.js on first use, then
     // instantiates it. New viz = drop a file in visualization/ and add
     // an option to the settings select. No other changes needed.
-    const _loadedVizScripts = new Set();
     function _loadVizScript(name) {
-        if (_loadedVizScripts.has(name)) return Promise.resolve();
-        return new Promise((resolve, reject) => {
-            const s = document.createElement('script');
-            s.src = `/api/plugins/tuner/visualization/${name}.js`;
-            s.onload = () => { _loadedVizScripts.add(name); resolve(); };
-            s.onerror = () => reject(new Error(`Tuner: failed to load viz "${name}"`));
-            document.head.appendChild(s);
-        });
+        return _loadScript(`/api/plugins/tuner/visualization/${name}.js`);
     }
 
     async function _setVisualization(name) {
@@ -309,7 +301,7 @@
         uiContainer.appendChild(vizContainer);
 
         const closeBtn = document.createElement('button');
-        closeBtn.className = 'mt-5 w-full bg-dark-700 hover:bg-dark-600 border border-gray-800 text-gray-300 text-xs py-2 rounded-lg transition-colors uppercase font-semibold tracking-wide';
+        closeBtn.className = 'mt-5 w-full bg-dark-700 hover:bg-dark-500 border border-gray-800 text-gray-300 text-xs py-2 rounded-lg transition-colors uppercase font-semibold tracking-wide';
         closeBtn.textContent = 'Close';
         closeBtn.onclick = disable;
         uiContainer.appendChild(closeBtn);
@@ -511,6 +503,7 @@
 
     function disable() {
         enabled = false;
+        manualTargetFreq = null;
         if (activeViz) { activeViz.destroy(); activeViz = null; }
         if (uiContainer) { uiContainer.classList.add('hidden'); uiContainer.classList.remove('flex'); }
         if (_onScreenChanged) { window.slopsmith?.off('screen:changed', _onScreenChanged); _onScreenChanged = null; }
@@ -575,8 +568,8 @@
         if (!btn) return;
         const isHidden = btn.classList.contains('hidden');
         btn.className = enabled
-            ? 'fixed bottom-5 right-5 px-4 py-2.5 bg-accent/20 hover:bg-accent/30 border border-accent/50 text-accent rounded-xl text-sm transition-all duration-200 active:scale-95 shadow-2xl z-[1001]'
-            : 'fixed bottom-5 right-5 px-4 py-2.5 bg-dark-700 hover:bg-dark-600 border border-gray-800 text-gray-300 hover:text-white rounded-xl text-sm transition-all duration-200 active:scale-95 shadow-2xl z-[1001]';
+            ? 'fixed bottom-5 right-5 px-4 py-2.5 bg-accent/20 hover:bg-accent/30 border border-accent text-accent rounded-xl text-sm transition-all duration-200 active:scale-95 shadow-2xl z-[1001]'
+            : 'fixed bottom-5 right-5 px-4 py-2.5 bg-dark-700 hover:bg-dark-500 border border-gray-800 text-gray-300 hover:text-white rounded-xl text-sm transition-all duration-200 active:scale-95 shadow-2xl z-[1001]';
         if (isHidden) btn.classList.add('hidden');
         updateFloatingButtonVisibility();
     }
@@ -585,7 +578,7 @@
         const btn = document.getElementById('btn-tuner-player');
         if (!btn) return;
         btn.className = enabled
-            ? 'px-3 py-1.5 bg-accent/20 hover:bg-accent/30 border border-accent/50 rounded-lg text-xs text-accent transition'
+            ? 'px-3 py-1.5 bg-accent/20 hover:bg-accent/30 border border-accent rounded-lg text-xs text-accent transition'
             : 'px-3 py-1.5 bg-dark-600 hover:bg-dark-500 rounded-lg text-xs text-gray-400 transition';
     }
 
