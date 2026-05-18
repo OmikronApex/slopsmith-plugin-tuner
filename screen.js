@@ -18,7 +18,6 @@
     let yinWorker = null;
 
     // ── Player sync state ─────────────────────────────────────────────
-    let lastPlayerActive = false;
     let _onScreenChanged = null;
     let _onSongReady = null;
 
@@ -30,7 +29,6 @@
 
     // ── Viz state ─────────────────────────────────────────────────────
     let activeViz = null;
-    const _loadedVizScripts = new Set();
 
     // ── Tuning state ──────────────────────────────────────────────────
     let defaultTunings = {};
@@ -46,19 +44,25 @@
     let selectedChannel = 'mono';
     const _TUNER_STORAGE_KEY = 'slopsmith_tuner_settings';
 
+    // ── Script loader ─────────────────────────────────────────────────
+    const _loadedScripts = new Set();
+    function _loadScript(url) {
+        if (_loadedScripts.has(url)) return Promise.resolve();
+        return new Promise((resolve, reject) => {
+            const s = document.createElement('script');
+            s.src = url;
+            s.onload = () => { _loadedScripts.add(url); resolve(); };
+            s.onerror = () => reject(new Error(`Tuner: failed to load "${url}"`));
+            document.head.appendChild(s);
+        });
+    }
+
     // ── Viz loader ────────────────────────────────────────────────────
     // Dynamically loads visualization/<name>.js on first use, then
     // instantiates it. New viz = drop a file in visualization/ and add
     // an option to the settings select. No other changes needed.
     function _loadVizScript(name) {
-        if (_loadedVizScripts.has(name)) return Promise.resolve();
-        return new Promise((resolve, reject) => {
-            const s = document.createElement('script');
-            s.src = `/api/plugins/tuner/visualization/${name}.js`;
-            s.onload = () => { _loadedVizScripts.add(name); resolve(); };
-            s.onerror = () => reject(new Error(`Tuner: failed to load viz "${name}"`));
-            document.head.appendChild(s);
-        });
+        return _loadScript(`/api/plugins/tuner/visualization/${name}.js`);
     }
 
     async function _setVisualization(name) {
@@ -78,7 +82,7 @@
         const songInfo = window.highway?.getSongInfo();
         if (songInfo && songInfo.tuning && tuningSelect?.querySelector('option[value="_current"]')) {
             const sc = songInfo.stringCount || songInfo.tuning.length;
-            selectedTuning = offsetsToFreqs(
+            selectedTuning = window._tunerUtils.offsetsToFreqs(
                 songInfo.tuning.slice(0, sc),
                 (songInfo.arrangement || '').toLowerCase().includes('bass'),
             );
@@ -158,56 +162,6 @@
         }
     }
 
-    // ── Tuning helpers ────────────────────────────────────────────────
-    function freqToMidi(f) { return 69 + 12 * Math.log2(f / 440); }
-    function midiToFreq(m) { return Math.pow(2, (m - 69) / 12) * 440; }
-
-    const _NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-    function midiToNote(m) { return _NOTE_NAMES[Math.round(m) % 12]; }
-
-    function offsetsToFreqs(offsets, isBass) {
-        const guitarBase = [40, 45, 50, 55, 59, 64];
-        const bassBase   = [28, 33, 38, 43];
-        const base = isBass ? bassBase : guitarBase;
-        return offsets.map((offset, i) => {
-            const root = i < base.length ? base[i] : base[base.length - 1];
-            return midiToFreq(root + offset);
-        });
-    }
-
-    function getTuningName(offsets) {
-        if (!offsets || offsets.length === 0) return 'Unknown';
-        const len = offsets.length;
-        if (len !== 6 && len !== 4) return offsets.join(' ');
-
-        const standard = {
-            0: 'E Standard', '-1': 'Eb Standard', '-2': 'D Standard',
-            '-3': 'C# Standard', '-4': 'C Standard', '-5': 'B Standard',
-            '-6': 'Bb Standard', '-7': 'A Standard',
-            '1': 'F Standard', '2': 'F# Standard',
-        };
-        if (offsets.every(o => o === offsets[0])) return standard[offsets[0]] || offsets.join(' ');
-
-        if (offsets[0] === offsets[1] - 2 && offsets.slice(1).every(o => o === offsets[1])) {
-            const names = ['E','F','F#','G','Ab','A','Bb','B','C','C#','D','Eb'];
-            let idx = (offsets[0] + (len === 4 ? 4 : 0)) % 12;
-            if (idx < 0) idx += 12;
-            return `Drop ${names[idx]}`;
-        }
-
-        if (len === 6) {
-            const named = {
-                '-2,0,0,0,0,0': 'Drop D', '-4,-2,-2,-2,-2,-2': 'Drop C',
-                '-2,-2,0,0,0,0': 'Double Drop D', '0,0,0,-1,0,0': 'Open G',
-                '-2,-2,0,0,-2,-2': 'Open D', '-2,0,0,0,-2,0': 'DADGAD',
-                '0,2,2,1,0,0': 'Open E', '-2,0,0,2,3,2': 'Open D (alt)',
-            };
-            if (named[offsets.join(',')]) return named[offsets.join(',')];
-        }
-
-        return offsets.join(' ');
-    }
-
     // ── UI ────────────────────────────────────────────────────────────
     function renderTuningOptions() {
         if (!tuningSelect) return;
@@ -220,8 +174,8 @@
                 const sc = info.stringCount || info.tuning.length;
                 const realTuning = info.tuning.slice(0, sc);
                 const isBass = (info.arrangement || '').toLowerCase().includes('bass');
-                const freqs = offsetsToFreqs(realTuning, isBass);
-                const tName = getTuningName(realTuning);
+                const freqs = window._tunerUtils.offsetsToFreqs(realTuning, isBass);
+                const tName = window._tunerUtils.getTuningName(realTuning);
 
                 const opt = document.createElement('option');
                 opt.value = '_current';
@@ -255,7 +209,7 @@
             const btn = document.createElement('button');
             btn.dataset.freq = f;
             btn.className = 'flex-1 py-1.5 text-xs font-bold rounded bg-dark-700 text-gray-400 border border-gray-800 hover:border-gray-600 transition-colors';
-            btn.textContent = midiToNote(freqToMidi(f));
+            btn.textContent = window._tunerUtils.midiToNote(window._tunerUtils.freqToMidi(f));
             btn.onclick = () => {
                 manualTargetFreq = manualTargetFreq === f ? null : f;
                 _syncStringHighlight(manualTargetFreq);
@@ -322,7 +276,7 @@
                 const info = window.highway?.getSongInfo();
                 if (info) {
                     const sc = info.stringCount || info.tuning.length;
-                    selectedTuning = offsetsToFreqs(info.tuning.slice(0, sc), (info.arrangement || '').toLowerCase().includes('bass'));
+                    selectedTuning = window._tunerUtils.offsetsToFreqs(info.tuning.slice(0, sc), (info.arrangement || '').toLowerCase().includes('bass'));
                 } else {
                     selectedTuning = null;
                 }
@@ -347,7 +301,7 @@
         uiContainer.appendChild(vizContainer);
 
         const closeBtn = document.createElement('button');
-        closeBtn.className = 'mt-5 w-full bg-dark-700 hover:bg-dark-600 border border-gray-800 text-gray-300 text-xs py-2 rounded-lg transition-colors uppercase font-semibold tracking-wide';
+        closeBtn.className = 'mt-5 w-full bg-dark-700 hover:bg-dark-500 border border-gray-800 text-gray-300 text-xs py-2 rounded-lg transition-colors uppercase font-semibold tracking-wide';
         closeBtn.textContent = 'Close';
         closeBtn.onclick = disable;
         uiContainer.appendChild(closeBtn);
@@ -423,19 +377,98 @@
     }
 
     // ── Audio pipeline ────────────────────────────────────────────────
+    async function _startAudio() {
+        const constraints = { audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 2 } };
+        if (selectedDeviceId) constraints.audio.deviceId = { exact: selectedDeviceId };
+
+        try {
+            stream = await navigator.mediaDevices.getUserMedia(constraints);
+        } catch (e) {
+            if ((e.name === 'OverconstrainedError' || e.name === 'NotFoundError') && selectedDeviceId) {
+                selectedDeviceId = '';
+                saveSettings();
+                delete constraints.audio.deviceId;
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
+            } else {
+                throw e;
+            }
+        }
+
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        sourceNode = audioCtx.createMediaStreamSource(stream);
+
+        gainNode = audioCtx.createGain();
+        gainNode.gain.value = 1.0;
+
+        if (sourceNode.channelCount >= 2 && selectedChannel !== 'mono') {
+            const splitter = audioCtx.createChannelSplitter(2);
+            const merger = audioCtx.createChannelMerger(1);
+            sourceNode.connect(splitter);
+            splitter.connect(merger, selectedChannel === 'left' ? 0 : 1, 0);
+            merger.connect(gainNode);
+        } else {
+            sourceNode.connect(gainNode);
+        }
+
+        processor = audioCtx.createScriptProcessor(_TUNER_FRAME_SIZE, 1, 1);
+        processor.onaudioprocess = (e) => {
+            const input = e.inputBuffer.getChannelData(0);
+            const combined = new Float32Array(accumBuffer.length + input.length);
+            combined.set(accumBuffer);
+            combined.set(input, accumBuffer.length);
+
+            if (combined.length >= _TUNER_MIN_YIN_SAMPLES) {
+                pendingBuffer = combined.slice(combined.length - _TUNER_MIN_YIN_SAMPLES);
+                accumBuffer = combined.slice(input.length);
+            } else {
+                accumBuffer = combined;
+            }
+        };
+
+        gainNode.connect(processor);
+        processor.connect(audioCtx.destination);
+
+        yinWorker = new Worker('/api/plugins/tuner/workers/yin.js');
+        yinWorker.onmessage = (e) => { updateUI(e.data); processingFrame = false; };
+        yinWorker.onerror = (e) => { console.error('Tuner: YIN worker error', e); processingFrame = false; };
+
+        detectInterval = setInterval(() => {
+            if (processingFrame || !pendingBuffer || !yinWorker) return;
+            const buf = pendingBuffer;
+            pendingBuffer = null;
+            processingFrame = true;
+            yinWorker.postMessage({ samples: buf, sampleRate: audioCtx.sampleRate }, [buf.buffer]);
+        }, 30);
+    }
+
+    function _stopAudio() {
+        if (detectInterval) { clearInterval(detectInterval); detectInterval = null; }
+        if (yinWorker) { yinWorker.terminate(); yinWorker = null; }
+        processingFrame = false;
+        pendingBuffer = null;
+        accumBuffer = new Float32Array(0);
+        if (processor) { processor.disconnect(); processor = null; }
+        if (gainNode) { gainNode.disconnect(); gainNode = null; }
+        if (sourceNode) { sourceNode.disconnect(); sourceNode = null; }
+        if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+        if (audioCtx) { audioCtx.close(); audioCtx = null; }
+    }
+
     async function restartAudio() {
-        const wasEnabled = enabled;
-        disable();
-        if (wasEnabled) await enable();
+        _stopAudio();
+        try {
+            await _startAudio();
+        } catch (e) {
+            console.error('Tuner: Failed to restart audio', e);
+        }
     }
 
     async function enable() {
         if (enabled) return;
+        await _loadScript('/api/plugins/tuner/utils/tuning-utils.js');
         await loadConfig();
 
-        lastPlayerActive = document.querySelector('.screen.active')?.id === 'player';
-
-        if (lastPlayerActive) selectedTuningName = '_current';
+        if (document.querySelector('.screen.active')?.id === 'player') selectedTuningName = '_current';
 
         initUI();
         renderTuningOptions();
@@ -448,20 +481,7 @@
         uiContainer.classList.add('flex');
 
         if (window.slopsmith && !_onScreenChanged) {
-            _onScreenChanged = (e) => {
-                const entering = e.detail.id === 'player';
-                const leaving = !entering && lastPlayerActive;
-                lastPlayerActive = entering;
-
-                if (entering) {
-                    selectedTuningName = '_current';
-                    renderTuningOptions();
-                    _syncCurrentTuning();
-                } else if (leaving) {
-                    renderTuningOptions();
-                    if (selectedTuningName === '_current') _syncCurrentTuning();
-                }
-            };
+            _onScreenChanged = () => { disable(); };
             _onSongReady = () => {
                 renderTuningOptions();
                 if (selectedTuningName === '_current') _syncCurrentTuning();
@@ -471,76 +491,7 @@
         }
 
         try {
-            const constraints = { audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 2 } };
-            if (selectedDeviceId) constraints.audio.deviceId = { exact: selectedDeviceId };
-
-            try {
-                stream = await navigator.mediaDevices.getUserMedia(constraints);
-            } catch (e) {
-                if ((e.name === 'OverconstrainedError' || e.name === 'NotFoundError') && selectedDeviceId) {
-                    selectedDeviceId = '';
-                    saveSettings();
-                    delete constraints.audio.deviceId;
-                    stream = await navigator.mediaDevices.getUserMedia(constraints);
-                } else {
-                    throw e;
-                }
-            }
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            sourceNode = audioCtx.createMediaStreamSource(stream);
-
-            gainNode = audioCtx.createGain();
-            gainNode.gain.value = 1.0;
-
-            if (sourceNode.channelCount >= 2 && selectedChannel !== 'mono') {
-                const splitter = audioCtx.createChannelSplitter(2);
-                const merger = audioCtx.createChannelMerger(1);
-                sourceNode.connect(splitter);
-                splitter.connect(merger, selectedChannel === 'left' ? 0 : 1, 0);
-                merger.connect(gainNode);
-            } else {
-                sourceNode.connect(gainNode);
-            }
-
-            processor = audioCtx.createScriptProcessor(_TUNER_FRAME_SIZE, 1, 1);
-            processor.onaudioprocess = (e) => {
-                const input = e.inputBuffer.getChannelData(0);
-                const combined = new Float32Array(accumBuffer.length + input.length);
-                combined.set(accumBuffer);
-                combined.set(input, accumBuffer.length);
-
-                if (combined.length >= _TUNER_MIN_YIN_SAMPLES) {
-                    pendingBuffer = combined.slice(combined.length - _TUNER_MIN_YIN_SAMPLES);
-                    accumBuffer = combined.slice(input.length);
-                } else {
-                    accumBuffer = combined;
-                }
-            };
-
-            gainNode.connect(processor);
-            processor.connect(audioCtx.destination);
-
-            yinWorker = new Worker('/api/plugins/tuner/workers/yin.js');
-            yinWorker.onmessage = (e) => {
-                updateUI(e.data);
-                processingFrame = false;
-            };
-            yinWorker.onerror = (e) => {
-                console.error('Tuner: YIN worker error', e);
-                processingFrame = false;
-            };
-
-            detectInterval = setInterval(() => {
-                if (processingFrame || !pendingBuffer || !yinWorker) return;
-                const buf = pendingBuffer;
-                pendingBuffer = null;
-                processingFrame = true;
-                yinWorker.postMessage(
-                    { samples: buf, sampleRate: audioCtx.sampleRate },
-                    [buf.buffer],
-                );
-            }, 30);
-
+            await _startAudio();
             enabled = true;
             if (window.tuner?.updateButtons) window.tuner.updateButtons();
         } catch (e) {
@@ -552,21 +503,12 @@
 
     function disable() {
         enabled = false;
+        manualTargetFreq = null;
         if (activeViz) { activeViz.destroy(); activeViz = null; }
         if (uiContainer) { uiContainer.classList.add('hidden'); uiContainer.classList.remove('flex'); }
-        if (detectInterval) { clearInterval(detectInterval); detectInterval = null; }
         if (_onScreenChanged) { window.slopsmith?.off('screen:changed', _onScreenChanged); _onScreenChanged = null; }
         if (_onSongReady) { window.slopsmith?.off('song:ready', _onSongReady); _onSongReady = null; }
-        if (yinWorker) { yinWorker.terminate(); yinWorker = null; }
-        processingFrame = false;
-        pendingBuffer = null;
-        accumBuffer = new Float32Array(0);
-        if (processor) { processor.disconnect(); processor = null; }
-        if (gainNode) { gainNode.disconnect(); gainNode = null; }
-        if (sourceNode) { sourceNode.disconnect(); sourceNode = null; }
-        if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
-        if (audioCtx) { audioCtx.close(); audioCtx = null; }
-        // Reset viz container so next enable() gets a fresh mount
+        _stopAudio();
         if (vizContainer) vizContainer.innerHTML = '';
         if (window.tuner?.updateButtons) window.tuner.updateButtons();
     }
@@ -578,13 +520,14 @@
 
         if (!result || (!hasSignal && result.confidence < 0.5) || (result.freq < _TUNER_MIN_DETECTABLE_HZ && result.freq !== 0)) {
             if (activeViz) activeViz.update(null, 0, 0);
-            _syncStringHighlight(null);
+            _syncStringHighlight(manualTargetFreq);
             return;
         }
 
         if (result.confidence < 0.5 && hasSignal) {
             // dim signal — let viz handle its own timeout
             if (activeViz) activeViz.update(null, 0, 0);
+            _syncStringHighlight(manualTargetFreq);
             return;
         }
 
@@ -598,11 +541,11 @@
         } else if (selectedTuning && selectedTuning.length > 0) {
             targetFreq = selectedTuning.reduce((best, f) => Math.abs(freq - f) < Math.abs(freq - best) ? f : best, selectedTuning[0]);
         } else {
-            targetFreq = midiToFreq(Math.round(freqToMidi(freq)));
+            targetFreq = window._tunerUtils.midiToFreq(Math.round(window._tunerUtils.freqToMidi(freq)));
         }
 
-        const cents = (freqToMidi(freq) - freqToMidi(targetFreq)) * 100;
-        const note = midiToNote(freqToMidi(targetFreq));
+        const cents = (window._tunerUtils.freqToMidi(freq) - window._tunerUtils.freqToMidi(targetFreq)) * 100;
+        const note = window._tunerUtils.midiToNote(window._tunerUtils.freqToMidi(targetFreq));
 
         if (activeViz) activeViz.update(note, cents, freq);
         _syncActiveStringFromFreq(targetFreq, isManual);
@@ -625,8 +568,8 @@
         if (!btn) return;
         const isHidden = btn.classList.contains('hidden');
         btn.className = enabled
-            ? 'fixed bottom-5 right-5 px-4 py-2.5 bg-accent/20 hover:bg-accent/30 border border-accent/50 text-accent rounded-xl text-sm transition-all duration-200 active:scale-95 shadow-2xl z-[1001]'
-            : 'fixed bottom-5 right-5 px-4 py-2.5 bg-dark-700 hover:bg-dark-600 border border-gray-800 text-gray-300 hover:text-white rounded-xl text-sm transition-all duration-200 active:scale-95 shadow-2xl z-[1001]';
+            ? 'fixed bottom-5 right-5 px-4 py-2.5 bg-accent/20 hover:bg-accent/30 border border-accent text-accent rounded-xl text-sm transition-all duration-200 active:scale-95 shadow-2xl z-[1001]'
+            : 'fixed bottom-5 right-5 px-4 py-2.5 bg-dark-700 hover:bg-dark-500 border border-gray-800 text-gray-300 hover:text-white rounded-xl text-sm transition-all duration-200 active:scale-95 shadow-2xl z-[1001]';
         if (isHidden) btn.classList.add('hidden');
         updateFloatingButtonVisibility();
     }
@@ -635,7 +578,7 @@
         const btn = document.getElementById('btn-tuner-player');
         if (!btn) return;
         btn.className = enabled
-            ? 'px-3 py-1.5 bg-accent/20 hover:bg-accent/30 border border-accent/50 rounded-lg text-xs text-accent transition'
+            ? 'px-3 py-1.5 bg-accent/20 hover:bg-accent/30 border border-accent rounded-lg text-xs text-accent transition'
             : 'px-3 py-1.5 bg-dark-600 hover:bg-dark-500 rounded-lg text-xs text-gray-400 transition';
     }
 
@@ -697,6 +640,7 @@
         updatePlayerButton();
     }
 
+    _loadScript('/api/plugins/tuner/utils/tuning-utils.js').catch(e => console.error(e));
     console.log('Tuner plugin loaded. Use window.tuner.toggle() to open.');
     addButton();
 

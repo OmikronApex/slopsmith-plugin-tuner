@@ -82,6 +82,7 @@ def setup(app: FastAPI, context: dict):
 
     _viz_dir = Path(__file__).parent / "visualization"
     _workers_dir = Path(__file__).parent / "workers"
+    _utils_dir = Path(__file__).parent / "utils"
 
     def _serve_js_from(base_dir: Path, filename: str) -> Response:
         target = (base_dir / filename).resolve()
@@ -100,6 +101,10 @@ def setup(app: FastAPI, context: dict):
     @app.get("/api/plugins/tuner/workers/{filename}")
     def get_worker_file(filename: str):
         return _serve_js_from(_workers_dir, filename)
+
+    @app.get("/api/plugins/tuner/utils/{filename}")
+    def get_utils_file(filename: str):
+        return _serve_js_from(_utils_dir, filename)
 
     @app.get("/api/plugins/tuner/config")
     def get_config():
