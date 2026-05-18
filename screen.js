@@ -24,6 +24,13 @@
     let centsDisplay = null;
     let gaugeEl = null;
     let gaugeNeedle = null;
+    let strobeEl = null;
+    let strobePhase = 0;
+    let currentCents = 0;
+    let smoothedCents = 0;
+    let strobeActive = false;
+    let lastAnimateTime = 0;
+    let strobeAnimationFrame = null;
     let tuningSelect = null;
     let stringNoteContainer = null;
     let manualTargetFreq = null;
@@ -238,7 +245,26 @@
         freqDisplay.textContent = '0.0 Hz';
         uiContainer.appendChild(freqDisplay);
 
-        // Gauge
+        // Strobe Tuner
+        const strobeContainer = document.createElement('div');
+        strobeContainer.className = 'w-full h-10 bg-dark-900 border border-gray-800 rounded-lg relative overflow-hidden mb-3';
+        
+        // Center marker for strobe
+        const strobeMarker = document.createElement('div');
+        strobeMarker.className = 'absolute left-1/2 top-0 bottom-0 w-1 bg-accent z-10 shadow-[0_0_8px_rgba(255,255,255,0.3)]';
+        strobeContainer.appendChild(strobeMarker);
+
+        strobeEl = document.createElement('div');
+        strobeEl.className = 'absolute top-0 left-0 w-full h-full';
+        strobeEl.style.transition = 'opacity 0.3s ease, background-image 0.2s ease';
+        // Create a high-contrast striped pattern
+        strobeEl.style.backgroundImage = 'linear-gradient(90deg, #333 50%, transparent 50%)';
+        strobeEl.style.backgroundSize = '40px 100%';
+        strobeContainer.appendChild(strobeEl);
+        
+        uiContainer.appendChild(strobeContainer);
+
+        // Gauge (hidden or kept as secondary)
         gaugeEl = document.createElement('div');
         gaugeEl.className = 'w-full h-2.5 bg-dark-900 border border-gray-800 rounded-full relative overflow-hidden mb-1.5';
         
@@ -458,9 +484,11 @@
                 const result = _tunerYinDetect(buf, audioCtx.sampleRate);
                 updateUI(result);
                 processingFrame = false;
-            }, 50);
+            }, 30);
 
             enabled = true;
+            lastAnimateTime = performance.now();
+            animateStrobe();
             if (window.tuner && window.tuner.updateButtons) window.tuner.updateButtons();
         } catch (e) {
             console.error('Tuner: Failed to start audio', e);
@@ -471,6 +499,10 @@
 
     function disable() {
         enabled = false;
+        if (strobeAnimationFrame) {
+            cancelAnimationFrame(strobeAnimationFrame);
+            strobeAnimationFrame = null;
+        }
         if (uiContainer) {
             uiContainer.classList.add('hidden');
             uiContainer.classList.remove('flex');
@@ -483,6 +515,34 @@
         if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
         if (audioCtx) { audioCtx.close(); audioCtx = null; }
         if (window.tuner && window.tuner.updateButtons) window.tuner.updateButtons();
+    }
+
+    function animateStrobe() {
+        if (!enabled) return;
+        
+        const now = performance.now();
+        let dt = (now - lastAnimateTime) / 1000;
+        if (dt > 0.1) dt = 0.016; // Cap dt to avoid jumps if tab was inactive
+        lastAnimateTime = now;
+
+        // Smooth the cents value to eliminate jitter
+        const lerpFactor = 0.2;
+        smoothedCents = (smoothedCents * (1 - lerpFactor)) + (currentCents * lerpFactor);
+
+        if (strobeEl) {
+            // Animate as long as there is a signal, even if deviation is near zero
+            if (strobeActive || Math.abs(smoothedCents) > 0.01) {
+                // Adjust speed based on smoothed cents. 
+                const speed = smoothedCents * 50; 
+                strobePhase += speed * dt;
+                
+                // Normalize phase to keep it within [0, 40)
+                strobePhase = ((strobePhase % 40) + 40) % 40;
+                strobeEl.style.backgroundPosition = strobePhase + 'px 0';
+            }
+        }
+
+        strobeAnimationFrame = requestAnimationFrame(animateStrobe);
     }
 
     function _tunerYinDetect(buffer, sampleRate) {
@@ -629,9 +689,13 @@
     function updateUI(result) {
         if (!result || result.confidence < 0.8 || result.freq < _TUNER_MIN_DETECTABLE_HZ) {
             // No strong signal
+            currentCents = 0;
+            strobeActive = false;
+            if (strobeEl) strobeEl.style.opacity = '0.1';
             return;
         }
 
+        strobeActive = true;
         const freq = result.freq;
         freqDisplay.textContent = freq.toFixed(1) + ' Hz';
 
@@ -656,6 +720,7 @@
         const targetMidi = freqToMidi(targetFreq);
         const actualMidi = freqToMidi(freq);
         const cents = (actualMidi - targetMidi) * 100;
+        currentCents = cents;
 
         noteDisplay.textContent = midiToNote(targetMidi);
         centsDisplay.textContent = (cents > 0 ? '+' : '') + cents.toFixed(0) + ' cents';
@@ -685,9 +750,17 @@
         if (Math.abs(cents) < 5) {
             noteDisplay.className = 'text-5xl font-black my-2 h-16 flex items-center justify-center text-green-400';
             gaugeNeedle.className = 'absolute left-1/2 top-0 bottom-0 w-1 bg-green-400 transition-all duration-100 ease-out -translate-x-1/2 z-20 shadow-[0_0_8px_rgba(74,222,128,0.5)]';
+            if (strobeEl) {
+                strobeEl.style.backgroundImage = 'linear-gradient(90deg, #4ade80 50%, transparent 50%)';
+                strobeEl.style.opacity = '1';
+            }
         } else {
             noteDisplay.className = 'text-5xl font-black my-2 h-16 flex items-center justify-center text-white';
             gaugeNeedle.className = 'absolute left-1/2 top-0 bottom-0 w-1 bg-white transition-all duration-100 ease-out -translate-x-1/2 z-20 shadow-[0_0_8px_rgba(255,255,255,0.5)]';
+            if (strobeEl) {
+                strobeEl.style.backgroundImage = 'linear-gradient(90deg, #fff 50%, transparent 50%)';
+                strobeEl.style.opacity = '0.4';
+            }
         }
     }
 
