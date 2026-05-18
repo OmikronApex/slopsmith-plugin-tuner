@@ -29,7 +29,6 @@
 
     // ── Viz state ─────────────────────────────────────────────────────
     let activeViz = null;
-    const _loadedVizScripts = new Set();
 
     // ── Tuning state ──────────────────────────────────────────────────
     let defaultTunings = {};
@@ -45,10 +44,24 @@
     let selectedChannel = 'mono';
     const _TUNER_STORAGE_KEY = 'slopsmith_tuner_settings';
 
+    // ── Script loader ─────────────────────────────────────────────────
+    const _loadedScripts = new Set();
+    function _loadScript(url) {
+        if (_loadedScripts.has(url)) return Promise.resolve();
+        return new Promise((resolve, reject) => {
+            const s = document.createElement('script');
+            s.src = url;
+            s.onload = () => { _loadedScripts.add(url); resolve(); };
+            s.onerror = () => reject(new Error(`Tuner: failed to load "${url}"`));
+            document.head.appendChild(s);
+        });
+    }
+
     // ── Viz loader ────────────────────────────────────────────────────
     // Dynamically loads visualization/<name>.js on first use, then
     // instantiates it. New viz = drop a file in visualization/ and add
     // an option to the settings select. No other changes needed.
+    const _loadedVizScripts = new Set();
     function _loadVizScript(name) {
         if (_loadedVizScripts.has(name)) return Promise.resolve();
         return new Promise((resolve, reject) => {
@@ -77,7 +90,7 @@
         const songInfo = window.highway?.getSongInfo();
         if (songInfo && songInfo.tuning && tuningSelect?.querySelector('option[value="_current"]')) {
             const sc = songInfo.stringCount || songInfo.tuning.length;
-            selectedTuning = offsetsToFreqs(
+            selectedTuning = window._tunerUtils.offsetsToFreqs(
                 songInfo.tuning.slice(0, sc),
                 (songInfo.arrangement || '').toLowerCase().includes('bass'),
             );
@@ -157,56 +170,6 @@
         }
     }
 
-    // ── Tuning helpers ────────────────────────────────────────────────
-    function freqToMidi(f) { return 69 + 12 * Math.log2(f / 440); }
-    function midiToFreq(m) { return Math.pow(2, (m - 69) / 12) * 440; }
-
-    const _NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-    function midiToNote(m) { return _NOTE_NAMES[Math.round(m) % 12]; }
-
-    function offsetsToFreqs(offsets, isBass) {
-        const guitarBase = [40, 45, 50, 55, 59, 64];
-        const bassBase   = [28, 33, 38, 43];
-        const base = isBass ? bassBase : guitarBase;
-        return offsets.map((offset, i) => {
-            const root = i < base.length ? base[i] : base[base.length - 1];
-            return midiToFreq(root + offset);
-        });
-    }
-
-    function getTuningName(offsets) {
-        if (!offsets || offsets.length === 0) return 'Unknown';
-        const len = offsets.length;
-        if (len !== 6 && len !== 4) return offsets.join(' ');
-
-        const standard = {
-            0: 'E Standard', '-1': 'Eb Standard', '-2': 'D Standard',
-            '-3': 'C# Standard', '-4': 'C Standard', '-5': 'B Standard',
-            '-6': 'Bb Standard', '-7': 'A Standard',
-            '1': 'F Standard', '2': 'F# Standard',
-        };
-        if (offsets.every(o => o === offsets[0])) return standard[offsets[0]] || offsets.join(' ');
-
-        if (offsets[0] === offsets[1] - 2 && offsets.slice(1).every(o => o === offsets[1])) {
-            const names = ['E','F','F#','G','Ab','A','Bb','B','C','C#','D','Eb'];
-            let idx = (offsets[0] + (len === 4 ? 4 : 0)) % 12;
-            if (idx < 0) idx += 12;
-            return `Drop ${names[idx]}`;
-        }
-
-        if (len === 6) {
-            const named = {
-                '-2,0,0,0,0,0': 'Drop D', '-4,-2,-2,-2,-2,-2': 'Drop C',
-                '-2,-2,0,0,0,0': 'Double Drop D', '0,0,0,-1,0,0': 'Open G',
-                '-2,-2,0,0,-2,-2': 'Open D', '-2,0,0,0,-2,0': 'DADGAD',
-                '0,2,2,1,0,0': 'Open E', '-2,0,0,2,3,2': 'Open D (alt)',
-            };
-            if (named[offsets.join(',')]) return named[offsets.join(',')];
-        }
-
-        return offsets.join(' ');
-    }
-
     // ── UI ────────────────────────────────────────────────────────────
     function renderTuningOptions() {
         if (!tuningSelect) return;
@@ -219,8 +182,8 @@
                 const sc = info.stringCount || info.tuning.length;
                 const realTuning = info.tuning.slice(0, sc);
                 const isBass = (info.arrangement || '').toLowerCase().includes('bass');
-                const freqs = offsetsToFreqs(realTuning, isBass);
-                const tName = getTuningName(realTuning);
+                const freqs = window._tunerUtils.offsetsToFreqs(realTuning, isBass);
+                const tName = window._tunerUtils.getTuningName(realTuning);
 
                 const opt = document.createElement('option');
                 opt.value = '_current';
@@ -254,7 +217,7 @@
             const btn = document.createElement('button');
             btn.dataset.freq = f;
             btn.className = 'flex-1 py-1.5 text-xs font-bold rounded bg-dark-700 text-gray-400 border border-gray-800 hover:border-gray-600 transition-colors';
-            btn.textContent = midiToNote(freqToMidi(f));
+            btn.textContent = window._tunerUtils.midiToNote(window._tunerUtils.freqToMidi(f));
             btn.onclick = () => {
                 manualTargetFreq = manualTargetFreq === f ? null : f;
                 _syncStringHighlight(manualTargetFreq);
@@ -321,7 +284,7 @@
                 const info = window.highway?.getSongInfo();
                 if (info) {
                     const sc = info.stringCount || info.tuning.length;
-                    selectedTuning = offsetsToFreqs(info.tuning.slice(0, sc), (info.arrangement || '').toLowerCase().includes('bass'));
+                    selectedTuning = window._tunerUtils.offsetsToFreqs(info.tuning.slice(0, sc), (info.arrangement || '').toLowerCase().includes('bass'));
                 } else {
                     selectedTuning = null;
                 }
@@ -510,6 +473,7 @@
 
     async function enable() {
         if (enabled) return;
+        await _loadScript('/api/plugins/tuner/utils/tuning-utils.js');
         await loadConfig();
 
         if (document.querySelector('.screen.active')?.id === 'player') selectedTuningName = '_current';
@@ -584,11 +548,11 @@
         } else if (selectedTuning && selectedTuning.length > 0) {
             targetFreq = selectedTuning.reduce((best, f) => Math.abs(freq - f) < Math.abs(freq - best) ? f : best, selectedTuning[0]);
         } else {
-            targetFreq = midiToFreq(Math.round(freqToMidi(freq)));
+            targetFreq = window._tunerUtils.midiToFreq(Math.round(window._tunerUtils.freqToMidi(freq)));
         }
 
-        const cents = (freqToMidi(freq) - freqToMidi(targetFreq)) * 100;
-        const note = midiToNote(freqToMidi(targetFreq));
+        const cents = (window._tunerUtils.freqToMidi(freq) - window._tunerUtils.freqToMidi(targetFreq)) * 100;
+        const note = window._tunerUtils.midiToNote(window._tunerUtils.freqToMidi(targetFreq));
 
         if (activeViz) activeViz.update(note, cents, freq);
         _syncActiveStringFromFreq(targetFreq, isManual);
@@ -683,6 +647,7 @@
         updatePlayerButton();
     }
 
+    _loadScript('/api/plugins/tuner/utils/tuning-utils.js').catch(e => console.error(e));
     console.log('Tuner plugin loaded. Use window.tuner.toggle() to open.');
     addButton();
 
