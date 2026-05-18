@@ -18,7 +18,6 @@
     let yinWorker = null;
 
     // ── Player sync state ─────────────────────────────────────────────
-    let lastPlayerActive = false;
     let _onScreenChanged = null;
     let _onSongReady = null;
 
@@ -423,19 +422,97 @@
     }
 
     // ── Audio pipeline ────────────────────────────────────────────────
+    async function _startAudio() {
+        const constraints = { audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 2 } };
+        if (selectedDeviceId) constraints.audio.deviceId = { exact: selectedDeviceId };
+
+        try {
+            stream = await navigator.mediaDevices.getUserMedia(constraints);
+        } catch (e) {
+            if ((e.name === 'OverconstrainedError' || e.name === 'NotFoundError') && selectedDeviceId) {
+                selectedDeviceId = '';
+                saveSettings();
+                delete constraints.audio.deviceId;
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
+            } else {
+                throw e;
+            }
+        }
+
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        sourceNode = audioCtx.createMediaStreamSource(stream);
+
+        gainNode = audioCtx.createGain();
+        gainNode.gain.value = 1.0;
+
+        if (sourceNode.channelCount >= 2 && selectedChannel !== 'mono') {
+            const splitter = audioCtx.createChannelSplitter(2);
+            const merger = audioCtx.createChannelMerger(1);
+            sourceNode.connect(splitter);
+            splitter.connect(merger, selectedChannel === 'left' ? 0 : 1, 0);
+            merger.connect(gainNode);
+        } else {
+            sourceNode.connect(gainNode);
+        }
+
+        processor = audioCtx.createScriptProcessor(_TUNER_FRAME_SIZE, 1, 1);
+        processor.onaudioprocess = (e) => {
+            const input = e.inputBuffer.getChannelData(0);
+            const combined = new Float32Array(accumBuffer.length + input.length);
+            combined.set(accumBuffer);
+            combined.set(input, accumBuffer.length);
+
+            if (combined.length >= _TUNER_MIN_YIN_SAMPLES) {
+                pendingBuffer = combined.slice(combined.length - _TUNER_MIN_YIN_SAMPLES);
+                accumBuffer = combined.slice(input.length);
+            } else {
+                accumBuffer = combined;
+            }
+        };
+
+        gainNode.connect(processor);
+        processor.connect(audioCtx.destination);
+
+        yinWorker = new Worker('/api/plugins/tuner/workers/yin.js');
+        yinWorker.onmessage = (e) => { updateUI(e.data); processingFrame = false; };
+        yinWorker.onerror = (e) => { console.error('Tuner: YIN worker error', e); processingFrame = false; };
+
+        detectInterval = setInterval(() => {
+            if (processingFrame || !pendingBuffer || !yinWorker) return;
+            const buf = pendingBuffer;
+            pendingBuffer = null;
+            processingFrame = true;
+            yinWorker.postMessage({ samples: buf, sampleRate: audioCtx.sampleRate }, [buf.buffer]);
+        }, 30);
+    }
+
+    function _stopAudio() {
+        if (detectInterval) { clearInterval(detectInterval); detectInterval = null; }
+        if (yinWorker) { yinWorker.terminate(); yinWorker = null; }
+        processingFrame = false;
+        pendingBuffer = null;
+        accumBuffer = new Float32Array(0);
+        if (processor) { processor.disconnect(); processor = null; }
+        if (gainNode) { gainNode.disconnect(); gainNode = null; }
+        if (sourceNode) { sourceNode.disconnect(); sourceNode = null; }
+        if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+        if (audioCtx) { audioCtx.close(); audioCtx = null; }
+    }
+
     async function restartAudio() {
-        const wasEnabled = enabled;
-        disable();
-        if (wasEnabled) await enable();
+        _stopAudio();
+        try {
+            await _startAudio();
+        } catch (e) {
+            console.error('Tuner: Failed to restart audio', e);
+        }
     }
 
     async function enable() {
         if (enabled) return;
         await loadConfig();
 
-        lastPlayerActive = document.querySelector('.screen.active')?.id === 'player';
-
-        if (lastPlayerActive) selectedTuningName = '_current';
+        if (document.querySelector('.screen.active')?.id === 'player') selectedTuningName = '_current';
 
         initUI();
         renderTuningOptions();
@@ -448,20 +525,7 @@
         uiContainer.classList.add('flex');
 
         if (window.slopsmith && !_onScreenChanged) {
-            _onScreenChanged = (e) => {
-                const entering = e.detail.id === 'player';
-                const leaving = !entering && lastPlayerActive;
-                lastPlayerActive = entering;
-
-                if (entering) {
-                    selectedTuningName = '_current';
-                    renderTuningOptions();
-                    _syncCurrentTuning();
-                } else if (leaving) {
-                    renderTuningOptions();
-                    if (selectedTuningName === '_current') _syncCurrentTuning();
-                }
-            };
+            _onScreenChanged = () => { disable(); };
             _onSongReady = () => {
                 renderTuningOptions();
                 if (selectedTuningName === '_current') _syncCurrentTuning();
@@ -471,76 +535,7 @@
         }
 
         try {
-            const constraints = { audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 2 } };
-            if (selectedDeviceId) constraints.audio.deviceId = { exact: selectedDeviceId };
-
-            try {
-                stream = await navigator.mediaDevices.getUserMedia(constraints);
-            } catch (e) {
-                if ((e.name === 'OverconstrainedError' || e.name === 'NotFoundError') && selectedDeviceId) {
-                    selectedDeviceId = '';
-                    saveSettings();
-                    delete constraints.audio.deviceId;
-                    stream = await navigator.mediaDevices.getUserMedia(constraints);
-                } else {
-                    throw e;
-                }
-            }
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            sourceNode = audioCtx.createMediaStreamSource(stream);
-
-            gainNode = audioCtx.createGain();
-            gainNode.gain.value = 1.0;
-
-            if (sourceNode.channelCount >= 2 && selectedChannel !== 'mono') {
-                const splitter = audioCtx.createChannelSplitter(2);
-                const merger = audioCtx.createChannelMerger(1);
-                sourceNode.connect(splitter);
-                splitter.connect(merger, selectedChannel === 'left' ? 0 : 1, 0);
-                merger.connect(gainNode);
-            } else {
-                sourceNode.connect(gainNode);
-            }
-
-            processor = audioCtx.createScriptProcessor(_TUNER_FRAME_SIZE, 1, 1);
-            processor.onaudioprocess = (e) => {
-                const input = e.inputBuffer.getChannelData(0);
-                const combined = new Float32Array(accumBuffer.length + input.length);
-                combined.set(accumBuffer);
-                combined.set(input, accumBuffer.length);
-
-                if (combined.length >= _TUNER_MIN_YIN_SAMPLES) {
-                    pendingBuffer = combined.slice(combined.length - _TUNER_MIN_YIN_SAMPLES);
-                    accumBuffer = combined.slice(input.length);
-                } else {
-                    accumBuffer = combined;
-                }
-            };
-
-            gainNode.connect(processor);
-            processor.connect(audioCtx.destination);
-
-            yinWorker = new Worker('/api/plugins/tuner/workers/yin.js');
-            yinWorker.onmessage = (e) => {
-                updateUI(e.data);
-                processingFrame = false;
-            };
-            yinWorker.onerror = (e) => {
-                console.error('Tuner: YIN worker error', e);
-                processingFrame = false;
-            };
-
-            detectInterval = setInterval(() => {
-                if (processingFrame || !pendingBuffer || !yinWorker) return;
-                const buf = pendingBuffer;
-                pendingBuffer = null;
-                processingFrame = true;
-                yinWorker.postMessage(
-                    { samples: buf, sampleRate: audioCtx.sampleRate },
-                    [buf.buffer],
-                );
-            }, 30);
-
+            await _startAudio();
             enabled = true;
             if (window.tuner?.updateButtons) window.tuner.updateButtons();
         } catch (e) {
@@ -554,19 +549,9 @@
         enabled = false;
         if (activeViz) { activeViz.destroy(); activeViz = null; }
         if (uiContainer) { uiContainer.classList.add('hidden'); uiContainer.classList.remove('flex'); }
-        if (detectInterval) { clearInterval(detectInterval); detectInterval = null; }
         if (_onScreenChanged) { window.slopsmith?.off('screen:changed', _onScreenChanged); _onScreenChanged = null; }
         if (_onSongReady) { window.slopsmith?.off('song:ready', _onSongReady); _onSongReady = null; }
-        if (yinWorker) { yinWorker.terminate(); yinWorker = null; }
-        processingFrame = false;
-        pendingBuffer = null;
-        accumBuffer = new Float32Array(0);
-        if (processor) { processor.disconnect(); processor = null; }
-        if (gainNode) { gainNode.disconnect(); gainNode = null; }
-        if (sourceNode) { sourceNode.disconnect(); sourceNode = null; }
-        if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
-        if (audioCtx) { audioCtx.close(); audioCtx = null; }
-        // Reset viz container so next enable() gets a fresh mount
+        _stopAudio();
         if (vizContainer) vizContainer.innerHTML = '';
         if (window.tuner?.updateButtons) window.tuner.updateButtons();
     }
