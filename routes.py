@@ -38,7 +38,8 @@ def setup(app: FastAPI, context: dict):
             "lastTuning": DEFAULT_TUNING,
             "customTunings": {},
             "disabledTunings": [],
-            "showFloatingButton": True
+            "showFloatingButton": True,
+            "visualizationMode": "default"
         }
         if not config_file.exists():
             return defaults
@@ -52,6 +53,7 @@ def setup(app: FastAPI, context: dict):
             res["customTunings"] = data.get("customTunings", {})
             res["disabledTunings"] = data.get("disabledTunings", [])
             res["showFloatingButton"] = bool(data.get("showFloatingButton", True))
+            res["visualizationMode"] = str(data.get("visualizationMode", "default"))
             
             if not isinstance(res["customTunings"], dict):
                 res["customTunings"] = {}

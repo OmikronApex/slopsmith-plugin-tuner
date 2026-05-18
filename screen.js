@@ -24,12 +24,14 @@
     let centsDisplay = null;
     let gaugeEl = null;
     let gaugeNeedle = null;
+    let strobeContainer = null;
     let strobeEl = null;
     let strobePhase = 0;
     let currentCents = 0;
     let smoothedCents = 0;
     let strobeActive = false;
     let lastAnimateTime = 0;
+    let lastYinTime = 0;
     let strobeAnimationFrame = null;
     let tuningSelect = null;
     let stringNoteContainer = null;
@@ -41,6 +43,7 @@
     let selectedTuning = null;
     let selectedTuningName = "Guitar Standard";
     let showFloatingButton = true;
+    let visualizationMode = "default";
 
     let selectedDeviceId = '';
     let selectedChannel = 'mono';
@@ -73,6 +76,7 @@
             
             defaultTunings = config.defaultTunings || {};
             showFloatingButton = config.showFloatingButton !== false;
+            visualizationMode = config.visualizationMode || "strobe";
 
             // Rebuild tunings list
             tunings = {};
@@ -169,7 +173,10 @@
             await fetch('/api/plugins/tuner/config', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ lastTuning: selectedTuningName })
+                body: JSON.stringify({ 
+                    lastTuning: selectedTuningName,
+                    visualizationMode: visualizationMode
+                })
             });
         } catch (e) {
             console.error('Tuner: Failed to save config', e);
@@ -246,8 +253,8 @@
         uiContainer.appendChild(freqDisplay);
 
         // Strobe Tuner
-        const strobeContainer = document.createElement('div');
-        strobeContainer.className = 'w-full h-10 bg-dark-900 border border-gray-800 rounded-lg relative overflow-hidden mb-3';
+        strobeContainer = document.createElement('div');
+        strobeContainer.className = 'w-full h-10 bg-dark-900 border border-gray-800 rounded-lg relative overflow-hidden mb-3' + (visualizationMode === 'strobe' ? '' : ' hidden');
         
         // Center marker for strobe
         const strobeMarker = document.createElement('div');
@@ -257,16 +264,19 @@
         strobeEl = document.createElement('div');
         strobeEl.className = 'absolute top-0 left-0 w-full h-full';
         strobeEl.style.transition = 'opacity 0.3s ease, background-image 0.2s ease';
-        // Create a high-contrast striped pattern
-        strobeEl.style.backgroundImage = 'linear-gradient(90deg, #333 50%, transparent 50%)';
-        strobeEl.style.backgroundSize = '40px 100%';
+        // Create two rows of striped patterns
+        const stripeGrad = 'linear-gradient(90deg, #333 50%, transparent 50%)';
+        strobeEl.style.backgroundImage = `${stripeGrad}, ${stripeGrad}`;
+        strobeEl.style.backgroundSize = '40px 50%, 80px 50%';
+        strobeEl.style.backgroundPosition = '0 0, 0 100%';
+        strobeEl.style.backgroundRepeat = 'repeat-x';
         strobeContainer.appendChild(strobeEl);
         
         uiContainer.appendChild(strobeContainer);
 
         // Gauge (hidden or kept as secondary)
         gaugeEl = document.createElement('div');
-        gaugeEl.className = 'w-full h-2.5 bg-dark-900 border border-gray-800 rounded-full relative overflow-hidden mb-1.5';
+        gaugeEl.className = 'w-full h-2.5 bg-dark-900 border border-gray-800 rounded-full relative overflow-hidden mb-1.5' + (visualizationMode === 'default' ? '' : ' hidden');
         
         const centerMarker = document.createElement('div');
         centerMarker.className = 'absolute left-1/2 top-0 bottom-0 w-0.5 bg-accent z-10';
@@ -316,6 +326,12 @@
                 <option value="left" ${selectedChannel === 'left' ? 'selected' : ''}>Left (Channel 1)</option>
                 <option value="right" ${selectedChannel === 'right' ? 'selected' : ''}>Right (Channel 2)</option>
             </select>
+
+            <label class="block text-gray-500 mb-1 mt-2">Visualization</label>
+            <select class="tuner-viz-select w-full bg-dark-800 border border-gray-700 rounded px-2 py-1 text-gray-200 outline-none focus:border-accent">
+                <option value="default" ${visualizationMode === 'default' ? 'selected' : ''}>Default</option>
+                <option value="strobe" ${visualizationMode === 'strobe' ? 'selected' : ''}>Strobe</option>
+            </select>
         `;
 
         // Insert above tuningSelect
@@ -331,6 +347,17 @@
             selectedChannel = e.target.value;
             saveSettings();
             if (enabled) restartAudio();
+        };
+        panel.querySelector('.tuner-viz-select').onchange = (e) => {
+            visualizationMode = e.target.value;
+            saveConfig();
+            if (visualizationMode === 'strobe') {
+                if (strobeContainer) strobeContainer.classList.remove('hidden');
+                if (gaugeEl) gaugeEl.classList.add('hidden');
+            } else {
+                if (strobeContainer) strobeContainer.classList.add('hidden');
+                if (gaugeEl) gaugeEl.classList.remove('hidden');
+            }
         };
 
         populateDevices(panel);
@@ -466,7 +493,8 @@
                 
                 if (combined.length >= _TUNER_MIN_YIN_SAMPLES) {
                     pendingBuffer = combined.slice(combined.length - _TUNER_MIN_YIN_SAMPLES);
-                    accumBuffer = new Float32Array(0);
+                    // Sliding window: keep part of the buffer for next call to get more frequent updates
+                    accumBuffer = combined.slice(input.length);
                 } else {
                     accumBuffer = combined;
                 }
@@ -488,6 +516,7 @@
 
             enabled = true;
             lastAnimateTime = performance.now();
+            lastYinTime = performance.now();
             animateStrobe();
             if (window.tuner && window.tuner.updateButtons) window.tuner.updateButtons();
         } catch (e) {
@@ -526,19 +555,28 @@
         lastAnimateTime = now;
 
         // Smooth the cents value to eliminate jitter
-        const lerpFactor = 0.2;
+        const lerpFactor = 0.15; // Slightly slower for more stability
         smoothedCents = (smoothedCents * (1 - lerpFactor)) + (currentCents * lerpFactor);
 
         if (strobeEl) {
-            // Animate as long as there is a signal, even if deviation is near zero
-            if (strobeActive || Math.abs(smoothedCents) > 0.01) {
-                // Adjust speed based on smoothed cents. 
-                const speed = smoothedCents * 50; 
+            const yinTimeout = (now - lastYinTime) > 1000;
+            // Animate only with active signal and no timeout
+            if (strobeActive && !yinTimeout) {
+                // Exponential speed scaling: 0 at 0 cents, max (5000) at 100 cents
+                const absCents = Math.min(100, Math.abs(smoothedCents));
+                const maxSpeed = 2500;
+                const base = 10;
+                let speed = maxSpeed * (Math.pow(base, absCents / 100) - 1) / (base - 1);
+                if (smoothedCents < 0) speed = -speed;
+
                 strobePhase += speed * dt;
                 
-                // Normalize phase to keep it within [0, 40)
-                strobePhase = ((strobePhase % 40) + 40) % 40;
-                strobeEl.style.backgroundPosition = strobePhase + 'px 0';
+                // Normalize phase to keep it within [0, 80)
+                strobePhase = ((strobePhase % 80) + 80) % 80;
+                strobeEl.style.backgroundPosition = `${strobePhase}px 0, ${strobePhase}px 100%`;
+            } else if (yinTimeout && strobeActive) {
+                strobeActive = false;
+                strobeEl.style.opacity = '0';
             }
         }
 
@@ -550,17 +588,30 @@
         const halfLen = Math.floor(buffer.length / 2);
         const yinBuffer = new Float32Array(halfLen);
 
+        // Volume (RMS) check
+        let rms = 0;
+        for (let i = 0; i < buffer.length; i++) {
+            rms += buffer[i] * buffer[i];
+        }
+        rms = Math.sqrt(rms / buffer.length);
+        if (rms < 0.01) return { freq: 0, confidence: 0, rms };
+
         let runningSum = 0;
         yinBuffer[0] = 1;
         for (let tau = 1; tau < halfLen; tau++) {
             let sum = 0;
+            // Optimized inner loop
             for (let i = 0; i < halfLen; i++) {
                 const delta = buffer[i] - buffer[i + tau];
                 sum += delta * delta;
             }
             yinBuffer[tau] = sum;
             runningSum += sum;
-            yinBuffer[tau] *= tau / runningSum;
+            if (runningSum > 0) {
+                yinBuffer[tau] *= tau / runningSum;
+            } else {
+                yinBuffer[tau] = 1;
+            }
         }
 
         let tau = 2;
@@ -571,16 +622,18 @@
             }
             tau++;
         }
-        if (tau === halfLen) return null;
+        
+        if (tau === halfLen) return { freq: 0, confidence: 0, rms };
 
         const s0 = yinBuffer[tau - 1];
         const s1 = yinBuffer[tau];
         const s2 = tau + 1 < halfLen ? yinBuffer[tau + 1] : yinBuffer[tau];
-        const betterTau = tau + (s0 - s2) / (2 * (s0 - 2 * s1 + s2));
+        const denom = (s0 - 2 * s1 + s2);
+        const betterTau = denom === 0 ? tau : tau + (s0 - s2) / (2 * denom);
 
         const freq = sampleRate / betterTau;
         const confidence = 1 - yinBuffer[tau];
-        return { freq, confidence };
+        return { freq, confidence, rms };
     }
 
     function freqToMidi(f) {
@@ -687,14 +740,36 @@
     }
 
     function updateUI(result) {
-        if (!result || result.confidence < 0.8 || result.freq < _TUNER_MIN_DETECTABLE_HZ) {
-            // No strong signal
+        const now = performance.now();
+        const rms = result ? result.rms : 0;
+        const hasSignal = rms > 0.01;
+
+        if (!result || (!hasSignal && result.confidence < 0.5) || (result.freq < _TUNER_MIN_DETECTABLE_HZ && result.freq !== 0)) {
+            // No strong signal and no volume
             currentCents = 0;
             strobeActive = false;
-            if (strobeEl) strobeEl.style.opacity = '0.1';
+            if (strobeEl) strobeEl.style.opacity = '0';
             return;
         }
 
+        // If we have volume but no clear pitch, keep strobe active but don't reset speed.
+        // This prevents the strobe from "freezing" when detection flickers.
+        if (result.confidence < 0.5 && hasSignal) {
+            // Stop if no good pitch for 100ms
+            if (now - lastYinTime > 100) {
+                strobeActive = false;
+                if (strobeEl) strobeEl.style.opacity = '0';
+                return;
+            }
+            strobeActive = true;
+            if (strobeEl) {
+                // Keep moving at last known speed, but dim out slightly
+                strobeEl.style.opacity = '0.2';
+            }
+            return;
+        }
+
+        lastYinTime = now;
         strobeActive = true;
         const freq = result.freq;
         freqDisplay.textContent = freq.toFixed(1) + ' Hz';
@@ -751,14 +826,16 @@
             noteDisplay.className = 'text-5xl font-black my-2 h-16 flex items-center justify-center text-green-400';
             gaugeNeedle.className = 'absolute left-1/2 top-0 bottom-0 w-1 bg-green-400 transition-all duration-100 ease-out -translate-x-1/2 z-20 shadow-[0_0_8px_rgba(74,222,128,0.5)]';
             if (strobeEl) {
-                strobeEl.style.backgroundImage = 'linear-gradient(90deg, #4ade80 50%, transparent 50%)';
+                const grad = 'linear-gradient(90deg, #4ade80 50%, transparent 50%)';
+                strobeEl.style.backgroundImage = `${grad}, ${grad}`;
                 strobeEl.style.opacity = '1';
             }
         } else {
             noteDisplay.className = 'text-5xl font-black my-2 h-16 flex items-center justify-center text-white';
             gaugeNeedle.className = 'absolute left-1/2 top-0 bottom-0 w-1 bg-white transition-all duration-100 ease-out -translate-x-1/2 z-20 shadow-[0_0_8px_rgba(255,255,255,0.5)]';
             if (strobeEl) {
-                strobeEl.style.backgroundImage = 'linear-gradient(90deg, #fff 50%, transparent 50%)';
+                const grad = 'linear-gradient(90deg, #fff 50%, transparent 50%)';
+                strobeEl.style.backgroundImage = `${grad}, ${grad}`;
                 strobeEl.style.opacity = '0.4';
             }
         }
