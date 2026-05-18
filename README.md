@@ -47,7 +47,7 @@ Click the ⚙️ icon in the tuner window to access:
 - **Channel Selection**: Choose between Mono (mixed), Left, or Right channels (ideal for multi-channel audio interfaces).
 - **Visualization**: Choose between different visualization options.
 
-<img width="306" height="242" alt="grafik" src="https://github.com/user-attachments/assets/41746a5b-bee9-4358-a10a-0eee8d5651b5" />
+<img width="303" height="268" alt="grafik" src="https://github.com/user-attachments/assets/54310baf-56b0-4a19-a076-5450f6d3cc9d" />
 
 
 ### Plugin Manager
