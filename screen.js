@@ -578,13 +578,14 @@
 
         if (!result || (!hasSignal && result.confidence < 0.5) || (result.freq < _TUNER_MIN_DETECTABLE_HZ && result.freq !== 0)) {
             if (activeViz) activeViz.update(null, 0, 0);
-            _syncStringHighlight(null);
+            _syncStringHighlight(manualTargetFreq);
             return;
         }
 
         if (result.confidence < 0.5 && hasSignal) {
             // dim signal — let viz handle its own timeout
             if (activeViz) activeViz.update(null, 0, 0);
+            _syncStringHighlight(manualTargetFreq);
             return;
         }
 
