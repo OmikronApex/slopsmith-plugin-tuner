@@ -474,7 +474,18 @@
             const constraints = { audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 2 } };
             if (selectedDeviceId) constraints.audio.deviceId = { exact: selectedDeviceId };
 
-            stream = await navigator.mediaDevices.getUserMedia(constraints);
+            try {
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
+            } catch (e) {
+                if ((e.name === 'OverconstrainedError' || e.name === 'NotFoundError') && selectedDeviceId) {
+                    selectedDeviceId = '';
+                    saveSettings();
+                    delete constraints.audio.deviceId;
+                    stream = await navigator.mediaDevices.getUserMedia(constraints);
+                } else {
+                    throw e;
+                }
+            }
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             sourceNode = audioCtx.createMediaStreamSource(stream);
 
