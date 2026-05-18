@@ -4,10 +4,14 @@ import json
 from pathlib import Path
 from typing import List, Dict, Optional
 from fastapi import FastAPI, Request
+from fastapi.responses import Response
 
 DEFAULT_TUNING = "Guitar Standard"
 
 DEFAULT_TUNINGS = {
+    "General": {
+        "Free Tune": []
+    },
     "Guitar": {
         "Guitar Standard": [82.41, 110.00, 146.83, 196.00, 246.94, 329.63],
         "Guitar Drop D": [73.42, 110.00, 146.83, 196.00, 246.94, 329.63],
@@ -38,7 +42,8 @@ def setup(app: FastAPI, context: dict):
             "lastTuning": DEFAULT_TUNING,
             "customTunings": {},
             "disabledTunings": [],
-            "showFloatingButton": True
+            "showFloatingButton": True,
+            "visualizationMode": "default"
         }
         if not config_file.exists():
             return defaults
@@ -52,6 +57,7 @@ def setup(app: FastAPI, context: dict):
             res["customTunings"] = data.get("customTunings", {})
             res["disabledTunings"] = data.get("disabledTunings", [])
             res["showFloatingButton"] = bool(data.get("showFloatingButton", True))
+            res["visualizationMode"] = str(data.get("visualizationMode", "default"))
             
             if not isinstance(res["customTunings"], dict):
                 res["customTunings"] = {}
@@ -73,6 +79,27 @@ def setup(app: FastAPI, context: dict):
             del data["defaultTunings"]
         current.update(data)
         config_file.write_text(json.dumps(current, indent=2), encoding="utf-8")
+
+    _viz_dir = Path(__file__).parent / "visualization"
+    _workers_dir = Path(__file__).parent / "workers"
+
+    def _serve_js_from(base_dir: Path, filename: str) -> Response:
+        target = (base_dir / filename).resolve()
+        try:
+            target.relative_to(base_dir.resolve())
+        except ValueError:
+            return Response("", status_code=404)
+        if target.suffix == ".js" and target.is_file():
+            return Response(target.read_text(encoding="utf-8"), media_type="application/javascript")
+        return Response("", status_code=404)
+
+    @app.get("/api/plugins/tuner/visualization/{filename}")
+    def get_viz_file(filename: str):
+        return _serve_js_from(_viz_dir, filename)
+
+    @app.get("/api/plugins/tuner/workers/{filename}")
+    def get_worker_file(filename: str):
+        return _serve_js_from(_workers_dir, filename)
 
     @app.get("/api/plugins/tuner/config")
     def get_config():
