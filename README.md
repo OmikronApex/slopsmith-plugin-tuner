@@ -17,6 +17,7 @@ This plugin adds a floating "Tuner" button to the Slopsmith interface, providing
 - **Custom Tunings**: Add your own tunings via note names (e.g., E2, A2) or Hz frequencies in the settings.
 - **Audio Device Selection**: Choose specific input devices and channels (Mono, Left, Right) for professional interfaces.
 - **Themable UI**: Styled with Tailwind CSS to match your Slopsmith theme.
+- **Visualizations**: Pick from different visualizations to suite your needs (Currently: Default and Strobe)
 
 ## Installation
 
@@ -42,6 +43,7 @@ docker compose restart
 Click the ⚙️ icon in the tuner window to access:
 - **Audio Input**: Select your preferred microphone or audio interface.
 - **Channel Selection**: Choose between Mono (mixed), Left, or Right channels (ideal for multi-channel audio interfaces).
+- **Visualization**: Choose between different visualization options.
 
 <img width="306" height="242" alt="grafik" src="https://github.com/user-attachments/assets/41746a5b-bee9-4358-a10a-0eee8d5651b5" />
 
