@@ -2,7 +2,7 @@
 (function() {
     const _TUNER_MIN_YIN_SAMPLES = 4096;
     const _TUNER_FRAME_SIZE = 2048;
-    const _TUNER_MIN_DETECTABLE_HZ = 30;
+    const _TUNER_MIN_DETECTABLE_HZ = 20;
 
     // ── Audio pipeline state ──────────────────────────────────────────
     let enabled = false;

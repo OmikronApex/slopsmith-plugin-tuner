@@ -59,6 +59,47 @@ Access advanced settings via the Slopsmith Plugin Manager (Settings -> Plugins -
 <img width="640" height="1025" alt="grafik" src="https://github.com/user-attachments/assets/d67585a2-f376-44bb-8c9b-64a0de732dbd" />
 
 
+
+## Changelog
+
+### [1.2.4] - 2026-05-25
+- Improved low-frequency detection by lowering minimum detectable frequency to 20Hz.
+
+### [1.2.3] - 2026-05-19
+- Refactored tuner plugin: simplified script loading, modularized audio pipeline, and improved visualization state management.
+- Fixed issue where targeting a specific string was impossible when no audio input was present.
+
+### [1.2.2] - 2026-05-18
+- Added missing YIN-worker script.
+
+### [1.2.1] - 2026-05-18
+- Added graceful handling for audio device errors by resetting device ID on exceptions.
+
+### [1.2.0] - 2026-05-18
+- Introduced Strobe Tuner visualization.
+- Modularized visualization handling and improved state management.
+- Enhanced tuning synchronization logic.
+
+### [1.1.0] - 2026-05-10
+- Added 5-string bass tunings.
+- Removed unnecessary scroll limit in settings UI.
+
+### [1.0.3] - 2026-05-10
+- Visual polish for the settings page.
+- Added toggle for floating tuner button visibility.
+
+### [1.0.2] - 2026-05-10
+- Added microphone and channel selection settings.
+- Integrated tuner button into the player UI.
+- Added dynamic tuning detection within the player.
+
+### [1.0.1] - 2026-05-10
+- Fixed floating button reappearing on song end.
+- Improved tuner button injection in player UI.
+
+### [1.0.0] - 2026-05-10
+- Initial release.
+
 ## License
 
 MIT
