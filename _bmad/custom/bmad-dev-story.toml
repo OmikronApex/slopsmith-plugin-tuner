@@ -37,11 +37,15 @@ After the story status is set to "review", perform these steps:
 - Append the standard Co-Authored-By trailer:
   Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
 
-**Step 2 — Find the story's GitHub issue number:**
+**Step 2 — Push the commit:**
+- Run: git push
+- If the branch has no upstream yet: git push -u origin <current-branch>
+
+**Step 3 — Find the story's GitHub issue number:**
 - Search for the story issue: gh issue list --label "story" --search "<story_key>:" --json number,title --jq '.[0].number'
 - Store this as STORY_ISSUE_NUMBER.
 
-**Step 3 — Ensure a PR exists for the epic branch and includes the story issue:**
+**Step 4 — Ensure a PR exists for the epic branch and includes the story issue:**
 - Get the current branch name (git branch --show-current).
 - Find the epic issue number: gh issue list --label "epic" --search "Epic <N>:" --json number,title --jq '.[0].number'
 - Check for an existing PR: gh pr list --head <current-branch> --json number,url,body --jq '.[0]'
