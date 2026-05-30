@@ -4,7 +4,7 @@ baseline_commit: fff88b9b9e1fd82da2c1d0de2ca2b63e570093b2
 
 # Story 2.3: Fix NFR-07 Inline Style Violations in Settings Page
 
-Status: review
+Status: done
 
 ## Story
 

@@ -4,7 +4,7 @@ baseline_commit: fff88b9b9e1fd82da2c1d0de2ca2b63e570093b2
 
 # Story 2.4: Error Banner and Settings Panel UX Improvements
 
-Status: review
+Status: done
 
 ## Story
 
