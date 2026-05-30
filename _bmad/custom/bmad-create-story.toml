@@ -1,0 +1,20 @@
+[workflow]
+
+on_complete = """
+Create a GitHub issue for the story file you just saved using the gh CLI.
+
+Step 1 — Create the story issue:
+- Title format: "<story_key>: <story title>" (e.g. "1-2: Implement YIN worker")
+- Labels: always include "story"; add "enhancement" for new functionality or "bug" for bug fixes — infer from the story content
+- Body: the story's user story statement ("As a… I want… So that…") followed by a bullet list of acceptance criteria
+- Command: gh issue create --title "..." --label "story" --label "enhancement" --body "..."
+- Capture the returned issue number (call it STORY_ISSUE_NUMBER)
+
+Step 2 — Link to parent epic issue:
+- Search for the parent epic's GitHub issue: gh issue list --label "epic" --search "Epic <epic_num>:" --json number,title --jq '.[0].number'
+- Capture the result as EPIC_ISSUE_NUMBER
+- If found, link the story as a sub-issue: gh api repos/OmikronApex/slopsmith-plugin-tuner/issues/$EPIC_ISSUE_NUMBER/sub_issues --method POST -f sub_issue_id=$STORY_ISSUE_NUMBER
+- If the sub-issues API is unavailable, fall back to posting a comment on the epic issue: gh issue comment $EPIC_ISSUE_NUMBER --body "Sub-task: #$STORY_ISSUE_NUMBER"
+
+Report the story issue URL and whether the parent link succeeded.
+"""

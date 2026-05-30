@@ -1,0 +1,13 @@
+[workflow]
+
+on_complete = """
+For each epic in the epics file you just saved, create a corresponding GitHub issue using the gh CLI.
+
+Rules:
+- Title format: "Epic N: <epic title>" (e.g. "Epic 1: Audio Pipeline")
+- Labels: always include "epic"; add "enhancement" for new functionality epics or "bug" for bug-fix epics — infer from the epic goal
+- Body: the epic's goal statement and the list of story titles it contains
+- Command: gh issue create --title "..." --label "epic" --label "enhancement" --body "..."
+
+After creating all epic issues, report the created issue URLs.
+"""
