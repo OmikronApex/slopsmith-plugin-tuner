@@ -62,6 +62,13 @@ Access advanced settings via the Slopsmith Plugin Manager (Settings -> Plugins -
 
 ## Changelog
 
+### [1.2.5] - 2026-05-30
+- Improved mic error handling: better error messages and inline error banner instead of browser alert.
+- Fixed Real Tone Cable (mono-only USB audio) support when the device is explicitly selected.
+- Fixed error banner persisting across screen navigation after a mic failure.
+- Fixed stale error banner remaining visible after a successful device switch.
+- Fixed silent failure when audio restart fails during device switch.
+
 ### [1.2.4] - 2026-05-25
 - Improved low-frequency detection by lowering minimum detectable frequency to 20Hz.
 
