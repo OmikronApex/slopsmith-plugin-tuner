@@ -20,6 +20,8 @@ Step 3 — Post a closing comment on the story issue:
   gh issue comment <STORY_ISSUE_NUMBER> --body "<comment>"
 
 Step 4 — Close the story issue:
+- ONLY close the story issue. Do NOT close the epic issue — the epic issue remains open
+  until the epic PR is merged.
 - gh issue close <STORY_ISSUE_NUMBER>
 
 Step 5 — Update the epic PR to reflect the story is done:
