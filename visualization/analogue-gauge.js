@@ -44,6 +44,7 @@
         autoWrap.style.position = 'absolute';
         autoWrap.style.top = '8px';
         autoWrap.style.left = '10px';
+        autoWrap.style.zIndex = '20';
         autoWrap.style.display = 'flex';
         autoWrap.style.alignItems = 'center';
         autoWrap.style.gap = '4px';
@@ -301,22 +302,24 @@
             autoLamp.style.boxShadow = lit ? '0 0 5px 2px rgba(200,50,0,0.7)' : 'none';
         }
 
-        function update(note, cents, freq) {
+        function update(note, cents, freq, mode) {
+            // AUTO lamp: free → always lit; auto → lit on signal; manual/unknown → off
+            if (mode === 'free') {
+                _setAutoLamp(true);
+            } else if (mode === 'auto') {
+                _setAutoLamp(note !== null);
+            } else {
+                _setAutoLamp(false);
+            }
+
             if (note === null) {
                 targetDrumY = _IDLE_DRUM_Y;
                 targetAngle = 0;
-                _setAutoLamp(false);
                 bulbEl.style.backgroundColor = '#2a1010';
                 bulbEl.style.border = '2px solid #4a2020';
                 bulbEl.style.boxShadow = 'none';
                 return;
             }
-
-            // Free-tune mode: screen.js targets nearest chromatic note, so cents
-            // equals the deviation from that nearest semitone exactly.
-            var detectedMidi = 69 + 12 * Math.log2(freq / 440);
-            var freeCents = (detectedMidi - Math.round(detectedMidi)) * 100;
-            _setAutoLamp(Math.abs(cents - freeCents) < 2);
 
             targetDrumY = _computeDrumY(freq, cents);
             prevNote = note;
