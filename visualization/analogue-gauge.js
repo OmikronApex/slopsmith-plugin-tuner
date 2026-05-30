@@ -170,22 +170,20 @@
         }
         noteWindow.appendChild(noteStrip);
 
-        // Inner wrapper: note window + bulb as a centred pair
-        var notePair = document.createElement('div');
-        notePair.style.display = 'inline-flex';
-        notePair.style.alignItems = 'center';
-        notePair.style.gap = '6px';
-        notePair.appendChild(noteWindow);
-
-        // Lightbulb — rounded dome, sits immediately right of note window
+        // Lightbulb — absolutely offset from panel centre so note window stays centred
+        // noteWindow is 48px wide → bulb left edge = 50% + 24px (half window) + 6px gap
         var bulbEl = document.createElement('div');
+        bulbEl.style.position = 'absolute';
+        bulbEl.style.left = 'calc(50% + 30px)';
+        bulbEl.style.top = '50%';
+        bulbEl.style.transform = 'translateY(-50%)';
         bulbEl.style.width = '20px';
         bulbEl.style.height = '20px';
         bulbEl.style.borderRadius = '50%';
         bulbEl.style.backgroundColor = '#2a1010';
         bulbEl.style.border = '2px solid #4a2020';
-        notePair.appendChild(bulbEl);
-        noteRow.appendChild(notePair);
+        noteRow.appendChild(noteWindow);
+        noteRow.appendChild(bulbEl);
 
         panel.appendChild(noteRow);
         container.appendChild(panel);
