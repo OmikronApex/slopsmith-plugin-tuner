@@ -61,37 +61,32 @@
         freqStrip.style.position = 'absolute';
         freqStrip.style.width = '100%';
 
+        // "---" is index 0; actual notes start at index 1
+        function _makeDrumLabel(text) {
+            var el = document.createElement('div');
+            el.style.height = _TUNER_LABEL_H + 'px';
+            el.style.display = 'flex';
+            el.style.alignItems = 'center';
+            el.style.justifyContent = 'center';
+            el.style.userSelect = 'none';
+            return el;
+        }
+        var fIdleLabel = _makeDrumLabel('---');
+        fIdleLabel.style.fontSize = '11px';
+        fIdleLabel.style.fontFamily = 'monospace';
+        fIdleLabel.style.fontWeight = 'bold';
+        fIdleLabel.style.color = '#111';
+        freqStrip.appendChild(fIdleLabel);
+
         for (var fm = _TUNER_STRIP_START_MIDI; fm <= _TUNER_STRIP_END_MIDI; fm++) {
-            var fLabel = document.createElement('div');
-            fLabel.style.height = _TUNER_LABEL_H + 'px';
-            fLabel.style.display = 'flex';
-            fLabel.style.alignItems = 'center';
-            fLabel.style.justifyContent = 'center';
+            var fLabel = _makeDrumLabel(_midiToFreq(fm).toFixed(1) + ' Hz');
             fLabel.style.fontSize = '11px';
             fLabel.style.fontFamily = 'monospace';
             fLabel.style.fontWeight = 'bold';
             fLabel.style.color = '#111';
-            fLabel.style.userSelect = 'none';
-            fLabel.textContent = _midiToFreq(fm).toFixed(1) + ' Hz';
             freqStrip.appendChild(fLabel);
         }
         freqWindow.appendChild(freqStrip);
-
-        var freqIdle = document.createElement('div');
-        freqIdle.style.position = 'absolute';
-        freqIdle.style.inset = '0';
-        freqIdle.style.display = 'flex';
-        freqIdle.style.alignItems = 'center';
-        freqIdle.style.justifyContent = 'center';
-        freqIdle.style.backgroundColor = '#fff';
-        freqIdle.style.fontSize = '11px';
-        freqIdle.style.fontFamily = 'monospace';
-        freqIdle.style.fontWeight = 'bold';
-        freqIdle.style.color = '#111';
-        freqIdle.style.zIndex = '2';
-        freqIdle.textContent = '---';
-        freqWindow.appendChild(freqIdle);
-
         gaugeFace.appendChild(freqWindow);
 
         // SVG — arc, tick marks, needle, pivot (z above freq window)
@@ -171,34 +166,20 @@
         noteStrip.style.position = 'absolute';
         noteStrip.style.width = '100%';
 
+        var nIdleLabel = _makeDrumLabel('---');
+        nIdleLabel.style.fontSize = '10px';
+        nIdleLabel.style.fontWeight = 'bold';
+        nIdleLabel.style.color = '#111';
+        noteStrip.appendChild(nIdleLabel);
+
         for (var nm = _TUNER_STRIP_START_MIDI; nm <= _TUNER_STRIP_END_MIDI; nm++) {
-            var nLabel = document.createElement('div');
-            nLabel.style.height = _TUNER_LABEL_H + 'px';
-            nLabel.style.display = 'flex';
-            nLabel.style.alignItems = 'center';
-            nLabel.style.justifyContent = 'center';
+            var nLabel = _makeDrumLabel(_TUNER_NOTE_NAMES[nm % 12]);
             nLabel.style.fontSize = '10px';
             nLabel.style.fontWeight = 'bold';
             nLabel.style.color = '#111';
-            nLabel.style.userSelect = 'none';
-            nLabel.textContent = _TUNER_NOTE_NAMES[nm % 12];
             noteStrip.appendChild(nLabel);
         }
         noteWindow.appendChild(noteStrip);
-
-        var noteIdle = document.createElement('div');
-        noteIdle.style.position = 'absolute';
-        noteIdle.style.inset = '0';
-        noteIdle.style.display = 'flex';
-        noteIdle.style.alignItems = 'center';
-        noteIdle.style.justifyContent = 'center';
-        noteIdle.style.backgroundColor = '#fff';
-        noteIdle.style.fontSize = '10px';
-        noteIdle.style.fontWeight = 'bold';
-        noteIdle.style.color = '#111';
-        noteIdle.style.zIndex = '2';
-        noteIdle.textContent = '---';
-        noteWindow.appendChild(noteIdle);
 
         // Lightbulb — absolutely offset from panel centre so note window stays centred
         // noteWindow is 48px wide → bulb left edge = 50% + 24px (half window) + 6px gap
@@ -219,10 +200,8 @@
         container.appendChild(panel);
 
         // ── State ─────────────────────────────────────────────────────
-        var currentDrumY = 0, targetDrumY = 0;
+        var currentDrumY = _IDLE_DRUM_Y, targetDrumY = _IDLE_DRUM_Y;
         var currentAngle = 0, targetAngle = 0;
-        var frozen = true;
-        var hasEverHadSignal = false;
         var lastTime = performance.now();
         var rafId = null;
         var prevNote = null;
@@ -235,13 +214,15 @@
         }
 
         // ── Drum position ─────────────────────────────────────────────
+        // Y that centres the --- label (index 0) in the window
+        var _IDLE_DRUM_Y = _TUNER_LABEL_H * 0.5;
+
         function _computeDrumY(freq, cents) {
             var midi = 69 + 12 * Math.log2(freq / 440);
-            // Use target MIDI (back out cents deviation) so the drum stays locked on
-            // the target note. screen.js passes unclamped cents, so clamp to ±50 here.
             var targetMidi = midi - cents / 100;
             var clamped = Math.max(-50, Math.min(50, cents));
-            var idx = Math.max(0, Math.min(_TUNER_STRIP_END_MIDI - _TUNER_STRIP_START_MIDI, Math.round(targetMidi) - _TUNER_STRIP_START_MIDI));
+            // +1 because index 0 is the --- label; notes start at index 1
+            var idx = Math.max(1, Math.min(_TUNER_STRIP_END_MIDI - _TUNER_STRIP_START_MIDI + 1, Math.round(targetMidi) - _TUNER_STRIP_START_MIDI + 1));
             return _TUNER_LABEL_H * (0.5 - idx) - (clamped / 50) * (_TUNER_LABEL_H / 2);
         }
 
@@ -252,11 +233,9 @@
             lastTime = now;
             var lf = 1 - Math.exp(-10 * dt);
 
-            if (!frozen) {
-                currentDrumY += (targetDrumY - currentDrumY) * lf;
-                freqStrip.style.transform = 'translateY(' + currentDrumY + 'px)';
-                noteStrip.style.transform = 'translateY(' + currentDrumY + 'px)';
-            }
+            currentDrumY += (targetDrumY - currentDrumY) * lf;
+            freqStrip.style.transform = 'translateY(' + currentDrumY + 'px)';
+            noteStrip.style.transform = 'translateY(' + currentDrumY + 'px)';
 
             currentAngle += (targetAngle - currentAngle) * lf;
             _setNeedle(currentAngle);
@@ -269,21 +248,13 @@
         // ── Public API ────────────────────────────────────────────────
         function update(note, cents, freq) {
             if (note === null) {
-                frozen = true;
+                targetDrumY = _IDLE_DRUM_Y;
                 targetAngle = 0;
                 bulbEl.style.backgroundColor = '#2a1010';
                 bulbEl.style.border = '2px solid #4a2020';
                 bulbEl.style.boxShadow = 'none';
                 return;
             }
-
-            if (!hasEverHadSignal) {
-                hasEverHadSignal = true;
-                freqIdle.style.display = 'none';
-                noteIdle.style.display = 'none';
-            }
-
-            frozen = false;
             var newY = _computeDrumY(freq, cents);
             if (note !== prevNote) { currentDrumY = newY; }
             targetDrumY = newY;
