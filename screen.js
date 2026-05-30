@@ -385,9 +385,14 @@
             stream = await navigator.mediaDevices.getUserMedia(constraints);
         } catch (e) {
             if ((e.name === 'OverconstrainedError' || e.name === 'NotFoundError') && selectedDeviceId) {
+                // Saved device no longer available — fall back to default.
                 selectedDeviceId = '';
                 saveSettings();
                 delete constraints.audio.deviceId;
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
+            } else if (e.name === 'OverconstrainedError') {
+                // Device rejects channelCount:2 (e.g. mono-only USB audio like Real Tone Cable).
+                delete constraints.audio.channelCount;
                 stream = await navigator.mediaDevices.getUserMedia(constraints);
             } else {
                 throw e;
@@ -490,15 +495,44 @@
             window.slopsmith.on('song:ready', _onSongReady);
         }
 
+        uiContainer?.querySelector('.tuner-mic-error')?.remove();
         try {
             await _startAudio();
             enabled = true;
             if (window.tuner?.updateButtons) window.tuner.updateButtons();
         } catch (e) {
             console.error('Tuner: Failed to start audio', e);
-            alert('Tuner: Could not access microphone.');
             disable();
+            _showMicError(e);
         }
+    }
+
+    function _showMicError(e) {
+        const name = e?.name || '';
+        let msg, hint;
+        if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+            msg = 'Microphone access denied.';
+            hint = 'On macOS open System Settings → Privacy &amp; Security → Microphone and enable your browser, then refresh the page.';
+        } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+            msg = 'No audio input found.';
+            hint = 'Make sure your Real Tone Cable (or other audio input) is plugged in and recognised by macOS (check Audio MIDI Setup).';
+        } else if (name === 'NotReadableError' || name === 'AbortError' || name === 'TrackStartError') {
+            msg = 'Could not open the audio device.';
+            hint = 'On macOS: (1) open Audio MIDI Setup (Applications → Utilities) and confirm the device appears with a compatible sample rate (44100 or 48000 Hz); (2) check System Settings → Privacy &amp; Security → Microphone — your browser must be listed and enabled; (3) try unplugging and replugging the cable.';
+        } else {
+            msg = 'Could not access microphone.';
+            hint = `Error: ${name || e?.message || 'unknown'}`;
+        }
+        if (!uiContainer) { alert(`Tuner: ${msg}\n${hint.replace(/&amp;/g, '&')}`); return; }
+        let errEl = uiContainer.querySelector('.tuner-mic-error');
+        if (!errEl) {
+            errEl = document.createElement('div');
+            errEl.className = 'tuner-mic-error w-full mt-2 p-3 bg-red-900/40 border border-red-700/60 rounded-lg text-xs text-red-300 leading-relaxed';
+            uiContainer.appendChild(errEl);
+        }
+        errEl.innerHTML = `<strong>${msg}</strong><br>${hint}`;
+        uiContainer.classList.remove('hidden');
+        uiContainer.classList.add('flex');
     }
 
     function disable() {
