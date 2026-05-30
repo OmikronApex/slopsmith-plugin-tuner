@@ -41,7 +41,7 @@
         // ── Gauge section (full-width, black face) ────────────────────
         var gaugeFace = document.createElement('div');
         gaugeFace.className = 'w-full relative rounded';
-        gaugeFace.style.backgroundColor = '#111';
+        gaugeFace.style.backgroundColor = '#e8e0cc';
         gaugeFace.style.height = '110px';
 
         // Frequency drum window — centred inside the gauge, behind the needle
@@ -92,7 +92,7 @@
         var arcPath = document.createElementNS(svgNS, 'path');
         arcPath.setAttribute('d', 'M 0 110 A 100 100 0 0 1 200 110');
         arcPath.setAttribute('fill', 'none');
-        arcPath.setAttribute('stroke', '#444');
+        arcPath.setAttribute('stroke', '#222');
         arcPath.setAttribute('stroke-width', '1.5');
         svg.appendChild(arcPath);
 
@@ -107,7 +107,7 @@
             tick.setAttribute('y1', (_SVG_CY + (_SVG_R - tickLen) * Math.sin(angleRad)).toFixed(1));
             tick.setAttribute('x2', (_SVG_CX + _SVG_R * Math.cos(angleRad)).toFixed(1));
             tick.setAttribute('y2', (_SVG_CY + _SVG_R * Math.sin(angleRad)).toFixed(1));
-            tick.setAttribute('stroke', isExtreme ? '#cc2200' : '#777');
+            tick.setAttribute('stroke', isExtreme ? '#cc2200' : '#222');
             tick.setAttribute('stroke-width', isExtreme ? '2.5' : '1.5');
             svg.appendChild(tick);
         });
