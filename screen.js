@@ -535,10 +535,15 @@
         let errEl = uiContainer.querySelector('.tuner-mic-error');
         if (!errEl) {
             errEl = document.createElement('div');
-            errEl.className = 'tuner-mic-error w-full mt-2 p-3 bg-red-900/40 border border-red-700/60 rounded-lg text-xs text-red-300 leading-relaxed';
+            errEl.className = 'tuner-mic-error relative w-full mt-2 p-3 bg-red-900/40 border border-red-700/60 rounded-lg text-xs text-red-300 leading-relaxed';
             uiContainer.appendChild(errEl);
         }
         errEl.innerHTML = `<strong>${msg}</strong><br>${hint}`;
+        const dismissBtn = document.createElement('button');
+        dismissBtn.className = 'absolute top-1.5 right-2 text-red-400 hover:text-red-200 text-sm font-bold leading-none';
+        dismissBtn.textContent = '×';
+        dismissBtn.onclick = () => errEl.remove();
+        errEl.appendChild(dismissBtn);
         uiContainer.classList.remove('hidden');
         uiContainer.classList.add('flex');
         if (window.slopsmith && !_onScreenChanged) {
