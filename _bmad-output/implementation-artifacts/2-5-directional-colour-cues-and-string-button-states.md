@@ -1,6 +1,6 @@
 # Story 2.5: Directional Colour Cues and String Button State Clarity
 
-Status: ready-for-dev
+Status: dismissed
 
 ## Story
 

@@ -1,6 +1,6 @@
 # Story 2.6: Low-Priority UX Polish Pass
 
-Status: ready-for-dev
+Status: dismissed
 
 ## Story
 

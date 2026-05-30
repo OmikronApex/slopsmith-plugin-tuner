@@ -63,7 +63,7 @@ window._tunerViz_default = function (container) {
         const percent = Math.max(0, Math.min(100, 50 + (cents / gaugeRange) * 50));
         gaugeNeedle.style.left = percent + '%';
 
-        if (Math.abs(cents) < 5) {
+        if (Math.abs(cents) < 2) {
             gaugeNeedle.className = 'absolute top-0 bottom-0 w-1 bg-green-400 transition-all duration-100 ease-out -translate-x-1/2 z-20 shadow-[0_0_8px_rgba(74,222,128,0.5)]';
         } else {
             gaugeNeedle.className = 'absolute top-0 bottom-0 w-1 bg-white transition-all duration-100 ease-out -translate-x-1/2 z-20 shadow-[0_0_8px_rgba(255,255,255,0.5)]';

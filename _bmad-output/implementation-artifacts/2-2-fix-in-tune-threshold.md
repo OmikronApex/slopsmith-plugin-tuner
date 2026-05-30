@@ -1,6 +1,6 @@
 # Story 2.2: Fix In-Tune Threshold in Visualizations
 
-Status: ready-for-dev
+Status: dismissed
 
 ## Story
 
