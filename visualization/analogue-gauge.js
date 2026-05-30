@@ -169,21 +169,23 @@
             noteStrip.appendChild(nLabel);
         }
         noteWindow.appendChild(noteStrip);
-        noteRow.appendChild(noteWindow);
 
-        // Lightbulb — rounded dome, glows red when in tune; absolutely positioned
-        // so it doesn't offset the centred note window
+        // Inner wrapper: note window + bulb as a centred pair
+        var notePair = document.createElement('div');
+        notePair.style.display = 'inline-flex';
+        notePair.style.alignItems = 'center';
+        notePair.style.gap = '6px';
+        notePair.appendChild(noteWindow);
+
+        // Lightbulb — rounded dome, sits immediately right of note window
         var bulbEl = document.createElement('div');
-        bulbEl.style.position = 'absolute';
-        bulbEl.style.right = '0';
-        bulbEl.style.top = '50%';
-        bulbEl.style.transform = 'translateY(-50%)';
         bulbEl.style.width = '20px';
         bulbEl.style.height = '20px';
         bulbEl.style.borderRadius = '50%';
         bulbEl.style.backgroundColor = '#2a1010';
         bulbEl.style.border = '2px solid #4a2020';
-        noteRow.appendChild(bulbEl);
+        notePair.appendChild(bulbEl);
+        noteRow.appendChild(notePair);
 
         panel.appendChild(noteRow);
         container.appendChild(panel);
