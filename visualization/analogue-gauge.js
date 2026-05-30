@@ -158,21 +158,29 @@
             svg.appendChild(ttick);
         }
 
-        // Inner labels
-        [{ c: -50, text: '-50' }, { c: -30, text: '-30' }, { c: 0, text: '0' }, { c: 30, text: '+30' }, { c: 50, text: '+50' }].forEach(function (m) {
+        // Inner labels — dominant-baseline="central" so y = vertical centre of text
+        [
+            { c: -50, text: '-50', extreme: true },
+            { c: -30, text: '-30', yOff: -1 },
+            { c:   0, text:  '0',  yOff: -9 },
+            { c:  30, text: '+30', yOff: -1 },
+            { c:  50, text: '+50', extreme: true }
+        ].forEach(function (m) {
             var aRad = ((m.c / 50) * _TUNER_NEEDLE_HALF_SWEEP - 90) * Math.PI / 180;
             var lx = (_SVG_CX + 76 * Math.cos(aRad)).toFixed(1);
-            var ly = (Math.abs(m.c) === 50
-                ? _SVG_CY - 2                // extremes: level with the ±50 markers
-                : _SVG_CY + 76 * Math.sin(aRad) + 10
-            ).toFixed(1);
+            // extreme labels: centre at arc baseline (y=_SVG_CY)
+            // others: on arc circle at r=76 plus per-label vertical nudge
+            var ly = m.extreme
+                ? String(_SVG_CY)
+                : (_SVG_CY + 76 * Math.sin(aRad) + (m.yOff || 0)).toFixed(1);
             var lbl = document.createElementNS(svgNS, 'text');
             lbl.setAttribute('x', lx);
             lbl.setAttribute('y', ly);
             lbl.setAttribute('text-anchor', 'middle');
+            lbl.setAttribute('dominant-baseline', 'central');
             lbl.setAttribute('font-size', '8');
             lbl.setAttribute('font-family', 'monospace');
-            lbl.setAttribute('fill', Math.abs(m.c) === 50 ? '#cc2200' : '#555');
+            lbl.setAttribute('fill', m.extreme ? '#cc2200' : '#555');
             lbl.textContent = m.text;
             svg.appendChild(lbl);
         });
