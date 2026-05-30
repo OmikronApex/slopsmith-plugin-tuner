@@ -37,19 +37,33 @@ After the story status is set to "review", perform these steps:
 - Append the standard Co-Authored-By trailer:
   Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
 
-**Step 2 — Ensure a PR exists for the epic branch:**
+**Step 2 — Find the story's GitHub issue number:**
+- Search for the story issue: gh issue list --label "story" --search "<story_key>:" --json number,title --jq '.[0].number'
+- Store this as STORY_ISSUE_NUMBER.
+
+**Step 3 — Ensure a PR exists for the epic branch and includes the story issue:**
 - Get the current branch name (git branch --show-current).
-- Check for an existing PR: gh pr list --head <current-branch> --json number,url --jq '.[0]'
-- If a PR already exists → report its URL, done.
+- Find the epic issue number: gh issue list --label "epic" --search "Epic <N>:" --json number,title --jq '.[0].number'
+- Check for an existing PR: gh pr list --head <current-branch> --json number,url,body --jq '.[0]'
+
+- If a PR already exists:
+  - Check whether #<STORY_ISSUE_NUMBER> is already referenced in the PR body.
+  - If not referenced → update the PR body to add the story issue to the Stories section:
+    - Find the matching story line (by story key or title) and append " #<STORY_ISSUE_NUMBER>" to it,
+      or add a new line "- [x] #<STORY_ISSUE_NUMBER> — <story title>" if no matching line exists.
+    - Command: gh pr edit <PR_NUMBER> --body "<updated body>"
+  - Report the PR URL.
+
 - If no PR exists → create one:
-  - Find the epic issue number: gh issue list --label "epic" --search "Epic <N>:" --json number,title --jq '.[0].number'
   - Title: the epic issue title (gh issue view <EPIC_ISSUE_NUMBER> --json title -q .title)
   - Body:
     - "Closes #<EPIC_ISSUE_NUMBER>"
     - ## Summary section: one-line description of the epic goal
-    - ## Stories section: bullet list of all stories in the epic with [x] / [ ] completion state based on their current Status field
+    - ## Stories section: bullet list of all stories in the epic; for each story look up its GitHub
+      issue number and format as "- [x/] #<STORY_ISSUE_NUMBER> — <story title>", using [x] if
+      Status is "review" or "done", [ ] otherwise
     - ## Test plan section: manual critical paths from project-context.md
     - Standard Claude Code footer
   - Command: gh pr create --title "..." --body "..."
-- Report the PR URL.
+  - Report the PR URL.
 """
