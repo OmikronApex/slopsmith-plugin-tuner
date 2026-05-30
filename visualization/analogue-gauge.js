@@ -53,7 +53,7 @@
         freqWindow.style.width = '104px';
         freqWindow.style.height = (_TUNER_LABEL_H * 2) + 'px';
         freqWindow.style.left = 'calc(50% - 52px)';
-        freqWindow.style.top = '34px';
+        freqWindow.style.top = '52px'; // half needle height from pivot (110 - 92/2 - windowH/2)
         freqWindow.style.zIndex = '1';
 
         var freqStrip = document.createElement('div');
@@ -96,21 +96,24 @@
         arcPath.setAttribute('stroke-width', '1.5');
         svg.appendChild(arcPath);
 
-        // Tick marks: red at ±50, grey elsewhere
-        [-50, -25, 0, 25, 50].forEach(function (c) {
-            var isExtreme = Math.abs(c) === 50;
-            var angleDeg = (c / 50) * _TUNER_NEEDLE_HALF_SWEEP;
-            var angleRad = (angleDeg - 90) * Math.PI / 180;
-            var tickLen = isExtreme ? 10 : 6;
-            var tick = document.createElementNS(svgNS, 'line');
-            tick.setAttribute('x1', (_SVG_CX + (_SVG_R - tickLen) * Math.cos(angleRad)).toFixed(1));
-            tick.setAttribute('y1', (_SVG_CY + (_SVG_R - tickLen) * Math.sin(angleRad)).toFixed(1));
-            tick.setAttribute('x2', (_SVG_CX + _SVG_R * Math.cos(angleRad)).toFixed(1));
-            tick.setAttribute('y2', (_SVG_CY + _SVG_R * Math.sin(angleRad)).toFixed(1));
-            tick.setAttribute('stroke', isExtreme ? '#cc2200' : '#222');
-            tick.setAttribute('stroke-width', isExtreme ? '2.5' : '1.5');
-            svg.appendChild(tick);
-        });
+        // Tick marks every 10 cents; major at ±50 (red), medium at 0/±25, minor at ±10/±20/±30/±40
+        for (var tc = -50; tc <= 50; tc += 10) {
+            var isExtreme = Math.abs(tc) === 50;
+            var isMajor   = tc === 0;
+            var isMedium  = Math.abs(tc) === 25;
+            var tLen = isExtreme ? 10 : isMajor ? 9 : isMedium ? 7 : 4;
+            var tColor = isExtreme ? '#cc2200' : '#222';
+            var tWidth = (isExtreme || isMajor) ? 2 : 1.5;
+            var tAngleRad = ((tc / 50) * _TUNER_NEEDLE_HALF_SWEEP - 90) * Math.PI / 180;
+            var ttick = document.createElementNS(svgNS, 'line');
+            ttick.setAttribute('x1', (_SVG_CX + (_SVG_R - tLen) * Math.cos(tAngleRad)).toFixed(1));
+            ttick.setAttribute('y1', (_SVG_CY + (_SVG_R - tLen) * Math.sin(tAngleRad)).toFixed(1));
+            ttick.setAttribute('x2', (_SVG_CX + _SVG_R * Math.cos(tAngleRad)).toFixed(1));
+            ttick.setAttribute('y2', (_SVG_CY + _SVG_R * Math.sin(tAngleRad)).toFixed(1));
+            ttick.setAttribute('stroke', tColor);
+            ttick.setAttribute('stroke-width', tWidth);
+            svg.appendChild(ttick);
+        }
 
         // Needle line (pivot at SVG bottom-centre; x2/y2 updated in RAF)
         var needleLine = document.createElementNS(svgNS, 'line');
