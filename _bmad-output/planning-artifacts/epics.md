@@ -127,12 +127,12 @@ So that system design decisions, component boundaries, and API contracts are aut
 
 **Acceptance Criteria:**
 
-**Given** the bmad-create-architecture skill is invoked on this project with the PRD and project-context.md as inputs
-**When** the architecture document is complete and saved
-**Then** `_bmad-output/planning-artifacts/architecture.md` exists and covers all of: technology stack (Vanilla JS IIFE, Python/FastAPI, Web Audio API, Tailwind CSS), component boundaries (screen.js, routes.py, yin-worker.js, visualization/*.js, settings.html), audio pipeline data flow (getUserMedia → ScriptProcessorNode → accumBuffer → Web Worker → YIN → postMessage → main thread), visualization factory contract (`window._tunerViz_<name>(container)` returning `{ update, destroy }`), API contracts (GET/POST `/api/plugins/tuner/config`, Slopsmith plugin `context` dict interface), and config persistence model (server-side `tuner.json` + client-side `localStorage`)
-**And** the document records the global namespace strategy (`_tuner` / `_TUNER_` prefix convention) and the rationale behind it
-**And** open questions OQ-01 (ScriptProcessorNode migration path) and the absence of an automated test suite are addressed with recommended approaches documented
-**And** all NFRs (NFR-01 through NFR-07) are referenced as architectural constraints with traceability to the relevant system component
+- **Given** the `bmad-create-architecture` skill is invoked on this project with the PRD and project-context.md as inputs
+- **When** the architecture document is complete and saved
+- **Then** `_bmad-output/planning-artifacts/architecture.md` exists and covers all of: technology stack (Vanilla JS IIFE, Python/FastAPI, Web Audio API, Tailwind CSS), component boundaries (screen.js, routes.py, yin-worker.js, visualization/*.js, settings.html), audio pipeline data flow (getUserMedia → ScriptProcessorNode → accumBuffer → Web Worker → YIN → postMessage → main thread), visualization factory contract (`window._tunerViz_<name>(container)` returning `{ update, destroy }`), API contracts (GET/POST `/api/plugins/tuner/config`, Slopsmith plugin `context` dict interface), and config persistence model (server-side `tuner.json` + client-side `localStorage`)
+  - **And** the document records the global namespace strategy (`_tuner` / `_TUNER_` prefix convention) and the rationale behind it
+  - **And** open questions OQ-01 (ScriptProcessorNode migration path) and the absence of an automated test suite are addressed with recommended approaches documented
+  - **And** all NFRs (NFR-01 through NFR-07) are referenced as architectural constraints with traceability to the relevant system component
 
 ### Story 1.2: Fix Default Visualization Initialisation
 
@@ -142,18 +142,18 @@ So that my initial experience matches the intended design and is consistent with
 
 **Acceptance Criteria:**
 
-**Given** `screen.js` is the plugin entry point and no visualization preference has been saved server-side
-**When** the tuner panel is opened for the first time
-**Then** the active visualization is `"default"` (needle/gauge), not `"strobe"`
-**And** the hardcoded initialisation string in `screen.js` reads `"default"` — correcting the bug identified in FR-17 and OQ-02
+- **Given** `screen.js` is the plugin entry point and no visualization preference has been saved server-side
+- **When** the tuner panel is opened for the first time
+- **Then** the active visualization is `"default"` (needle/gauge), not `"strobe"`
+  - **And** the hardcoded initialisation string in `screen.js` reads `"default"` — correcting the bug identified in FR-17 and OQ-02
 
-**Given** a user already has a saved visualization preference in the server-side config (`tuner.json`)
-**When** the tuner panel initialises
-**Then** the saved preference is loaded and used, overriding the hardcoded fallback — no regression in existing behaviour
+- **Given** a user already has a saved visualization preference in the server-side config (`tuner.json`)
+- **When** the tuner panel initialises
+- **Then** the saved preference is loaded and used, overriding the hardcoded fallback — no regression in existing behaviour
 
-**Given** the fix is applied
-**When** the critical paths from project-context.md are manually verified (mic access → YIN → pitch display; viz switch → destroy/init cycle)
-**Then** all critical paths pass without errors or regressions
+- **Given** the fix is applied
+- **When** the critical paths from project-context.md are manually verified (mic access → YIN → pitch display; viz switch → destroy/init cycle)
+- **Then** all critical paths pass without errors or regressions
 
 ### Story 1.3: Implement Architecture-Identified Code Improvements
 
@@ -163,16 +163,16 @@ So that the codebase is fully aligned with the architecture document and no late
 
 **Acceptance Criteria:**
 
-**Given** the architecture document from Story 1.1 is complete and identifies discrepancies between documented design and actual code
-**When** each discrepancy is assessed
-**Then** each item is either: (a) fixed with a targeted code change, or (b) documented in the architecture document as a known trade-off with explicit rationale — no discrepancy is silently ignored
+- **Given** the architecture document from Story 1.1 is complete and identifies discrepancies between documented design and actual code
+- **When** each discrepancy is assessed
+- **Then** each item is either: (a) fixed with a targeted code change, or (b) documented in the architecture document as a known trade-off with explicit rationale — no discrepancy is silently ignored
 
-**Given** any code changes are made
-**When** changes are applied
-**Then** no new external JS or Python dependencies are introduced (NFR-03 maintained)
-**And** all existing NFRs continue to be met — verified by manually running the critical paths from project-context.md (mic access → pitch display; config POST → persisted → survives restart; viz switch → clean destroy/init; settings → custom tuning saved → appears in dropdown)
-**And** the architecture document is updated to reflect any code changes made, keeping doc and code in sync
+- **Given** any code changes are made
+- **When** changes are applied
+- **Then** no new external JS or Python dependencies are introduced (NFR-03 maintained)
+  - **And** all existing NFRs continue to be met — verified by manually running the critical paths from project-context.md (mic access → pitch display; config POST → persisted → survives restart; viz switch → clean destroy/init; settings → custom tuning saved → appears in dropdown)
+  - **And** the architecture document is updated to reflect any code changes made, keeping doc and code in sync
 
-**Given** no discrepancies are found beyond Story 1.2
-**When** the architecture review is complete
-**Then** this story is marked done with a note confirming no additional changes were required
+- **Given** no discrepancies are found beyond Story 1.2
+- **When** the architecture review is complete
+- **Then** this story is marked done with a note confirming no additional changes were required
