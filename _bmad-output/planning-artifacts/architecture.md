@@ -266,13 +266,15 @@ Only `.js` files are served; non-JS or missing files return HTTP 404.
 
 Stored in `context["config_dir"] / "tuner.json"`. Persists across container restarts.
 
-| Field | Type | Default | Notes |
-|---|---|---|---|
-| `lastTuning` | string | `"Guitar Standard"` | Name of last selected tuning. `"_current"` is ephemeral and never written. |
-| `customTunings` | object | `{}` | User-defined tunings; merged with built-in at read time |
-| `disabledTunings` | array | `[]` | Names of built-in tunings hidden from selector |
-| `showFloatingButton` | bool | `true` | Whether the floating button is visible |
-| `visualizationMode` | string | `"default"` | Active viz name; canonical default is `"default"` |
+| Field | Type | Default | Written by | Notes |
+|---|---|---|---|---|
+| `lastTuning` | string | `"Guitar Standard"` | `screen.js` (`saveConfig`) | Name of last selected tuning. `"_current"` is ephemeral and never written. |
+| `visualizationMode` | string | `"default"` | `screen.js` (`saveConfig`) | Active viz name; canonical default is `"default"` |
+| `customTunings` | object | `{}` | `settings.html` | User-defined tunings; merged with built-in at read time |
+| `disabledTunings` | array | `[]` | `settings.html` | Names of built-in tunings hidden from selector |
+| `showFloatingButton` | bool | `true` | `settings.html` | Whether the floating button is visible |
+
+**Write responsibility split:** `screen.js` (`saveConfig()`) only persists the two fields that change during normal tuner use — `lastTuning` and `visualizationMode`. All other fields (`customTunings`, `disabledTunings`, `showFloatingButton`) are written exclusively by `settings.html` via the Plugin Manager. This is intentional: real-time state is owned by `screen.js`; persistent configuration preferences are owned by the Plugin Manager UI.
 
 `defaultTunings` is computed server-side and **never stored**.
 

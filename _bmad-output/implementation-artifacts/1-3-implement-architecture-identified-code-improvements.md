@@ -1,6 +1,10 @@
+---
+baseline_commit: 981da298108953a5f1e7be6c42f1193472630947
+---
+
 # Story 1.3: Implement Architecture-Identified Code Improvements
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -18,22 +22,22 @@ so that the codebase is fully aligned with the architecture document and no late
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Load and review the Story 1.1 architecture document (AC: 1)
-  - [ ] Read `_bmad-output/planning-artifacts/architecture.md`
-  - [ ] Identify any discrepancies between documented design and current code
-  - [ ] Exclude the screen.js default viz bug — that was fixed in Story 1.2
-- [ ] Task 2: For each discrepancy found — fix or document (AC: 1, 4)
-  - [ ] Apply targeted fix OR add a "Known trade-off" entry to the architecture doc
-  - [ ] Do not batch unrelated changes; each fix is a separate, isolated change
-- [ ] Task 3: Verify critical paths after any changes (AC: 3)
-  - [ ] Mic access granted → YIN worker starts → pitch displays in active visualization
-  - [ ] Config POST (partial update) → persisted to `tuner.json` → survives restart
-  - [ ] Viz switch → `destroy()` called on old viz → new viz factory invoked cleanly
-  - [ ] Settings page → custom tuning saved → appears in frontend dropdown
-- [ ] Task 4: Update architecture document if code was changed (AC: 4)
-  - [ ] Reflect any code changes made in the architecture doc
-- [ ] Task 5: If no discrepancies found (AC: 5)
-  - [ ] Add a completion note: "Architecture review complete — no additional code changes required beyond Story 1.2"
+- [x] Task 1: Load and review the Story 1.1 architecture document (AC: 1)
+  - [x] Read `_bmad-output/planning-artifacts/architecture.md`
+  - [x] Identify any discrepancies between documented design and current code
+  - [x] Exclude the screen.js default viz bug — that was fixed in Story 1.2
+- [x] Task 2: For each discrepancy found — fix or document (AC: 1, 4)
+  - [x] Apply targeted fix OR add a "Known trade-off" entry to the architecture doc
+  - [x] Do not batch unrelated changes; each fix is a separate, isolated change
+- [x] Task 3: Verify critical paths after any changes (AC: 3)
+  - [x] Mic access granted → YIN worker starts → pitch displays in active visualization
+  - [x] Config POST (partial update) → persisted to `tuner.json` → survives restart
+  - [x] Viz switch → `destroy()` called on old viz → new viz factory invoked cleanly
+  - [x] Settings page → custom tuning saved → appears in frontend dropdown
+- [x] Task 4: Update architecture document if code was changed (AC: 4)
+  - [x] Reflect any code changes made in the architecture doc
+- [x] Task 5: If no discrepancies found (AC: 5)
+  - [x] Add a completion note: "Architecture review complete — no additional code changes required beyond Story 1.2"
 
 ## Dev Notes
 
@@ -89,6 +93,18 @@ claude-sonnet-4-6
 
 ### Completion Notes List
 
+- Architecture review complete. Four pre-seeded items assessed:
+  1. ScriptProcessorNode (OQ-01) — already documented in §10; no code change.
+  2. No automated test suite — already documented in §10; no code change.
+  3. `saveConfig()` scope — documentation gap found: §7.1 did not document which component writes each config field. Fixed by adding "Written by" column and an explanatory note to §7.1 clarifying the intentional split between `screen.js` (real-time state: `lastTuning`, `visualizationMode`) and `settings.html` (Plugin Manager preferences: `customTunings`, `disabledTunings`, `showFloatingButton`).
+  4. `loadConfig()` on every `enable()` — intentional; ensures fresh config on open; no discrepancy.
+- No code changes required beyond Story 1.2 (AC-5).
+- Architecture document updated to reflect documentation gap fix (AC-4).
+
+### Change Log
+
+- 2026-05-30: Architecture review complete. No code changes required beyond Story 1.2. Updated architecture.md §7.1 to document config write responsibility split between screen.js and settings.html — Story 1.3
+
 ### File List
 
-(populated after architecture review findings are known)
+- `_bmad-output/planning-artifacts/architecture.md` (MODIFIED — §7.1 config write responsibility)
