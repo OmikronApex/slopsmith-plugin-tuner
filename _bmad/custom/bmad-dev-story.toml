@@ -1,0 +1,75 @@
+[workflow]
+
+activation_steps_prepend = [
+"""
+**Epic branch setup — run before anything else:**
+
+1. Identify the epic number from the story key (e.g. story "1-2" → epic 1, story "2-3" → epic 2).
+
+2. Find the GitHub issue number for that epic:
+   gh issue list --label "epic" --search "Epic <N>:" --json number,title --jq '.[0].number'
+   Store this as EPIC_ISSUE_NUMBER.
+
+3. Find the full epic branch name — it follows the pattern `epic/<EPIC_ISSUE_NUMBER>-<slug>`:
+   git branch -a | grep "epic/<EPIC_ISSUE_NUMBER>-"
+   Also check remote: git ls-remote --heads origin "epic/<EPIC_ISSUE_NUMBER>-*"
+
+4. Check the current branch (git branch --show-current):
+   - If already on the matching `epic/<EPIC_ISSUE_NUMBER>-...` branch → proceed, nothing to do.
+   - If the branch exists locally or remotely but we are not on it → git checkout epic/<EPIC_ISSUE_NUMBER>-<slug>
+   - If the branch does not exist at all:
+     a. Slug the epic title: lowercase, spaces→hyphens, strip special chars.
+     b. git checkout -b epic/<EPIC_ISSUE_NUMBER>-<slug>
+     c. git push -u origin epic/<EPIC_ISSUE_NUMBER>-<slug>
+
+5. Report the branch name we are now on before continuing.
+""",
+]
+
+on_complete = """
+After the story status is set to "review", perform these steps:
+
+**Step 1 — Commit story work:**
+- Run git status to identify all new and modified files produced by this story.
+- Stage only the relevant files (story file, any source files, planning artifacts).
+- Commit with message format: "story <story_key>: <story title>"
+  e.g. "story 1-2: fix default visualization initialisation"
+- Append the standard Co-Authored-By trailer:
+  Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+
+**Step 2 — Push the commit:**
+- Run: git push
+- If the branch has no upstream yet: git push -u origin <current-branch>
+
+**Step 3 — Find the story's GitHub issue number:**
+- Search for the story issue: gh issue list --label "story" --search "<story_key>:" --json number,title --jq '.[0].number'
+- Store this as STORY_ISSUE_NUMBER.
+
+**Step 4 — Ensure a PR exists for the epic branch and includes the story issue:**
+- Get the current branch name (git branch --show-current).
+- Find the epic issue number: gh issue list --label "epic" --search "Epic <N>:" --json number,title --jq '.[0].number'
+- Check for an existing PR: gh pr list --head <current-branch> --json number,url,body --jq '.[0]'
+
+- If a PR already exists:
+  - Read the current PR body.
+  - Apply both of the following edits to the body, then write it back in one gh pr edit call:
+    1. If #<STORY_ISSUE_NUMBER> is not yet referenced → add the story to the Stories section as
+       "- [x] #<STORY_ISSUE_NUMBER> — <story title>"
+    2. If #<STORY_ISSUE_NUMBER> is already referenced → ensure the checkbox on that line reads [x]
+       (replace "- [ ]" with "- [x]" on the line containing #<STORY_ISSUE_NUMBER>)
+  - Command: gh pr edit <PR_NUMBER> --body "<updated body>"
+  - Report the PR URL.
+
+- If no PR exists → create one:
+  - Title: the epic issue title (gh issue view <EPIC_ISSUE_NUMBER> --json title -q .title)
+  - Body:
+    - "Closes #<EPIC_ISSUE_NUMBER>"
+    - ## Summary section: one-line description of the epic goal
+    - ## Stories section: bullet list of all stories in the epic; for each story look up its GitHub
+      issue number and format as "- [x/] #<STORY_ISSUE_NUMBER> — <story title>", using [x] if
+      Status is "review" or "done", [ ] otherwise
+    - ## Test plan section: manual critical paths from project-context.md
+    - Standard Claude Code footer
+  - Command: gh pr create --title "..." --body "..."
+  - Report the PR URL.
+"""

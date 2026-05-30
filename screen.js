@@ -39,7 +39,7 @@
 
     // ── Settings ──────────────────────────────────────────────────────
     let showFloatingButton = true;
-    let visualizationMode = 'strobe';
+    let visualizationMode = 'default';
     let selectedDeviceId = '';
     let selectedChannel = 'mono';
     const _TUNER_STORAGE_KEY = 'slopsmith_tuner_settings';
@@ -121,7 +121,7 @@
 
             defaultTunings = config.defaultTunings || {};
             showFloatingButton = config.showFloatingButton !== false;
-            visualizationMode = config.visualizationMode || 'strobe';
+            visualizationMode = config.visualizationMode || 'default';
 
             tunings = {};
             Object.values(defaultTunings).forEach(group => {
