@@ -162,7 +162,7 @@
         [
             { c: -50, text: '-50', extreme: true },
             { c: -30, text: '-30', yOff: -1 },
-            { c:   0, text:  '0',  yOff: -9 },
+            { c:   0, text:  '0',  yOff: -1 },
             { c:  30, text: '+30', yOff: -1 },
             { c:  50, text: '+50', extreme: true }
         ].forEach(function (m) {
