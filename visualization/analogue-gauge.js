@@ -6,192 +6,200 @@
  *   - cents: number        (deviation from target, −50…+50)
  *   - freq: number         (detected frequency in Hz)
  *
- * Layout:
- *   - Frequency drum slot: upper panel area, visible behind/above the needle
- *   - Semicircular needle gauge: centre of panel
- *   - Note name drum slot: below the needle
- *   - Lightbulb: adjacent to the note drum, glows red/orange within ±2 cents
+ * Layout (vintage analogue instrument panel):
+ *   - Off-white panel face
+ *   - Full-width black gauge section; frequency drum window centred inside it
+ *   - Red SVG needle sweeps over the freq drum window
+ *   - Note name drum + lightbulb below the gauge
  */
 (function () {
     'use strict';
 
     // ── Constants ─────────────────────────────────────────────────────
-    var _TUNER_LABEL_H = 28;           // px height of each drum label
-    var _TUNER_NEEDLE_HALF_SWEEP = 70; // degrees from centre to arc extreme
-    var _TUNER_IN_TUNE_THRESHOLD = 2;  // cents threshold for lightbulb
-    var _TUNER_STRIP_START_MIDI = 36;  // C2
-    var _TUNER_STRIP_END_MIDI = 72;    // C5
+    var _TUNER_LABEL_H = 22;           // px height of each drum label
+    var _TUNER_NEEDLE_HALF_SWEEP = 75; // degrees from centre to arc extreme (±50 cents)
+    var _TUNER_IN_TUNE_THRESHOLD = 2;
+    var _TUNER_STRIP_START_MIDI = 14;  // ~18 Hz — covers 20 Hz minimum
+    var _TUNER_STRIP_END_MIDI = 84;    // ~1047 Hz C6
     var _TUNER_NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+    // SVG gauge geometry — viewBox 200 × 110, pivot at bottom-centre
+    var _SVG_CX = 100, _SVG_CY = 110, _SVG_R = 100, _SVG_NEEDLE_LEN = 92;
 
     window['_tunerViz_analogue-gauge'] = function (container) {
         'use strict';
 
-        // ── Helper: MIDI → Hz ─────────────────────────────────────────
+        var svgNS = 'http://www.w3.org/2000/svg';
+
         function _midiToFreq(m) { return Math.pow(2, (m - 69) / 12) * 440; }
 
-        // ── Outer panel ───────────────────────────────────────────────
+        // ── Panel (off-white, vintage) ────────────────────────────────
         var panel = document.createElement('div');
-        panel.className = 'w-full relative bg-gray-900 border border-gray-700 rounded-xl overflow-hidden flex flex-col items-center py-3 px-3 gap-2';
+        panel.className = 'w-full relative flex flex-col items-center gap-2 p-3 rounded-lg';
+        panel.style.backgroundColor = '#e8e0cc';
+        panel.style.border = '2px solid #b0a080';
 
-        // ── Frequency drum slot (upper, behind needle area) ───────────
+        // ── Gauge section (full-width, black face) ────────────────────
+        var gaugeFace = document.createElement('div');
+        gaugeFace.className = 'w-full relative rounded';
+        gaugeFace.style.backgroundColor = '#111';
+        gaugeFace.style.height = '110px';
+
+        // Frequency drum window — centred inside the gauge, behind the needle
         var freqWindow = document.createElement('div');
-        freqWindow.className = 'w-full relative overflow-hidden rounded border border-gray-700 bg-gray-950';
+        freqWindow.style.position = 'absolute';
+        freqWindow.style.overflow = 'hidden';
+        freqWindow.style.backgroundColor = '#fff';
+        freqWindow.style.border = '1px solid #bbb';
+        freqWindow.style.width = '104px';
         freqWindow.style.height = (_TUNER_LABEL_H * 2) + 'px';
+        freqWindow.style.left = 'calc(50% - 52px)';
+        freqWindow.style.top = '34px';
+        freqWindow.style.zIndex = '1';
 
         var freqStrip = document.createElement('div');
-        freqStrip.className = 'absolute w-full';
+        freqStrip.style.position = 'absolute';
+        freqStrip.style.width = '100%';
 
-        // Generate frequency labels
         for (var fm = _TUNER_STRIP_START_MIDI; fm <= _TUNER_STRIP_END_MIDI; fm++) {
             var fLabel = document.createElement('div');
-            fLabel.className = 'flex items-center justify-center text-xs font-mono text-cyan-400 select-none';
             fLabel.style.height = _TUNER_LABEL_H + 'px';
+            fLabel.style.display = 'flex';
+            fLabel.style.alignItems = 'center';
+            fLabel.style.justifyContent = 'center';
+            fLabel.style.fontSize = '10px';
+            fLabel.style.fontFamily = 'monospace';
+            fLabel.style.fontWeight = 'bold';
+            fLabel.style.color = '#111';
+            fLabel.style.userSelect = 'none';
             fLabel.textContent = _midiToFreq(fm).toFixed(1) + ' Hz';
             freqStrip.appendChild(fLabel);
         }
         freqWindow.appendChild(freqStrip);
+        gaugeFace.appendChild(freqWindow);
 
-        // Centre-line marker for the freq window
-        var freqMark = document.createElement('div');
-        freqMark.className = 'absolute left-0 right-0 border-t border-gray-600 pointer-events-none z-10';
-        freqMark.style.top = (_TUNER_LABEL_H) + 'px'; // centre of 2-label window
-        freqWindow.appendChild(freqMark);
-
-        panel.appendChild(freqWindow);
-
-        // ── Needle gauge (centre) ─────────────────────────────────────
-        var gaugeWrap = document.createElement('div');
-        gaugeWrap.className = 'relative flex items-end justify-center w-full';
-        gaugeWrap.style.height = '90px';
-
-        // SVG arc + graduation marks
-        var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        svg.setAttribute('viewBox', '0 0 200 100');
-        svg.setAttribute('width', '100%');
-        svg.setAttribute('height', '100%');
+        // SVG — arc, tick marks, needle, pivot (z above freq window)
+        var svg = document.createElementNS(svgNS, 'svg');
+        svg.setAttribute('viewBox', '0 0 200 110');
+        svg.setAttribute('preserveAspectRatio', 'none');
         svg.style.position = 'absolute';
-        svg.style.bottom = '0';
+        svg.style.top = '0';
         svg.style.left = '0';
+        svg.style.width = '100%';
+        svg.style.height = '100%';
+        svg.style.zIndex = '2';
 
-        // Arc path: semicircle from bottom-left to bottom-right, radius 90
-        var arcPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        arcPath.setAttribute('d', 'M 20 100 A 80 80 0 0 1 180 100');
+        // Arc: edge-to-edge semicircle, centre at bottom-centre of viewBox
+        var arcPath = document.createElementNS(svgNS, 'path');
+        arcPath.setAttribute('d', 'M 0 110 A 100 100 0 0 1 200 110');
         arcPath.setAttribute('fill', 'none');
-        arcPath.setAttribute('stroke', '#4b5563');
-        arcPath.setAttribute('stroke-width', '2');
+        arcPath.setAttribute('stroke', '#444');
+        arcPath.setAttribute('stroke-width', '1.5');
         svg.appendChild(arcPath);
 
-        // Graduation marks: −50, −25, 0, +25, +50
-        var _GRAD_MARKS = [
-            { cents: -50, label: '-50' },
-            { cents: -25, label: '-25' },
-            { cents:   0, label:  '0'  },
-            { cents:  25, label: '+25' },
-            { cents:  50, label: '+50' }
-        ];
-        var cx = 100, cy = 100, r = 80;
-        _GRAD_MARKS.forEach(function (m) {
-            var angleDeg = (m.cents / 50) * _TUNER_NEEDLE_HALF_SWEEP; // −70 to +70
-            var angleRad = (angleDeg - 90) * Math.PI / 180; // −90° offset: 0 points up
-            var x1 = cx + (r - 6) * Math.cos(angleRad);
-            var y1 = cy + (r - 6) * Math.sin(angleRad);
-            var x2 = cx + r * Math.cos(angleRad);
-            var y2 = cy + r * Math.sin(angleRad);
-            var tick = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-            tick.setAttribute('x1', x1.toFixed(1));
-            tick.setAttribute('y1', y1.toFixed(1));
-            tick.setAttribute('x2', x2.toFixed(1));
-            tick.setAttribute('y2', y2.toFixed(1));
-            tick.setAttribute('stroke', m.cents === 0 ? '#6ee7b7' : '#6b7280');
-            tick.setAttribute('stroke-width', m.cents === 0 ? '2.5' : '1.5');
+        // Tick marks: red at ±50, grey elsewhere
+        [-50, -25, 0, 25, 50].forEach(function (c) {
+            var isExtreme = Math.abs(c) === 50;
+            var angleDeg = (c / 50) * _TUNER_NEEDLE_HALF_SWEEP;
+            var angleRad = (angleDeg - 90) * Math.PI / 180;
+            var tickLen = isExtreme ? 10 : 6;
+            var tick = document.createElementNS(svgNS, 'line');
+            tick.setAttribute('x1', (_SVG_CX + (_SVG_R - tickLen) * Math.cos(angleRad)).toFixed(1));
+            tick.setAttribute('y1', (_SVG_CY + (_SVG_R - tickLen) * Math.sin(angleRad)).toFixed(1));
+            tick.setAttribute('x2', (_SVG_CX + _SVG_R * Math.cos(angleRad)).toFixed(1));
+            tick.setAttribute('y2', (_SVG_CY + _SVG_R * Math.sin(angleRad)).toFixed(1));
+            tick.setAttribute('stroke', isExtreme ? '#cc2200' : '#777');
+            tick.setAttribute('stroke-width', isExtreme ? '2.5' : '1.5');
             svg.appendChild(tick);
-
-            // Label
-            var lx = cx + (r - 16) * Math.cos(angleRad);
-            var ly = cy + (r - 16) * Math.sin(angleRad);
-            var text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            text.setAttribute('x', lx.toFixed(1));
-            text.setAttribute('y', ly.toFixed(1));
-            text.setAttribute('text-anchor', 'middle');
-            text.setAttribute('dominant-baseline', 'middle');
-            text.setAttribute('font-size', '7');
-            text.setAttribute('fill', '#9ca3af');
-            text.setAttribute('font-family', 'monospace');
-            text.textContent = m.label;
-            svg.appendChild(text);
         });
 
-        gaugeWrap.appendChild(svg);
+        // Needle line (pivot at SVG bottom-centre; x2/y2 updated in RAF)
+        var needleLine = document.createElementNS(svgNS, 'line');
+        needleLine.setAttribute('x1', '100');
+        needleLine.setAttribute('y1', '110');
+        needleLine.setAttribute('x2', '100');
+        needleLine.setAttribute('y2', String(110 - _SVG_NEEDLE_LEN)); // initial: 0 cents
+        needleLine.setAttribute('stroke', '#cc2200');
+        needleLine.setAttribute('stroke-width', '2');
+        needleLine.setAttribute('stroke-linecap', 'round');
+        svg.appendChild(needleLine);
 
-        // Needle: a thin div pivoting at its bottom-centre
-        var needleEl = document.createElement('div');
-        needleEl.className = 'absolute bg-white rounded-full';
-        needleEl.style.width = '2px';
-        needleEl.style.height = '72px';
-        needleEl.style.bottom = '0px';
-        needleEl.style.left = '50%';
-        needleEl.style.marginLeft = '-1px';
-        needleEl.style.transformOrigin = 'bottom center';
-        needleEl.style.transform = 'rotate(0deg)';
-        gaugeWrap.appendChild(needleEl);
+        // Pivot cap
+        var pivotCap = document.createElementNS(svgNS, 'circle');
+        pivotCap.setAttribute('cx', '100');
+        pivotCap.setAttribute('cy', '110');
+        pivotCap.setAttribute('r', '5');
+        pivotCap.setAttribute('fill', '#cc2200');
+        svg.appendChild(pivotCap);
 
-        // Pivot dot
-        var pivotDot = document.createElement('div');
-        pivotDot.className = 'absolute w-3 h-3 rounded-full bg-gray-400 border border-gray-600';
-        pivotDot.style.bottom = '-6px';
-        pivotDot.style.left = '50%';
-        pivotDot.style.marginLeft = '-6px';
-        gaugeWrap.appendChild(pivotDot);
+        gaugeFace.appendChild(svg);
+        panel.appendChild(gaugeFace);
 
-        panel.appendChild(gaugeWrap);
-
-        // ── Note drum + lightbulb row ─────────────────────────────────
+        // ── Note drum + lightbulb row (below gauge) ───────────────────
         var noteRow = document.createElement('div');
-        noteRow.className = 'flex items-center gap-2 w-full';
+        noteRow.className = 'flex items-center gap-3 justify-center';
 
-        // Note drum slot
         var noteWindow = document.createElement('div');
-        noteWindow.className = 'flex-1 relative overflow-hidden rounded border border-gray-700 bg-gray-950';
+        noteWindow.style.position = 'relative';
+        noteWindow.style.overflow = 'hidden';
+        noteWindow.style.backgroundColor = '#fff';
+        noteWindow.style.border = '1px solid #999';
+        noteWindow.style.width = '48px';
         noteWindow.style.height = (_TUNER_LABEL_H * 2) + 'px';
 
         var noteStrip = document.createElement('div');
-        noteStrip.className = 'absolute w-full';
+        noteStrip.style.position = 'absolute';
+        noteStrip.style.width = '100%';
 
-        // Generate note labels
         for (var nm = _TUNER_STRIP_START_MIDI; nm <= _TUNER_STRIP_END_MIDI; nm++) {
             var nLabel = document.createElement('div');
-            nLabel.className = 'flex items-center justify-center text-base font-bold text-white select-none';
             nLabel.style.height = _TUNER_LABEL_H + 'px';
+            nLabel.style.display = 'flex';
+            nLabel.style.alignItems = 'center';
+            nLabel.style.justifyContent = 'center';
+            nLabel.style.fontSize = '14px';
+            nLabel.style.fontWeight = 'bold';
+            nLabel.style.color = '#111';
+            nLabel.style.userSelect = 'none';
             nLabel.textContent = _TUNER_NOTE_NAMES[nm % 12];
             noteStrip.appendChild(nLabel);
         }
         noteWindow.appendChild(noteStrip);
-
-        // Centre-line marker for the note window
-        var noteMark = document.createElement('div');
-        noteMark.className = 'absolute left-0 right-0 border-t border-gray-600 pointer-events-none z-10';
-        noteMark.style.top = (_TUNER_LABEL_H) + 'px';
-        noteWindow.appendChild(noteMark);
-
         noteRow.appendChild(noteWindow);
 
-        // Lightbulb element
+        // Lightbulb — rounded dome, glows red when in tune
         var bulbEl = document.createElement('div');
-        bulbEl.className = 'w-6 h-6 rounded-full bg-gray-800 border border-gray-700 flex-shrink-0';
+        bulbEl.style.width = '20px';
+        bulbEl.style.height = '20px';
+        bulbEl.style.borderRadius = '50%';
+        bulbEl.style.backgroundColor = '#2a1010';
+        bulbEl.style.border = '2px solid #4a2020';
+        bulbEl.style.flexShrink = '0';
         noteRow.appendChild(bulbEl);
 
         panel.appendChild(noteRow);
         container.appendChild(panel);
 
         // ── State ─────────────────────────────────────────────────────
-        var currentDrumY = 0;
-        var targetDrumY = 0;
-        var currentAngle = 0;
-        var targetAngle = 0;
+        var currentDrumY = 0, targetDrumY = 0;
+        var currentAngle = 0, targetAngle = 0;
         var frozen = true;
         var lastTime = performance.now();
         var rafId = null;
         var prevNote = null;
+
+        // ── Needle SVG update ─────────────────────────────────────────
+        function _setNeedle(angleDeg) {
+            var rad = (angleDeg - 90) * Math.PI / 180;
+            needleLine.setAttribute('x2', (_SVG_CX + _SVG_NEEDLE_LEN * Math.cos(rad)).toFixed(1));
+            needleLine.setAttribute('y2', (_SVG_CY + _SVG_NEEDLE_LEN * Math.sin(rad)).toFixed(1));
+        }
+
+        // ── Drum position ─────────────────────────────────────────────
+        function _computeDrumY(freq, cents) {
+            var midi = 69 + 12 * Math.log2(freq / 440);
+            var idx = Math.max(0, Math.min(_TUNER_STRIP_END_MIDI - _TUNER_STRIP_START_MIDI, Math.round(midi) - _TUNER_STRIP_START_MIDI));
+            return _TUNER_LABEL_H * (0.5 - idx) - (cents / 50) * (_TUNER_LABEL_H / 2);
+        }
 
         // ── Animation loop ────────────────────────────────────────────
         function _animate() {
@@ -207,55 +215,40 @@
             }
 
             currentAngle += (targetAngle - currentAngle) * lf;
-            needleEl.style.transform = 'rotate(' + currentAngle + 'deg)';
+            _setNeedle(currentAngle);
 
             rafId = requestAnimationFrame(_animate);
         }
 
         rafId = requestAnimationFrame(_animate);
 
-        // ── Drum positioning ──────────────────────────────────────────
-        function _computeDrumY(freq, cents) {
-            var midi = 69 + 12 * Math.log2(freq / 440);
-            var midiRounded = Math.round(midi);
-            var idx = Math.max(0, Math.min(_TUNER_STRIP_END_MIDI - _TUNER_STRIP_START_MIDI, midiRounded - _TUNER_STRIP_START_MIDI));
-            // Centre the matched label in the 2-label window; window centre = _TUNER_LABEL_H from top
-            var centreY = -idx * _TUNER_LABEL_H + _TUNER_LABEL_H * 0.5;
-            // cents offset: +50 → half label up (negative = strip moves up), −50 → half label down
-            var centOffset = -(cents / 50) * (_TUNER_LABEL_H / 2);
-            return centreY + centOffset;
-        }
-
         // ── Public API ────────────────────────────────────────────────
         function update(note, cents, freq) {
             if (note === null) {
                 frozen = true;
                 targetAngle = 0;
-                // lightbulb unlit
-                bulbEl.className = 'w-6 h-6 rounded-full bg-gray-800 border border-gray-700 flex-shrink-0';
+                bulbEl.style.backgroundColor = '#2a1010';
+                bulbEl.style.border = '2px solid #4a2020';
+                bulbEl.style.boxShadow = 'none';
                 return;
             }
 
             frozen = false;
-
-            // Snap on note change
-            if (note !== prevNote) {
-                var snapY = _computeDrumY(freq, cents);
-                currentDrumY = snapY;
-                targetDrumY = snapY;
-            } else {
-                targetDrumY = _computeDrumY(freq, cents);
-            }
+            var newY = _computeDrumY(freq, cents);
+            if (note !== prevNote) { currentDrumY = newY; }
+            targetDrumY = newY;
             prevNote = note;
 
-            // Needle
             targetAngle = (cents / 50) * _TUNER_NEEDLE_HALF_SWEEP;
 
-            // Lightbulb
             if (Math.abs(cents) <= _TUNER_IN_TUNE_THRESHOLD) {
-                bulbEl.className = 'w-6 h-6 rounded-full bg-orange-400 border border-orange-300 flex-shrink-0 shadow-[0_0_10px_4px_rgba(251,146,60,0.8)]';
+                bulbEl.style.backgroundColor = '#cc3300';
+                bulbEl.style.border = '2px solid #ff5522';
+                bulbEl.style.boxShadow = '0 0 10px 4px rgba(200,50,0,0.85)';
             } else {
-                bulbEl.className = 'w-6 h-6 rounded-full bg-gray-800 border border-gray-700 flex-shrink-0';
+                bulbEl.style.backgroundColor = '#2a1010';
+                bulbEl.style.border = '2px solid #4a2020';
+                bulbEl.style.boxShadow = 'none';
             }
         }
 
