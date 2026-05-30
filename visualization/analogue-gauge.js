@@ -69,6 +69,7 @@
             el.style.alignItems = 'center';
             el.style.justifyContent = 'center';
             el.style.userSelect = 'none';
+            el.textContent = text;
             return el;
         }
         var fIdleLabel = _makeDrumLabel('---');
