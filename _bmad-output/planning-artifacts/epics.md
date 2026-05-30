@@ -1,5 +1,5 @@
 ---
-stepsCompleted: ['step-01', 'step-02', 'step-03', 'step-04']
+stepsCompleted: ['step-01', 'step-02', 'step-03', 'step-04', 'epic2-step-01', 'epic2-step-02', 'epic2-step-03']
 inputDocuments:
   - _bmad-output/planning-artifacts/prds/prd-slopsmith-plugin-tuner-2026-05-30/prd.md
   - _bmad-output/project-context.md
@@ -70,7 +70,15 @@ This document provides the complete epic and story breakdown for slopsmith-plugi
 
 ### UX Design Requirements
 
-N/A — No UX Design document exists for this project. The plugin has an established UI; UX documentation is out of scope for this epic.
+No UX Design document exists yet. Story 2.1 will produce `_bmad-output/planning-artifacts/ux-guidelines.md` via the `bmad-ux` skill. The following UI/UX-relevant functional requirements are in scope for Epic 2:
+
+- **UX-DR1:** Tuner panel layout and visual hierarchy — note display, cents gauge/strobe, string buttons, tuning selector, settings panel (FR-02, FR-13–15, FR-17, FR-18)
+- **UX-DR2:** Error banner presentation — inline, non-blocking, human-readable messages with recovery hints; auto-clear and navigation-clear behaviour (FR-23–26)
+- **UX-DR3:** Settings panel UX — audio device selector, channel selector, viz selector; discoverability and affordance (FR-19, FR-20, FR-18)
+- **UX-DR4:** Tuning selector — show/hide built-in tunings, custom tunings, Current Song option; selector ergonomics (FR-07, FR-09, FR-10, FR-12)
+- **UX-DR5:** Button injection — floating Tuner button (bottom-right), player controls bar button; mutual exclusivity, visibility rules, toggle behaviour (FR-27–31)
+- **UX-DR6:** Settings page (Plugin Manager) — layout, custom tuning input, disabled tunings management (FR-07, FR-08)
+- **UX-DR7:** Tailwind-only constraint — all styling via utility classes; no hardcoded colours, no inline `style=""` (NFR-07)
 
 ### FR Coverage Map
 
@@ -109,9 +117,35 @@ N/A — No UX Design document exists for this project. The plugin has an establi
 - **FR-33:** Epic 1 (Story 1.1) — Config REST API documented; already implemented
 - **FR-34:** Epic 1 (Story 1.1) — Config-fetch failure fallback documented; already implemented
 
+**Epic 2 UX coverage (UX-DR1–7; implementation stories created post Story 2.1):**
+
+- **FR-02:** Epic 2 — Note/cents display visual design and hierarchy (tuner panel)
+- **FR-07:** Epic 2 — Show/hide tunings settings UX
+- **FR-09:** Epic 2 — Custom tunings UX in settings page
+- **FR-10:** Epic 2 — Current Song option presentation in tuning selector
+- **FR-12:** Epic 2 — Tuning label display alongside Current Song option
+- **FR-13:** Epic 2 — Auto-highlight string button visual feedback
+- **FR-14:** Epic 2 — Manual string lock affordance and visual state
+- **FR-15:** Epic 2 — Manual mode deactivation UX
+- **FR-16:** Epic 2 — Viz selector affordance in settings panel
+- **FR-17:** Epic 2 — Default/Strobe viz visual polish (post-fix baseline)
+- **FR-18:** Epic 2 — Viz switch UX in settings panel
+- **FR-19:** Epic 2 — Audio device selector UX
+- **FR-20:** Epic 2 — Input channel selector UX
+- **FR-23:** Epic 2 — Error banner placement and visual design
+- **FR-24:** Epic 2 — Error message and recovery hint UX
+- **FR-25:** Epic 2 — Auto-clear banner UX behaviour
+- **FR-26:** Epic 2 — Navigation-triggered banner clear UX
+- **FR-27:** Epic 2 — Floating Tuner button visual design and placement
+- **FR-28:** Epic 2 — Floating button visibility/hide UX during playback
+- **FR-29:** Epic 2 — Player controls bar button UX
+- **FR-30:** Epic 2 — Button toggle setting UX in Plugin Manager
+- **FR-31:** Epic 2 — Panel auto-close on navigation UX
+
 ## Epic List
 
 ### Epic 1: Architecture Documentation & Code Alignment
+### Epic 2: UI/UX Audit & Improvements
 
 Establish a formal architecture document for the slopsmith-plugin-tuner using the BMad workflow, providing AI agents and contributors with authoritative system design guidance; then implement code corrections surfaced during the architectural review.
 
@@ -176,3 +210,36 @@ So that the codebase is fully aligned with the architecture document and no late
 **Given** no discrepancies are found beyond Story 1.2
 **When** the architecture review is complete
 **Then** this story is marked done with a note confirming no additional changes were required
+
+---
+
+## Epic 2: UI/UX Audit & Improvements
+
+Produce formal UX guidelines for the slopsmith-plugin-tuner plugin UI via the BMad `bmad-ux` skill, then implement the improvements identified — focusing primarily on the tuner panel, with secondary coverage of the settings page and button injection into the Slopsmith host page.
+
+**UX-DRs covered:** UX-DR1 through UX-DR7
+**FRs in scope:** FR-02, FR-07, FR-09, FR-10, FR-12–20, FR-23–31
+**NFR in scope:** NFR-07
+
+---
+
+### Story 2.1: Create UX Guidelines Document
+
+As a contributor or AI agent,
+I want formal UX guidelines produced via the BMad `bmad-ux` skill,
+So that UI/UX improvements are grounded in documented design decisions and future contributors have a consistent visual and interaction reference.
+
+**Acceptance Criteria:**
+
+**Given** the `bmad-ux` skill is invoked with the PRD, architecture document, and project-context.md as primary inputs
+**When** the UX guidelines document is complete and saved to `_bmad-output/planning-artifacts/ux-guidelines.md`
+**Then** the document covers the tuner panel as its primary focus: note display, cents indicator (Default gauge and Strobe), string buttons, tuning selector, settings panel layout and affordances, and error banner presentation
+**And** the settings page (Plugin Manager) and button injection (floating button, player controls bar button) are covered at a summary level — key UX concerns identified but not fully spec'd
+**And** each UI area includes specific, actionable improvement opportunities with enough detail to generate a story with testable acceptance criteria
+**And** all recommendations respect the architectural constraints: Tailwind-only (NFR-07), IIFE pattern, no external JS libs (NFR-03), no inline `style=""` attributes
+
+**Given** the UX guidelines are complete
+**When** implementation stories (2.2+) are created via `bmad-create-story`
+**Then** each story references the relevant section of `ux-guidelines.md` as its primary spec input
+
+> **Note:** Stories 2.2+ are intentionally not pre-defined here. They will be created via `bmad-create-story` after Story 2.1 delivers the guidelines.
