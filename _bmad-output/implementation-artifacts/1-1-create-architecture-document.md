@@ -4,7 +4,7 @@ baseline_commit: 164a7347014629f2aac711392ff2e868640093a8
 
 # Story 1.1: Create Architecture Document
 
-Status: review
+Status: done
 
 ## Story
 

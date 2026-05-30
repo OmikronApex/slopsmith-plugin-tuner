@@ -4,7 +4,7 @@ baseline_commit: a042bf18c4bbb83913ea120f4abe925cbdc08017
 
 # Story 1.2: Fix Default Visualization Initialisation
 
-Status: review
+Status: done
 
 ## Story
 
