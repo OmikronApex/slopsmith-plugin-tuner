@@ -16,7 +16,7 @@
     'use strict';
 
     // ── Constants ─────────────────────────────────────────────────────
-    var _TUNER_LABEL_H = 22;           // px height of each drum label
+    var _TUNER_LABEL_H = 16;           // px height of each drum label
     var _TUNER_NEEDLE_HALF_SWEEP = 75; // degrees from centre to arc extreme (±50 cents)
     var _TUNER_IN_TUNE_THRESHOLD = 2;
     var _TUNER_STRIP_START_MIDI = 14;  // ~18 Hz — covers 20 Hz minimum
@@ -136,7 +136,7 @@
 
         // ── Note drum + lightbulb row (below gauge) ───────────────────
         var noteRow = document.createElement('div');
-        noteRow.className = 'flex items-center gap-3 justify-center';
+        noteRow.className = 'w-full relative flex justify-center items-center';
 
         var noteWindow = document.createElement('div');
         noteWindow.style.position = 'relative';
@@ -166,14 +166,18 @@
         noteWindow.appendChild(noteStrip);
         noteRow.appendChild(noteWindow);
 
-        // Lightbulb — rounded dome, glows red when in tune
+        // Lightbulb — rounded dome, glows red when in tune; absolutely positioned
+        // so it doesn't offset the centred note window
         var bulbEl = document.createElement('div');
+        bulbEl.style.position = 'absolute';
+        bulbEl.style.right = '0';
+        bulbEl.style.top = '50%';
+        bulbEl.style.transform = 'translateY(-50%)';
         bulbEl.style.width = '20px';
         bulbEl.style.height = '20px';
         bulbEl.style.borderRadius = '50%';
         bulbEl.style.backgroundColor = '#2a1010';
         bulbEl.style.border = '2px solid #4a2020';
-        bulbEl.style.flexShrink = '0';
         noteRow.appendChild(bulbEl);
 
         panel.appendChild(noteRow);
