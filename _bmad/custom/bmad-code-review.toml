@@ -1,0 +1,33 @@
+[workflow]
+
+on_complete = """
+After the review findings have been presented, for each story that is being marked "done" as a
+result of this review, perform the following steps:
+
+**For each story transitioning from "review" → "done":**
+
+Step 1 — Update the story file status:
+- Set the Status field in the story file to "done".
+
+Step 2 — Find the story's GitHub issue:
+- gh issue list --label "story" --search "<story_key>:" --json number,title --jq '.[0].number'
+- Store as STORY_ISSUE_NUMBER.
+
+Step 3 — Post a closing comment on the story issue:
+- Summarise the review outcome in 2-3 bullet points (what was reviewed, outcome, any
+  findings that were resolved or deferred).
+- Command:
+  gh issue comment <STORY_ISSUE_NUMBER> --body "<comment>"
+
+Step 4 — Close the story issue:
+- gh issue close <STORY_ISSUE_NUMBER>
+
+Step 5 — Update the epic PR to reflect the story is done:
+- Get the current branch: git branch --show-current
+- Get the open PR for this branch: gh pr list --head <branch> --json number,url,body --jq '.[0]'
+- In the PR body, find the line referencing #<STORY_ISSUE_NUMBER> and ensure its checkbox
+  reads [x] (it should already from dev-story, but confirm).
+- If the PR body changed, write it back: gh pr edit <PR_NUMBER> --body "<updated body>"
+
+Repeat Steps 1–5 for every story being closed in this review session.
+"""
