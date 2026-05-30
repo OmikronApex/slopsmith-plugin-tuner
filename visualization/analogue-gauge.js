@@ -76,6 +76,22 @@
             freqStrip.appendChild(fLabel);
         }
         freqWindow.appendChild(freqStrip);
+
+        var freqIdle = document.createElement('div');
+        freqIdle.style.position = 'absolute';
+        freqIdle.style.inset = '0';
+        freqIdle.style.display = 'flex';
+        freqIdle.style.alignItems = 'center';
+        freqIdle.style.justifyContent = 'center';
+        freqIdle.style.backgroundColor = '#fff';
+        freqIdle.style.fontSize = '11px';
+        freqIdle.style.fontFamily = 'monospace';
+        freqIdle.style.fontWeight = 'bold';
+        freqIdle.style.color = '#111';
+        freqIdle.style.zIndex = '2';
+        freqIdle.textContent = '---';
+        freqWindow.appendChild(freqIdle);
+
         gaugeFace.appendChild(freqWindow);
 
         // SVG — arc, tick marks, needle, pivot (z above freq window)
@@ -170,6 +186,20 @@
         }
         noteWindow.appendChild(noteStrip);
 
+        var noteIdle = document.createElement('div');
+        noteIdle.style.position = 'absolute';
+        noteIdle.style.inset = '0';
+        noteIdle.style.display = 'flex';
+        noteIdle.style.alignItems = 'center';
+        noteIdle.style.justifyContent = 'center';
+        noteIdle.style.backgroundColor = '#fff';
+        noteIdle.style.fontSize = '10px';
+        noteIdle.style.fontWeight = 'bold';
+        noteIdle.style.color = '#111';
+        noteIdle.style.zIndex = '2';
+        noteIdle.textContent = '---';
+        noteWindow.appendChild(noteIdle);
+
         // Lightbulb — absolutely offset from panel centre so note window stays centred
         // noteWindow is 48px wide → bulb left edge = 50% + 24px (half window) + 6px gap
         var bulbEl = document.createElement('div');
@@ -192,6 +222,7 @@
         var currentDrumY = 0, targetDrumY = 0;
         var currentAngle = 0, targetAngle = 0;
         var frozen = true;
+        var hasEverHadSignal = false;
         var lastTime = performance.now();
         var rafId = null;
         var prevNote = null;
@@ -244,6 +275,12 @@
                 bulbEl.style.border = '2px solid #4a2020';
                 bulbEl.style.boxShadow = 'none';
                 return;
+            }
+
+            if (!hasEverHadSignal) {
+                hasEverHadSignal = true;
+                freqIdle.style.display = 'none';
+                noteIdle.style.display = 'none';
             }
 
             frozen = false;
