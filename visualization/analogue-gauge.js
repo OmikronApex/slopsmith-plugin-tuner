@@ -16,7 +16,7 @@
     'use strict';
 
     // ── Constants ─────────────────────────────────────────────────────
-    var _TUNER_LABEL_H = 16;           // px height of each drum label
+    var _TUNER_LABEL_H = 12;           // px height of each drum label
     var _TUNER_NEEDLE_HALF_SWEEP = 75; // degrees from centre to arc extreme (±50 cents)
     var _TUNER_IN_TUNE_THRESHOLD = 2;
     var _TUNER_STRIP_START_MIDI = 14;  // ~18 Hz — covers 20 Hz minimum
@@ -156,7 +156,7 @@
             nLabel.style.display = 'flex';
             nLabel.style.alignItems = 'center';
             nLabel.style.justifyContent = 'center';
-            nLabel.style.fontSize = '14px';
+            nLabel.style.fontSize = '10px';
             nLabel.style.fontWeight = 'bold';
             nLabel.style.color = '#111';
             nLabel.style.userSelect = 'none';
