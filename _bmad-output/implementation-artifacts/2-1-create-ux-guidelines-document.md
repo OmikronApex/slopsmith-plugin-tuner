@@ -4,7 +4,7 @@ baseline_commit: eb5b8f0b7789ed62b4afcae8355802694f3ad0fa
 
 # Story 2.1: Create UX Guidelines Document
 
-Status: review
+Status: done
 
 ## Story
 
