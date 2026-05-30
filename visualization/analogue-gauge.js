@@ -78,6 +78,7 @@
         fIdleLabel.style.fontWeight = 'bold';
         fIdleLabel.style.color = '#111';
         freqStrip.appendChild(fIdleLabel);
+        freqStrip.appendChild(_makeDrumLabel('')); // separator: keeps real labels out of view at idle
 
         for (var fm = _TUNER_STRIP_START_MIDI; fm <= _TUNER_STRIP_END_MIDI; fm++) {
             var fLabel = _makeDrumLabel(_midiToFreq(fm).toFixed(1) + ' Hz');
@@ -172,6 +173,7 @@
         nIdleLabel.style.fontWeight = 'bold';
         nIdleLabel.style.color = '#111';
         noteStrip.appendChild(nIdleLabel);
+        noteStrip.appendChild(_makeDrumLabel('')); // separator
 
         for (var nm = _TUNER_STRIP_START_MIDI; nm <= _TUNER_STRIP_END_MIDI; nm++) {
             var nLabel = _makeDrumLabel(_TUNER_NOTE_NAMES[nm % 12]);
@@ -222,8 +224,8 @@
             var midi = 69 + 12 * Math.log2(freq / 440);
             var targetMidi = midi - cents / 100;
             var clamped = Math.max(-50, Math.min(50, cents));
-            // +1 because index 0 is the --- label; notes start at index 1
-            var idx = Math.max(1, Math.min(_TUNER_STRIP_END_MIDI - _TUNER_STRIP_START_MIDI + 1, Math.round(targetMidi) - _TUNER_STRIP_START_MIDI + 1));
+            // +2: index 0 = ---, index 1 = separator, index 2+ = real notes
+            var idx = Math.max(2, Math.min(_TUNER_STRIP_END_MIDI - _TUNER_STRIP_START_MIDI + 2, Math.round(targetMidi) - _TUNER_STRIP_START_MIDI + 2));
             return _TUNER_LABEL_H * (0.5 - idx) - (clamped / 50) * (_TUNER_LABEL_H / 2);
         }
 
@@ -256,9 +258,7 @@
                 bulbEl.style.boxShadow = 'none';
                 return;
             }
-            var newY = _computeDrumY(freq, cents);
-            if (note !== prevNote) { currentDrumY = newY; }
-            targetDrumY = newY;
+            targetDrumY = _computeDrumY(freq, cents);
             prevNote = note;
 
             targetAngle = (Math.max(-50, Math.min(50, cents)) / 50) * _TUNER_NEEDLE_HALF_SWEEP;
