@@ -203,6 +203,8 @@
         container.appendChild(panel);
 
         // ── State ─────────────────────────────────────────────────────
+        // Must be defined before currentDrumY initialisation (var hoisting trap)
+        var _IDLE_DRUM_Y = _TUNER_LABEL_H * 0.5; // centres --- label (index 0) in window
         var currentDrumY = _IDLE_DRUM_Y, targetDrumY = _IDLE_DRUM_Y;
         var currentAngle = 0, targetAngle = 0;
         var lastTime = performance.now();
@@ -217,8 +219,6 @@
         }
 
         // ── Drum position ─────────────────────────────────────────────
-        // Y that centres the --- label (index 0) in the window
-        var _IDLE_DRUM_Y = _TUNER_LABEL_H * 0.5;
 
         function _computeDrumY(freq, cents) {
             var midi = 69 + 12 * Math.log2(freq / 440);
