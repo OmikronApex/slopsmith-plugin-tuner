@@ -43,7 +43,7 @@
         var gaugeFace = document.createElement('div');
         gaugeFace.className = 'w-full relative';
         gaugeFace.style.backgroundColor = '#e8e0cc';
-        gaugeFace.style.height = '110px';
+        gaugeFace.style.height = '95px'; // matches cropped viewBox height (110-15)
 
         // Frequency drum window — centred inside the gauge, behind the needle
         var freqWindow = document.createElement('div');
@@ -54,7 +54,7 @@
         freqWindow.style.width = '104px';
         freqWindow.style.height = (_TUNER_LABEL_H * 2) + 'px';
         freqWindow.style.left = 'calc(50% - 52px)';
-        freqWindow.style.top = '52px'; // half needle height from pivot (110 - 92/2 - windowH/2)
+        freqWindow.style.top = '39px'; // half needle from pivot: 95 - 88/2 - 24/2 = 39
         freqWindow.style.zIndex = '1';
 
         var freqStrip = document.createElement('div');
@@ -80,7 +80,7 @@
 
         // SVG — arc, tick marks, needle, pivot (z above freq window)
         var svg = document.createElementNS(svgNS, 'svg');
-        svg.setAttribute('viewBox', '0 0 200 110');
+        svg.setAttribute('viewBox', '0 15 200 95'); // crop 15px dead space above arc top
         svg.setAttribute('preserveAspectRatio', 'none');
         svg.style.position = 'absolute';
         svg.style.top = '0';
