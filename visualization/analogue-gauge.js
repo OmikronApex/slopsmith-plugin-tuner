@@ -158,13 +158,13 @@
             svg.appendChild(ttick);
         }
 
-        // Inner labels for -50, 0, +50
-        [{ c: -50, text: '-50' }, { c: 0, text: '0' }, { c: 50, text: '+50' }].forEach(function (m) {
+        // Inner labels
+        [{ c: -50, text: '-50' }, { c: -30, text: '-30' }, { c: 0, text: '0' }, { c: 30, text: '+30' }, { c: 50, text: '+50' }].forEach(function (m) {
             var aRad = ((m.c / 50) * _TUNER_NEEDLE_HALF_SWEEP - 90) * Math.PI / 180;
             var lx = (_SVG_CX + 76 * Math.cos(aRad)).toFixed(1);
             var ly = (Math.abs(m.c) === 50
-                ? _SVG_CY - 8                // extremes: nudge up from arc baseline
-                : _SVG_CY + 76 * Math.sin(aRad) + 10 // centre: below arc top
+                ? _SVG_CY - 2                // extremes: level with the ±50 markers
+                : _SVG_CY + 76 * Math.sin(aRad) + 10
             ).toFixed(1);
             var lbl = document.createElementNS(svgNS, 'text');
             lbl.setAttribute('x', lx);
