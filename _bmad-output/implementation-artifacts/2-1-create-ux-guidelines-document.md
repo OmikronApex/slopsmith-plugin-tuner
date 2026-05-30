@@ -1,6 +1,10 @@
+---
+baseline_commit: eb5b8f0b7789ed62b4afcae8355802694f3ad0fa
+---
+
 # Story 2.1: Create UX Guidelines Document
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -18,13 +22,13 @@ So that UI/UX improvements are grounded in documented design decisions and futur
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Invoke the `bmad-ux` skill (AC: 1, 2, 3, 4, 5)
-  - [ ] Run `/bmad-ux` with PRD, architecture document, project-context.md, and the existing UI source files as primary inputs
-  - [ ] Ensure primary focus is on the tuner panel UI (note display, cents indicator, string buttons, tuning selector, settings panel, error banner)
-  - [ ] Ensure secondary coverage of settings page and button injection
-  - [ ] Verify each UI area has specific, actionable improvement opportunities
-  - [ ] Verify all recommendations respect Tailwind-only and IIFE constraints
-  - [ ] Save to `_bmad-output/planning-artifacts/ux-guidelines.md`
+- [x] Task 1: Invoke the `bmad-ux` skill (AC: 1, 2, 3, 4, 5)
+  - [x] Run `/bmad-ux` with PRD, architecture document, project-context.md, and the existing UI source files as primary inputs
+  - [x] Ensure primary focus is on the tuner panel UI (note display, cents indicator, string buttons, tuning selector, settings panel, error banner)
+  - [x] Ensure secondary coverage of settings page and button injection
+  - [x] Verify each UI area has specific, actionable improvement opportunities
+  - [x] Verify all recommendations respect Tailwind-only and IIFE constraints
+  - [x] Save to `_bmad-output/planning-artifacts/ux-guidelines.md`
 
 ## Dev Notes
 
@@ -84,6 +88,14 @@ claude-sonnet-4-6
 ### Debug Log References
 
 ### Completion Notes List
+
+- Produced `_bmad-output/planning-artifacts/ux-guidelines.md` from full audit of screen.js, default.js, strobe.js, settings.html against PRD and architecture.
+- Key findings: ±5 cents in-tune threshold in both vizualisations contradicts FR-17 (should be ±2) — High priority. NFR-07 violated in settings.html with inline style assignments — High priority. 5 Medium-priority UX improvements across settings panel, error banner, string buttons, gauge, and strobe. Low-priority polish items batched for a single story.
+- §5 of the guidelines provides a 5-story breakdown (Stories 2.2–2.6) ready for `bmad-create-story`.
+
+### Change Log
+
+- 2026-05-30: Created `_bmad-output/planning-artifacts/ux-guidelines.md` (Story 2.1)
 
 ### File List
 
