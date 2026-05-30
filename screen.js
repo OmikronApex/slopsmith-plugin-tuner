@@ -334,6 +334,7 @@
             <select class="tuner-viz-select w-full bg-dark-800 border border-gray-700 rounded px-2 py-1 text-gray-200 outline-none focus:border-accent">
                 <option value="default" ${visualizationMode === 'default' ? 'selected' : ''}>Default</option>
                 <option value="strobe" ${visualizationMode === 'strobe' ? 'selected' : ''}>Strobe</option>
+                <option value="analogue-gauge" ${visualizationMode === 'analogue-gauge' ? 'selected' : ''}>Analogue Gauge</option>
             </select>
         `;
 

@@ -1,5 +1,5 @@
 ---
-stepsCompleted: ['step-01', 'step-02', 'step-03', 'step-04', 'epic2-step-01', 'epic2-step-02', 'epic2-step-03']
+stepsCompleted: ['step-01', 'step-02', 'step-03', 'step-04', 'epic2-step-01', 'epic2-step-02', 'epic2-step-03', 'epic3-step-01', 'epic3-step-02', 'epic3-step-03']
 inputDocuments:
   - _bmad-output/planning-artifacts/prds/prd-slopsmith-plugin-tuner-2026-05-30/prd.md
   - _bmad-output/project-context.md
@@ -141,11 +141,46 @@ No UX Design document exists yet. Story 2.1 will produce `_bmad-output/planning-
 - **FR-29:** Epic 2 — Player controls bar button UX
 - **FR-30:** Epic 2 — Button toggle setting UX in Plugin Manager
 - **FR-31:** Epic 2 — Panel auto-close on navigation UX
+- **FR-AG-01:** Epic 3 — Panel layout: frequency drum behind needle (upper area), note name drum below needle, lightbulb adjacent to note name drum
+- **FR-AG-02:** Epic 3 — Each cutout window shows exactly 2 labels height; in-between states clearly legible
+- **FR-AG-03:** Epic 3 — Dynamic label sets; drums rotate proportionally to cents deviation (0 = centred, ±50 = halfway between labels)
+- **FR-AG-04:** Epic 3 — Semicircular needle gauge on panel face; needle indicates current cents deviation (−50 to +50) with graduation marks and range labels
+- **FR-AG-05:** Epic 3 — Physical-looking lightbulb element on panel face glows red/orange when within ±2 cents; appears dark/unlit outside that range
+- **FR-AG-06:** Epic 3 — When `note === null`, drums show neutral idle state and needle rests at centre
+- **FR-AG-07:** Epic 3 — Visualization registered as `window._tunerViz_analogueGauge(container)` returning `{ update(note, cents, freq), destroy() }`
+- **FR-AG-08:** Epic 3 — "Analogue Gauge" option added to viz selector in `settings.html`
+- **FR-AG-09:** Epic 3 — In targeted mode, drums locked to target note (±50 cent range only); never scroll to adjacent note
+
+### New Functional Requirements (Epic 3 — Analogue Gauge Visualization)
+
+- **FR-AG-01:** Panel layout: frequency drum is positioned behind the needle (upper panel area, from half the needle length up from its pivot to the top); note name drum is positioned below the needle; lightbulb is adjacent to the note name drum.
+- **FR-AG-02:** Each cutout window shows the height of exactly 2 labels, so in-between states (drum between two notes) are clearly legible.
+- **FR-AG-03:** Label sets are generated dynamically (not a fixed count). Drums rotate proportionally to cents deviation — 0 cents = target label centred in window; ±50 cents = display is exactly halfway between two adjacent labels.
+- **FR-AG-04:** A semicircular needle gauge shall be rendered on the panel face with a needle indicating the current cents deviation (−50 to +50). The face shall show graduation marks and range labels.
+- **FR-AG-05:** When cents deviation is within ±2 cents, a small lightbulb element rendered on the panel face shall glow red/orange — styled to appear as a physical bulb (rounded dome with warm glow effect via CSS box-shadow/border-radius) viewed from the front. Outside ±2 cents, the bulb appears dark/unlit.
+- **FR-AG-06:** When `note === null` (no signal), drums display a neutral idle state and needle rests at centre (0).
+- **FR-AG-07:** The visualization conforms to the factory contract: `window._tunerViz_analogueGauge(container)` returning `{ update(note, cents, freq), destroy() }`.
+- **FR-AG-08:** A "Analogue Gauge" option shall be added to the viz selector in `settings.html` (covers FR-18).
+- **FR-AG-09:** When a specific string/note is targeted, the drums are locked to the target note — rotating only within the ±50 cent range around it, never scrolling to an adjacent note. The target note and its frequency remain visible in the cutout windows at all times, communicating deviation from the target rather than proximity to the nearest note.
+
+### Applicable NFRs (Epic 3)
+
+- **NFR-03** — no external JS libs
+- **NFR-06** — viz factory contract
+- **NFR-07** — Tailwind-only styling; no inline `style=""`, no hardcoded colours
+
+### Additional Requirements (Epic 3)
+
+- IIFE pattern; exposed as `window._tunerViz_analogueGauge`
+- Constants prefixed `_TUNER_`
+- DOM via `document.createElement` / `classList` / `textContent` only
+- `destroy()` must clean up all DOM nodes and animation timers
 
 ## Epic List
 
 ### Epic 1: Architecture Documentation & Code Alignment
 ### Epic 2: UI/UX Audit & Improvements
+### Epic 3: Analogue Gauge Visualization
 
 Establish a formal architecture document for the slopsmith-plugin-tuner using the BMad workflow, providing AI agents and contributors with authoritative system design guidance; then implement code corrections surfaced during the architectural review.
 
@@ -243,3 +278,132 @@ So that UI/UX improvements are grounded in documented design decisions and futur
 **Then** each story references the relevant section of `ux-guidelines.md` as its primary spec input
 
 > **Note:** Stories 2.2+ are intentionally not pre-defined here. They will be created via `bmad-create-story` after Story 2.1 delivers the guidelines.
+
+---
+
+## Epic 3: Analogue Gauge Visualization
+
+Deliver a new built-in visualization styled as a vintage mechanical instrument panel. Rotating drums show the target note name and frequency through slot windows; a needle gauge shows cents deviation; a physical-style lightbulb glows red/orange when in tune. Selectable via the settings panel.
+
+**FRs covered:** FR-AG-01 through FR-AG-09, FR-18
+**NFRs:** NFR-03, NFR-06, NFR-07
+
+---
+
+### Story 3.1: Scaffold, Static Layout & Settings Wiring
+
+As a developer implementing the analogue gauge visualization,
+I want a fully structured static panel with all DOM elements in place and the visualization registered in settings,
+So that subsequent stories can layer animation onto a stable, correctly-laid-out foundation.
+
+**Acceptance Criteria:**
+
+**Given** the file `visualization/analogue-gauge.js` is created
+**When** the IIFE executes
+**Then** `window._tunerViz_analogueGauge` is a factory function that accepts a `container` DOM element and returns `{ update(note, cents, freq), destroy() }`
+
+**Given** the factory is called with a container
+**When** the static DOM is rendered
+**Then** the panel face contains:
+- A frequency drum slot in the upper panel area (positioned to overlap the upper half of the needle, from the needle's pivot midpoint to the top of the panel)
+- A note name drum slot below the needle area
+- A lightbulb element adjacent to the note name drum slot (dark/unlit state)
+- A semicircular gauge arc with a static needle centred at 0 (pointing to the arc midpoint)
+- Graduation marks on the arc face at −50, −25, 0, +25, +50 cents
+- Two cutout window overlays, each sized to reveal exactly 2 label heights of their respective drum
+
+**Given** the DOM is rendered
+**When** inspected
+**Then** all styling uses Tailwind utility classes only — no inline `style=""` attributes and no hardcoded colour values
+
+**Given** the `destroy()` method is called
+**When** executed
+**Then** all DOM nodes appended to the container are removed; no timers or RAF loops exist to cancel at this stage
+
+**Given** `settings.html` is updated
+**When** the viz selector is rendered
+**Then** an "Analogue Gauge" option with value `"analogue-gauge"` is present in the visualization select element
+
+---
+
+### Story 3.2: Rotating Drum Mechanics
+
+As a guitar player using the analogue gauge visualization,
+I want the frequency and note name drums to rotate in response to my detected pitch,
+So that I can read which note I'm closest to and how far off I am by seeing the drum position through the cutout window.
+
+**Acceptance Criteria:**
+
+**Given** the visualization receives `update(note, cents, freq)` with a non-null `note`
+**When** rendered at `cents` = 0
+**Then** the note name drum is positioned so the current `note` label is centred in the cutout window; the frequency drum is positioned so the current `freq` label (nearest Hz value for that note) is centred in its window
+
+**Given** `cents` is +50
+**When** the drums are positioned
+**Then** both cutout windows show the display exactly halfway between the current note/freq label and the next label above — neither label is centred
+
+**Given** `cents` is −50
+**When** the drums are positioned
+**Then** both cutout windows show the display exactly halfway between the current note/freq label and the next label below
+
+**Given** `cents` is any value between −50 and +50
+**When** the drums are positioned
+**Then** the drum offset is proportional to the cent value — linear mapping from −50 (half-label below centre) to +50 (half-label above centre); animation is smooth via `requestAnimationFrame`
+
+**Given** `note` changes between `update()` calls
+**When** the drums update
+**Then** the drums snap to the new note/freq labels and apply the current `cents` offset; targeted-note locking behaviour is handled by `screen.js` — the visualization tracks whatever `note` and `freq` values are passed in
+
+**Given** the label strip is generated dynamically
+**When** rendered
+**Then** the note drum contains note names spanning a sufficient chromatic range (minimum 3 octaves, e.g., C2–C5); the frequency drum contains the corresponding Hz values for each semitone; both strips are long enough that the cutout window never shows an empty region during normal use
+
+**Given** the animation RAF loop is running
+**When** `destroy()` is called
+**Then** `cancelAnimationFrame()` is called with the active RAF ID before any DOM cleanup; no orphaned animation frames remain after destroy
+
+---
+
+### Story 3.3: Needle, Lightbulb & No-Signal State
+
+As a guitar player using the analogue gauge visualization,
+I want the needle to show my exact cent deviation, the lightbulb to confirm when I'm in tune, and a clear idle state when no signal is detected,
+So that I can tune confidently and know at a glance whether I've hit the target.
+
+**Acceptance Criteria:**
+
+**Given** `update(note, cents, freq)` is called with a non-null `note`
+**When** `cents` is 0
+**Then** the needle points to the centre of the semicircular arc (the 0 graduation mark)
+
+**Given** `cents` is +50
+**When** rendered
+**Then** the needle points to the rightmost extent of the arc
+
+**Given** `cents` is −50
+**When** rendered
+**Then** the needle points to the leftmost extent of the arc
+
+**Given** `cents` is any value between −50 and +50
+**When** rendered
+**Then** the needle angle is linearly proportional to the cent value across the full arc sweep; animation is smooth via RAF-driven interpolation, not an instant snap
+
+**Given** `cents` is within ±2
+**When** rendered
+**Then** the lightbulb element is in its lit state: red/orange colour with warm glow effect applied via Tailwind/CSS classes (box-shadow simulating a dome radiating light)
+
+**Given** `cents` is outside ±2
+**When** rendered
+**Then** the lightbulb element is in its unlit state: dark/dim appearance, no glow classes applied
+
+**Given** `update(null, 0, 0)` is called (no pitch signal)
+**When** rendered
+**Then** the drums freeze in their current position (animation paused); the needle eases to the 0 centre position; the lightbulb is unlit
+
+**Given** the viz has never received a non-null `note` and `note === null`
+**When** rendered
+**Then** both drum windows show a neutral idle state (centred between two labels or showing a dash); needle at 0; lightbulb unlit
+
+**Given** needle RAF animation is running
+**When** `destroy()` is called
+**Then** all active RAF IDs (drum RAF from Story 3.2, needle RAF) are cancelled via `cancelAnimationFrame()`; all DOM nodes removed from container; no globals or timers leaked
