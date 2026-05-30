@@ -384,19 +384,24 @@
         try {
             stream = await navigator.mediaDevices.getUserMedia(constraints);
         } catch (e) {
-            if ((e.name === 'OverconstrainedError' || e.name === 'NotFoundError') && selectedDeviceId) {
+            if (e.name === 'OverconstrainedError' && selectedDeviceId) {
+                // Saved device may be mono-only — reset both device and channelCount.
+                selectedDeviceId = '';
+                saveSettings();
+                delete constraints.audio.deviceId;
+                delete constraints.audio.channelCount;
+            } else if (e.name === 'NotFoundError' && selectedDeviceId) {
                 // Saved device no longer available — fall back to default.
                 selectedDeviceId = '';
                 saveSettings();
                 delete constraints.audio.deviceId;
-                stream = await navigator.mediaDevices.getUserMedia(constraints);
             } else if (e.name === 'OverconstrainedError') {
-                // Device rejects channelCount:2 (e.g. mono-only USB audio like Real Tone Cable).
+                // No saved device, but device rejects channelCount:2.
                 delete constraints.audio.channelCount;
-                stream = await navigator.mediaDevices.getUserMedia(constraints);
             } else {
                 throw e;
             }
+            stream = await navigator.mediaDevices.getUserMedia(constraints);
         }
 
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -460,11 +465,14 @@
     }
 
     async function restartAudio() {
+        uiContainer?.querySelector('.tuner-mic-error')?.remove();
         _stopAudio();
         try {
             await _startAudio();
         } catch (e) {
             console.error('Tuner: Failed to restart audio', e);
+            disable();
+            _showMicError(e);
         }
     }
 
@@ -533,6 +541,10 @@
         errEl.innerHTML = `<strong>${msg}</strong><br>${hint}`;
         uiContainer.classList.remove('hidden');
         uiContainer.classList.add('flex');
+        if (window.slopsmith && !_onScreenChanged) {
+            _onScreenChanged = () => { disable(); };
+            window.slopsmith.on('screen:changed', _onScreenChanged);
+        }
     }
 
     function disable() {
