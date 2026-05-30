@@ -39,6 +39,33 @@
         panel.style.backgroundColor = '#e8e0cc';
         panel.style.border = '2px solid #b0a080';
 
+        // ── AUTO lamp (top-left; lit in free-tune mode) ──────────────
+        var autoWrap = document.createElement('div');
+        autoWrap.style.position = 'absolute';
+        autoWrap.style.top = '8px';
+        autoWrap.style.left = '10px';
+        autoWrap.style.display = 'flex';
+        autoWrap.style.alignItems = 'center';
+        autoWrap.style.gap = '4px';
+
+        var autoLamp = document.createElement('div');
+        autoLamp.style.width = '8px';
+        autoLamp.style.height = '8px';
+        autoLamp.style.backgroundColor = '#2a0000';
+        autoLamp.style.border = '1px solid #5a2020';
+        autoLamp.style.flexShrink = '0';
+
+        var autoLabel = document.createElement('span');
+        autoLabel.style.fontSize = '8px';
+        autoLabel.style.fontFamily = 'monospace';
+        autoLabel.style.fontWeight = 'bold';
+        autoLabel.style.color = '#888';
+        autoLabel.textContent = 'AUTO';
+
+        autoWrap.appendChild(autoLamp);
+        autoWrap.appendChild(autoLabel);
+        panel.appendChild(autoWrap);
+
         // ── Gauge section (full-width, black face) ────────────────────
         var gaugeFace = document.createElement('div');
         gaugeFace.className = 'w-full relative';
@@ -129,6 +156,25 @@
             ttick.setAttribute('stroke-width', String(tWidth));
             svg.appendChild(ttick);
         }
+
+        // Inner labels for -50, 0, +50
+        [{ c: -50, text: '-50' }, { c: 0, text: '0' }, { c: 50, text: '+50' }].forEach(function (m) {
+            var aRad = ((m.c / 50) * _TUNER_NEEDLE_HALF_SWEEP - 90) * Math.PI / 180;
+            var lx = (_SVG_CX + 76 * Math.cos(aRad)).toFixed(1);
+            var ly = (Math.abs(m.c) === 50
+                ? _SVG_CY - 8                // extremes: nudge up from arc baseline
+                : _SVG_CY + 76 * Math.sin(aRad) + 10 // centre: below arc top
+            ).toFixed(1);
+            var lbl = document.createElementNS(svgNS, 'text');
+            lbl.setAttribute('x', lx);
+            lbl.setAttribute('y', ly);
+            lbl.setAttribute('text-anchor', 'middle');
+            lbl.setAttribute('font-size', '8');
+            lbl.setAttribute('font-family', 'monospace');
+            lbl.setAttribute('fill', Math.abs(m.c) === 50 ? '#cc2200' : '#555');
+            lbl.textContent = m.text;
+            svg.appendChild(lbl);
+        });
 
         // Needle line (pivot at SVG bottom-centre; x2/y2 updated in RAF)
         var needleLine = document.createElementNS(svgNS, 'line');
@@ -249,15 +295,29 @@
         rafId = requestAnimationFrame(_animate);
 
         // ── Public API ────────────────────────────────────────────────
+        function _setAutoLamp(lit) {
+            autoLamp.style.backgroundColor = lit ? '#cc2200' : '#2a0000';
+            autoLamp.style.border = lit ? '1px solid #ff4422' : '1px solid #5a2020';
+            autoLamp.style.boxShadow = lit ? '0 0 5px 2px rgba(200,50,0,0.7)' : 'none';
+        }
+
         function update(note, cents, freq) {
             if (note === null) {
                 targetDrumY = _IDLE_DRUM_Y;
                 targetAngle = 0;
+                _setAutoLamp(false);
                 bulbEl.style.backgroundColor = '#2a1010';
                 bulbEl.style.border = '2px solid #4a2020';
                 bulbEl.style.boxShadow = 'none';
                 return;
             }
+
+            // Free-tune mode: screen.js targets nearest chromatic note, so cents
+            // equals the deviation from that nearest semitone exactly.
+            var detectedMidi = 69 + 12 * Math.log2(freq / 440);
+            var freeCents = (detectedMidi - Math.round(detectedMidi)) * 100;
+            _setAutoLamp(Math.abs(cents - freeCents) < 2);
+
             targetDrumY = _computeDrumY(freq, cents);
             prevNote = note;
 
