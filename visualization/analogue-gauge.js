@@ -67,7 +67,7 @@
             fLabel.style.display = 'flex';
             fLabel.style.alignItems = 'center';
             fLabel.style.justifyContent = 'center';
-            fLabel.style.fontSize = '10px';
+            fLabel.style.fontSize = '11px';
             fLabel.style.fontFamily = 'monospace';
             fLabel.style.fontWeight = 'bold';
             fLabel.style.color = '#111';
@@ -206,8 +206,12 @@
         // ── Drum position ─────────────────────────────────────────────
         function _computeDrumY(freq, cents) {
             var midi = 69 + 12 * Math.log2(freq / 440);
-            var idx = Math.max(0, Math.min(_TUNER_STRIP_END_MIDI - _TUNER_STRIP_START_MIDI, Math.round(midi) - _TUNER_STRIP_START_MIDI));
-            return _TUNER_LABEL_H * (0.5 - idx) - (cents / 50) * (_TUNER_LABEL_H / 2);
+            // Use target MIDI (back out cents deviation) so the drum stays locked on
+            // the target note. screen.js passes unclamped cents, so clamp to ±50 here.
+            var targetMidi = midi - cents / 100;
+            var clamped = Math.max(-50, Math.min(50, cents));
+            var idx = Math.max(0, Math.min(_TUNER_STRIP_END_MIDI - _TUNER_STRIP_START_MIDI, Math.round(targetMidi) - _TUNER_STRIP_START_MIDI));
+            return _TUNER_LABEL_H * (0.5 - idx) - (clamped / 50) * (_TUNER_LABEL_H / 2);
         }
 
         // ── Animation loop ────────────────────────────────────────────
@@ -248,7 +252,7 @@
             targetDrumY = newY;
             prevNote = note;
 
-            targetAngle = (cents / 50) * _TUNER_NEEDLE_HALF_SWEEP;
+            targetAngle = (Math.max(-50, Math.min(50, cents)) / 50) * _TUNER_NEEDLE_HALF_SWEEP;
 
             if (Math.abs(cents) <= _TUNER_IN_TUNE_THRESHOLD) {
                 bulbEl.style.backgroundColor = '#cc3300';
