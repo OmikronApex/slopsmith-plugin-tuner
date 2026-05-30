@@ -47,11 +47,13 @@ After the story status is set to "review", perform these steps:
 - Check for an existing PR: gh pr list --head <current-branch> --json number,url,body --jq '.[0]'
 
 - If a PR already exists:
-  - Check whether #<STORY_ISSUE_NUMBER> is already referenced in the PR body.
-  - If not referenced → update the PR body to add the story issue to the Stories section:
-    - Find the matching story line (by story key or title) and append " #<STORY_ISSUE_NUMBER>" to it,
-      or add a new line "- [x] #<STORY_ISSUE_NUMBER> — <story title>" if no matching line exists.
-    - Command: gh pr edit <PR_NUMBER> --body "<updated body>"
+  - Read the current PR body.
+  - Apply both of the following edits to the body, then write it back in one gh pr edit call:
+    1. If #<STORY_ISSUE_NUMBER> is not yet referenced → add the story to the Stories section as
+       "- [x] #<STORY_ISSUE_NUMBER> — <story title>"
+    2. If #<STORY_ISSUE_NUMBER> is already referenced → ensure the checkbox on that line reads [x]
+       (replace "- [ ]" with "- [x]" on the line containing #<STORY_ISSUE_NUMBER>)
+  - Command: gh pr edit <PR_NUMBER> --body "<updated body>"
   - Report the PR URL.
 
 - If no PR exists → create one:
