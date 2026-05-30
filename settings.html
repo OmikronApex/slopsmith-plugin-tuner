@@ -106,8 +106,8 @@
                     left.className = 'flex items-center gap-2';
                     
                     const chevron = document.createElement('span');
-                    chevron.innerHTML = '<svg class="w-3 h-3 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>';
-                    chevron.className = 'text-gray-500';
+                    chevron.innerHTML = '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>';
+                    chevron.className = 'text-gray-500 transition-transform duration-200 rotate-0';
                     
                     const groupLabel = document.createElement('span');
                     groupLabel.className = 'text-[11px] font-bold text-gray-400 uppercase tracking-wider';
@@ -147,9 +147,9 @@
                     const isExpanded = expandedGroups.includes(groupName);
                     if (!isExpanded) {
                         groupContainer.classList.add('hidden');
-                        chevron.style.transform = 'rotate(0deg)';
+                        chevron.classList.remove('rotate-90');
                     } else {
-                        chevron.style.transform = 'rotate(90deg)';
+                        chevron.classList.add('rotate-90');
                     }
                     
                     header.onclick = () => {
@@ -164,8 +164,7 @@
 
                     groupTunings.forEach((name, idx) => {
                         const div = document.createElement('div');
-                        div.className = 'flex items-center justify-between p-2 bg-dark-800/30 hover:bg-dark-800/50 transition-colors border-t border-gray-800/20';
-                        if (idx === 0) div.style.borderTop = 'none';
+                        div.className = `flex items-center justify-between p-2 bg-dark-800/30 hover:bg-dark-800/50 transition-colors ${idx === 0 ? 'border-t-0' : 'border-t border-gray-800/20'}`;
                         
                         const label = document.createElement('span');
                         label.className = 'text-xs text-gray-300';
@@ -246,8 +245,18 @@
                 const name = nameInput.value.trim();
                 const inputStr = freqsInput.value.trim();
 
-                if (!name || !inputStr) return alert('Please enter name and notes/frequencies.');
-                
+                let errP = document.getElementById('tuner-add-error');
+                if (!errP) {
+                    errP = document.createElement('p');
+                    errP.id = 'tuner-add-error';
+                    errP.className = 'text-[10px] text-red-400 mt-1 ml-1 hidden';
+                    document.getElementById('tuner-new-freqs').parentElement.parentElement.appendChild(errP);
+                }
+                const showErr = (msg) => { errP.textContent = msg; errP.classList.remove('hidden'); };
+                const clearErr = () => errP.classList.add('hidden');
+
+                if (!name || !inputStr) return showErr('Enter a name and notes/frequencies.');
+
                 const freqs = inputStr.split(',').map(s => {
                     s = s.trim();
                     const f = parseFloat(s);
@@ -255,8 +264,9 @@
                     return noteToFreq(s);
                 }).filter(f => f !== null && !isNaN(f));
 
-                if (freqs.length === 0) return alert('Invalid notes or frequencies.');
+                if (freqs.length === 0) return showErr('Invalid notes or frequencies — use E2, A2 or Hz values.');
 
+                clearErr();
                 config.customTunings[name] = freqs;
                 save();
                 render();

@@ -10,11 +10,15 @@ Step 1 — Create the story issue:
 - Command: gh issue create --title "..." --label "story" --label "enhancement" --body "..."
 - Capture the returned issue number (call it STORY_ISSUE_NUMBER)
 
-Step 2 — Link to parent epic issue:
+Step 2 — Set parent epic issue:
 - Search for the parent epic's GitHub issue: gh issue list --label "epic" --search "Epic <epic_num>:" --json number,title --jq '.[0].number'
 - Capture the result as EPIC_ISSUE_NUMBER
-- If found, link the story as a sub-issue: gh api repos/OmikronApex/slopsmith-plugin-tuner/issues/$EPIC_ISSUE_NUMBER/sub_issues --method POST -f sub_issue_id=$STORY_ISSUE_NUMBER
-- If the sub-issues API is unavailable, fall back to posting a comment on the epic issue: gh issue comment $EPIC_ISSUE_NUMBER --body "Sub-task: #$STORY_ISSUE_NUMBER"
+- Get the epic's node ID: gh api graphql -f query='query{repository(owner:"OmikronApex",name:"slopsmith-plugin-tuner"){issue(number:<EPIC_ISSUE_NUMBER>){id}}}' -q .data.repository.issue.id
+- Get the story's node ID: gh api graphql -f query='query{repository(owner:"OmikronApex",name:"slopsmith-plugin-tuner"){issue(number:<STORY_ISSUE_NUMBER>){id}}}' -q .data.repository.issue.id
+- Link story as sub-issue (child) of the epic (parent) using GraphQL:
+  gh api graphql -f query='mutation($p:ID!,$c:ID!){addSubIssue(input:{issueId:$p,subIssueId:$c}){issue{number}subIssue{number}}}' -f p="<EPIC_NODE_ID>" -f c="<STORY_NODE_ID>"
+- If the mutation errors with "already has a parent", the link already exists — no action needed.
+- If the mutation fails for any other reason, fall back to: gh issue comment <EPIC_ISSUE_NUMBER> --body "Sub-task: #<STORY_ISSUE_NUMBER>"
 
 Report the story issue URL and whether the parent link succeeded.
 """

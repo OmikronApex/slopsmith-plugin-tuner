@@ -1,5 +1,10 @@
 # Deferred Work
 
+## Deferred from: code review of Epic 2 stories 2.3 & 2.4 (2026-05-30)
+
+- **`errEl.innerHTML` XSS pattern** (`screen.js` `_showMicError`) — `errEl.innerHTML` interpolates `e?.message` which is browser-controlled; pre-existing before this epic. Recommend migrating to `textContent` + DOM-built structure when `_showMicError` is next touched.
+- **Concurrent `_showMicError` duplicate banners** — Two rapid async mic errors can produce two `.tuner-mic-error` elements; only the first is found by subsequent cleanup paths. Pre-existing architectural limitation.
+
 ## Deferred from: code review of Epic 1 (2026-05-30)
 
 - **Branch setup has no conflict-handling instruction** (`_bmad/custom/bmad-dev-story.toml`) — If the epic branch exists locally with diverged history (e.g. after a force-push), the `git checkout` step may silently fail or leave the agent on a stale ref. Low severity; acceptable for current solo-dev workflow.
