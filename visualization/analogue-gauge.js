@@ -67,6 +67,19 @@
         autoWrap.appendChild(autoLabel);
         panel.appendChild(autoWrap);
 
+        // ── A=440 label (top-right) ───────────────────────────────────
+        var refLabel = document.createElement('span');
+        refLabel.style.position = 'absolute';
+        refLabel.style.top = '8px';
+        refLabel.style.right = '10px';
+        refLabel.style.zIndex = '20';
+        refLabel.style.fontSize = '8px';
+        refLabel.style.fontFamily = 'monospace';
+        refLabel.style.fontWeight = 'bold';
+        refLabel.style.color = '#888';
+        refLabel.textContent = 'A=440';
+        panel.appendChild(refLabel);
+
         // ── Gauge section (full-width, black face) ────────────────────
         var gaugeFace = document.createElement('div');
         gaugeFace.className = 'w-full relative';
