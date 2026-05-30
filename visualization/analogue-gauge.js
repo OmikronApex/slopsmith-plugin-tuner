@@ -17,13 +17,14 @@
 
     // ── Constants ─────────────────────────────────────────────────────
     var _TUNER_LABEL_H = 12;           // px height of each drum label
-    var _TUNER_NEEDLE_HALF_SWEEP = 75; // degrees from centre to arc extreme (±50 cents)
+    var _TUNER_NEEDLE_HALF_SWEEP = 90; // degrees — ±50 cents = horizontal (180° apart)
     var _TUNER_IN_TUNE_THRESHOLD = 2;
     var _TUNER_STRIP_START_MIDI = 14;  // ~18 Hz — covers 20 Hz minimum
     var _TUNER_STRIP_END_MIDI = 84;    // ~1047 Hz C6
     var _TUNER_NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
     // SVG gauge geometry — viewBox 200 × 110, pivot at bottom-centre
-    var _SVG_CX = 100, _SVG_CY = 110, _SVG_R = 100, _SVG_NEEDLE_LEN = 92;
+    // R=95 keeps arc endpoints ~5 SVG units from the viewBox edges to prevent clipping
+    var _SVG_CX = 100, _SVG_CY = 110, _SVG_R = 95, _SVG_NEEDLE_LEN = 88;
 
     window['_tunerViz_analogue-gauge'] = function (container) {
         'use strict';
@@ -40,7 +41,7 @@
 
         // ── Gauge section (full-width, black face) ────────────────────
         var gaugeFace = document.createElement('div');
-        gaugeFace.className = 'w-full relative rounded';
+        gaugeFace.className = 'w-full relative';
         gaugeFace.style.backgroundColor = '#e8e0cc';
         gaugeFace.style.height = '110px';
 
@@ -87,23 +88,24 @@
         svg.style.width = '100%';
         svg.style.height = '100%';
         svg.style.zIndex = '2';
+        svg.style.overflow = 'visible'; // prevent viewBox from clipping arc edges
 
-        // Arc: edge-to-edge semicircle, centre at bottom-centre of viewBox
+        // Arc: R=95 keeps endpoints ~5 SVG units from the viewBox edges
         var arcPath = document.createElementNS(svgNS, 'path');
-        arcPath.setAttribute('d', 'M 0 110 A 100 100 0 0 1 200 110');
+        arcPath.setAttribute('d', 'M 5 110 A 95 95 0 0 1 195 110');
         arcPath.setAttribute('fill', 'none');
         arcPath.setAttribute('stroke', '#222');
         arcPath.setAttribute('stroke-width', '1.5');
         svg.appendChild(arcPath);
 
-        // Tick marks every 10 cents; major at ±50 (red), medium at 0/±25, minor at ±10/±20/±30/±40
-        for (var tc = -50; tc <= 50; tc += 10) {
-            var isExtreme = Math.abs(tc) === 50;
-            var isMajor   = tc === 0;
-            var isMedium  = Math.abs(tc) === 25;
-            var tLen = isExtreme ? 10 : isMajor ? 9 : isMedium ? 7 : 4;
-            var tColor = isExtreme ? '#cc2200' : '#222';
-            var tWidth = (isExtreme || isMajor) ? 2 : 1.5;
+        // Tick marks: long every 10 cents, 4 short between each (every 2 cents).
+        // 5 outermost marks on each side (|c| >= 42) in red.
+        for (var tc = -50; tc <= 50; tc += 2) {
+            var isLong  = (tc % 10 === 0);
+            var isRed   = Math.abs(tc) >= 42;
+            var tLen    = isLong ? 10 : 5;
+            var tColor  = isRed ? '#cc2200' : '#222';
+            var tWidth  = isLong ? 1.5 : 1;
             var tAngleRad = ((tc / 50) * _TUNER_NEEDLE_HALF_SWEEP - 90) * Math.PI / 180;
             var ttick = document.createElementNS(svgNS, 'line');
             ttick.setAttribute('x1', (_SVG_CX + (_SVG_R - tLen) * Math.cos(tAngleRad)).toFixed(1));
@@ -111,7 +113,7 @@
             ttick.setAttribute('x2', (_SVG_CX + _SVG_R * Math.cos(tAngleRad)).toFixed(1));
             ttick.setAttribute('y2', (_SVG_CY + _SVG_R * Math.sin(tAngleRad)).toFixed(1));
             ttick.setAttribute('stroke', tColor);
-            ttick.setAttribute('stroke-width', tWidth);
+            ttick.setAttribute('stroke-width', String(tWidth));
             svg.appendChild(ttick);
         }
 
