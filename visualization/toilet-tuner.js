@@ -30,23 +30,16 @@
         'use strict';
 
         // ── Root panel — 1:1 square, full width ───────────────────────
-        // padding-bottom: 100% trick: reliable square even with all-absolute children
+        // padding-bottom: 100% trick: reliable square even with all-absolute children.
+        // Background loaded as CSS background-image: bypasses browser intrinsic-size
+        // limits that cause SVGs with huge explicit width/height to fail as <img>.
         var panel = document.createElement('div');
         panel.className = 'relative w-full overflow-hidden select-none';
-        panel.style.height        = '0';
-        panel.style.paddingBottom = '100%';
-
-        // ── Background ────────────────────────────────────────────────
-        var bgImg = document.createElement('img');
-        bgImg.src = _TUNER_TT_ASSET_BASE + 'Bathroom.svg';
-        bgImg.style.position = 'absolute';
-        bgImg.style.top      = '0';
-        bgImg.style.left     = '0';
-        bgImg.style.width    = '100%';
-        bgImg.style.height   = '100%';
-        bgImg.style.objectFit = 'cover';
-        bgImg.className = 'pointer-events-none';
-        panel.appendChild(bgImg);
+        panel.style.height              = '0';
+        panel.style.paddingBottom       = '100%';
+        panel.style.backgroundImage     = "url('" + _TUNER_TT_ASSET_BASE + "Bathroom.svg')";
+        panel.style.backgroundSize      = 'cover';
+        panel.style.backgroundPosition  = 'center';
 
         // ── Note label (over calendar on wall) ────────────────────────
         var noteEl = document.createElement('div');
