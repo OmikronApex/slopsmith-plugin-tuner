@@ -20,8 +20,18 @@
     // ── Pitch stability state ─────────────────────────────────────────
     let _freqHistory = [];
     let _validFrameCount = 0;
+    let _lastFreq = 0;
     const _FREQ_HISTORY_LEN = 3;
     const _WARMUP_FRAMES = 2;   // skip pluck-attack transient before showing pitch
+
+    // Fold an octave-error reading toward the previous frequency. Octave errors
+    // land ~2x/0.5x off; this snaps them back so the note stays continuous.
+    function _octaveFold(freq, ref) {
+        if (!ref || freq <= 0) return freq;
+        while (freq > ref * 1.414) freq /= 2;
+        while (freq < ref / 1.414) freq *= 2;
+        return freq;
+    }
 
     function _median(arr) {
         if (!arr.length) return 0;
@@ -475,6 +485,7 @@
         accumBuffer = new Float32Array(0);
         _freqHistory = [];
         _validFrameCount = 0;
+        _lastFreq = 0;
         if (processor) { processor.disconnect(); processor = null; }
         if (gainNode) { gainNode.disconnect(); gainNode = null; }
         if (sourceNode) { sourceNode.disconnect(); sourceNode = null; }
@@ -592,6 +603,7 @@
         if (!result || (!hasSignal && result.confidence < 0.5) || (result.freq < _TUNER_MIN_DETECTABLE_HZ && result.freq !== 0)) {
             _validFrameCount = 0;
             _freqHistory = [];
+            _lastFreq = 0;
             if (activeViz) activeViz.update(null, 0, 0, vizMode);
             _syncStringHighlight(manualTargetFreq);
             return;
@@ -601,13 +613,14 @@
             // dim signal — let viz handle its own timeout
             _validFrameCount = 0;
             _freqHistory = [];
+            _lastFreq = 0;
             if (activeViz) activeViz.update(null, 0, 0, vizMode);
             _syncStringHighlight(manualTargetFreq);
             return;
         }
 
-        // Valid signal: push raw YIN freq into median history.
-        _freqHistory.push(result.freq);
+        // Valid signal: octave-fold toward the last pitch, then median-filter.
+        _freqHistory.push(_octaveFold(result.freq, _lastFreq));
         if (_freqHistory.length > _FREQ_HISTORY_LEN) _freqHistory.shift();
 
         // Skip the pluck-attack transient — keep filling history but hold the
@@ -620,6 +633,7 @@
         }
 
         const freq = _median(_freqHistory);
+        _lastFreq = freq;
 
         let targetFreq;
         let isManual = false;
