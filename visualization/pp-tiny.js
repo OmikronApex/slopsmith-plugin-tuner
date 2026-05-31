@@ -30,14 +30,18 @@
         'use strict';
 
         // ── Chrome bezel ──────────────────────────────────────────────
-        // Square aspect ratio: face is also square after uniform 4% padding,
-        // so border-radius ry=50% produces a true visual semicircle on top.
+        // 4:3 panel. After uniform 4% padding:
+        //   face_width  = 0.92 × W,  face_height = 0.67 × W  (W = panel width)
+        //   face_aspect = 0.92 / 0.67 ≈ 1.373
+        // Border-radius ry for a true visual semicircle top:
+        //   ry_panel = (W/2) / (0.75W) = 66.7 %
+        //   ry_face  = (0.46W) / (0.67W) ≈ 68.7 % → 69 %
         var panel = document.createElement('div');
         panel.style.position     = 'relative';
         panel.style.width        = '100%';
-        panel.style.aspectRatio  = '1 / 1';
+        panel.style.aspectRatio  = '4 / 3';
         panel.style.background   = 'linear-gradient(160deg, #e0e0e0 0%, #a8a8a8 30%, #c8c8c8 55%, #888 100%)';
-        panel.style.borderRadius = '50% 50% 10px 10px / 50% 50% 10px 10px';
+        panel.style.borderRadius = '50% 50% 10px 10px / 66.7% 66.7% 10px 10px';
         panel.style.padding      = '4%';
         panel.style.boxSizing    = 'border-box';
         panel.style.userSelect   = 'none';
@@ -49,28 +53,29 @@
         face.style.width        = '100%';
         face.style.height       = '100%';
         face.style.background   = '#080808';
-        face.style.borderRadius = '50% 50% 8px 8px / 50% 50% 8px 8px';
+        face.style.borderRadius = '50% 50% 8px 8px / 69% 69% 8px 8px';
         face.style.overflow     = 'hidden';
         panel.appendChild(face);
 
         // ── Arc geometry ──────────────────────────────────────────────
-        // Panel and face are square → face is also square after uniform padding.
-        // All element arcs share one centre: (50%, 50%) of the face, which is
-        // the same point as the face border-radius arc centre. No aspect-ratio
-        // correction needed; 1 % of width == 1 % of height in absolute pixels.
+        // Face aspect = face_width / face_height = 0.92 / 0.67 ≈ 1.373.
+        // Element arcs share centre (50%, 50%) of face — same as the face's
+        // border-radius arc centre (ry = 69% ≈ face_width/2 / face_height).
+        // For a visually circular arc: ry_element = r × _ARC_ASPECT.
         //
-        // Radii (% of face width/height — equal here):
-        //   LEDs    r = 40  → sides at (10%, 50%) and (90%, 50%), top at (50%, 10%)
-        //   line    r = 35  → sides at (15%, 50%) and (85%, 50%), top at (50%, 15%)
-        //   labels  r = 30  → sides at (20%, 50%) and (80%, 50%), top at (50%, 20%)
+        // Radii (r in % of face_width):
+        //   LEDs    r = 34  → top at (50%,  3%), sides at (16%, 50%) / (84%, 50%)
+        //   line    r = 29  → top at (50%, 10%), sides at (21%, 50%) / (79%, 50%)
+        //   labels  r = 24  → top at (50%, 17%), sides at (26%, 50%) / (74%, 50%)
         //
         // Angles: 180° – i×18° for i = 0..10 (11 bulbs, 18° step = 180°/10).
 
         var _ARC_CX         = 50;
         var _ARC_CY         = 50;
-        var _ARC_R_LEDS     = 40;
-        var _ARC_R_LINE     = 35;
-        var _ARC_R_LABELS   = 30;
+        var _ARC_ASPECT     = 1.373; // face_width / face_height for 4:3 + 4% padding
+        var _ARC_R_LEDS     = 34;
+        var _ARC_R_LINE     = 29;
+        var _ARC_R_LABELS   = 24;
         var _ARC_CENTRE_IDX = Math.floor(_TUNER_PT_LED_COUNT / 2); // 5
 
         function _arcPoint(i, r) {
@@ -78,7 +83,7 @@
             var rad = angleDeg * Math.PI / 180;
             return {
                 x: _ARC_CX + r * Math.cos(rad),
-                y: _ARC_CY - r * Math.sin(rad),
+                y: _ARC_CY - r * _ARC_ASPECT * Math.sin(rad),
             };
         }
 
@@ -119,9 +124,10 @@
         var x0Line = _ARC_CX - _ARC_R_LINE;
         var x1Line = _ARC_CX + _ARC_R_LINE;
         var arcPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        var _ry_line = (_ARC_R_LINE * _ARC_ASPECT).toFixed(1);
         arcPath.setAttribute('d',
             'M ' + x0Line + ',' + _ARC_CY +
-            ' A ' + _ARC_R_LINE + ',' + _ARC_R_LINE + ' 0 0 1 ' +
+            ' A ' + _ARC_R_LINE + ',' + _ry_line + ' 0 0 1 ' +
             x1Line + ',' + _ARC_CY);
         arcPath.setAttribute('stroke', 'rgba(255,255,255,0.65)');
         arcPath.setAttribute('stroke-width', '0.8');
@@ -152,14 +158,12 @@
         });
 
         // ── 4. LCD display (letter + # inside one box) ────────────────
-        // Sits in the lower rectangular section (below arc centre y=50%).
-        // top=54% puts a small gap below the arc base; height=40% fills the
-        // lower portion. Display centre is at y = 54% + 20% = 74%.
+        // top=30%, height=40% → bottom=70%, centre=50%.
         var displayWrap = document.createElement('div');
         displayWrap.style.cssText = [
             'position:absolute',
             'left:50%',
-            'top:54%',
+            'top:30%',
             'transform:translateX(-50%)',
             'width:38%',
             'height:40%',
@@ -224,7 +228,7 @@
         // Anchored to the display's right edge (≈69%) at the display's
         // vertical midpoint (54% + 20% = 74%).
         var autoWrap = document.createElement('div');
-        autoWrap.style.cssText = 'position:absolute;left:72%;top:74%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:4%;pointer-events:none';
+        autoWrap.style.cssText = 'position:absolute;left:72%;top:67%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:4%;pointer-events:none';
 
         var autoLed = document.createElement('div');
         autoLed.style.cssText = [
