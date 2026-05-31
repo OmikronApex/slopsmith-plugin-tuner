@@ -87,20 +87,24 @@
         panel.appendChild(face);
 
         // ── Arc geometry ──────────────────────────────────────────────
-        // Face aspect = face_width / face_height = 0.92 / 0.67 ≈ 1.373.
-        // Element arcs share centre (50%, 50%) of face — same as the face's
-        // border-radius arc centre (ry = 69% ≈ face_width/2 / face_height).
-        // For a visually circular arc: ry_element = r × _ARC_ASPECT.
-        //
-        // Radii (r in % of face_width):
-        //   LEDs    r = 34  → top at (50%,  3%), sides at (16%, 50%) / (84%, 50%)
-        //   line    r = 29  → top at (50%, 10%), sides at (21%, 50%) / (79%, 50%)
-        //   labels  r = 24  → top at (50%, 17%), sides at (26%, 50%) / (74%, 50%)
-        //
-        // Angles: 180° – i×18° for i = 0..10 (11 bulbs, 18° step = 180°/10).
+        // Face SVG inset: x 4–96, y 4–71  (width=92, height=67 in panel units).
+        // Arc centre in panel SVG = (50, 50)  →  in face-div %:
+        //   cx = (50−4)/92×100 = 50 %
+        //   cy = (50−4)/67×100 = 68.657 %
+        // Face aspect A = 92/67 ≈ 1.3731.
+        // For a physical circle of radius r (% of face-width):
+        //   x = cx + r·cos(θ)        (face-width %)
+        //   y = cy − r·A·sin(θ)      (face-height %; A corrects non-square face)
+        // Separator SVG arc (viewBox 0 0 100 100, preserveAspectRatio=none):
+        //   rx = r (x-units ≡ face-width %), ry = r·A (y-units ≡ face-height %)
+        // Radii (r in % of face_width, max=46):
+        //   LEDs   r=40 → top at (50%, 14%)
+        //   line   r=35 → top at (50%, 21%)
+        //   labels r=30 → top at (50%, 27%)
 
         var _ARC_CX         = 50;
-        var _ARC_CY         = 50;
+        var _ARC_CY         = 68.657;           // % of face height
+        var _ARC_ASPECT     = 92 / 67;          // face width / face height
         var _ARC_R_LEDS     = 40;
         var _ARC_R_LINE     = 35;
         var _ARC_R_LABELS   = 30;
@@ -111,7 +115,7 @@
             var rad = angleDeg * Math.PI / 180;
             return {
                 x: _ARC_CX + r * Math.cos(rad),
-                y: _ARC_CY - r * Math.sin(rad),
+                y: _ARC_CY - r * _ARC_ASPECT * Math.sin(rad),
             };
         }
 
@@ -149,13 +153,17 @@
         svg.setAttribute('preserveAspectRatio', 'none');
         svg.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;overflow:visible';
 
+        // SVG viewBox 0 0 100 100, preserveAspectRatio=none:
+        // x-unit = 1% face-width, y-unit = 1% face-height.
+        // For a physical circle: rx=r, ry=r×A (corrects non-square face).
         var x0Line = _ARC_CX - _ARC_R_LINE;
         var x1Line = _ARC_CX + _ARC_R_LINE;
+        var ryLine = (_ARC_R_LINE * _ARC_ASPECT).toFixed(3);
         var arcPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         arcPath.setAttribute('d',
-            'M ' + x0Line + ',' + _ARC_CY +
-            ' A ' + _ARC_R_LINE + ',' + _ARC_R_LINE + ' 0 0 1 ' +
-            x1Line + ',' + _ARC_CY);
+            'M ' + x0Line + ',' + _ARC_CY.toFixed(3) +
+            ' A ' + _ARC_R_LINE + ',' + ryLine + ' 0 0 1 ' +
+            x1Line + ',' + _ARC_CY.toFixed(3));
         arcPath.setAttribute('stroke', 'rgba(255,255,255,0.65)');
         arcPath.setAttribute('stroke-width', '0.8');
         arcPath.setAttribute('fill', 'none');
