@@ -424,8 +424,17 @@
                 noteAccidental.textContent = '';
             }
 
-            // Octave display
-            octaveEl.textContent = hasNote ? _freqToOctave(freq) : '-';
+            // Octave display — show target octave in auto/manual, detected octave in free
+            if (hasNote) {
+                if (_currentMode === 'auto' || _currentMode === 'manual') {
+                    var targetFreq = freq * Math.pow(2, -cents / 1200);
+                    octaveEl.textContent = _freqToOctave(targetFreq);
+                } else {
+                    octaveEl.textContent = _freqToOctave(freq);
+                }
+            } else {
+                octaveEl.textContent = '-';
+            }
 
             // Strobe state
             if (!hasNote) {
