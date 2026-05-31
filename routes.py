@@ -83,6 +83,7 @@ def setup(app: FastAPI, context: dict):
     _viz_dir = Path(__file__).parent / "visualization"
     _workers_dir = Path(__file__).parent / "workers"
     _utils_dir = Path(__file__).parent / "utils"
+    _assets_dir = Path(__file__).parent / "visualization" / "assets"
 
     def _serve_js_from(base_dir: Path, filename: str) -> Response:
         target = (base_dir / filename).resolve()
@@ -93,6 +94,20 @@ def setup(app: FastAPI, context: dict):
         if target.suffix == ".js" and target.is_file():
             return Response(target.read_text(encoding="utf-8"), media_type="application/javascript")
         return Response("", status_code=404)
+
+    def _serve_svg_from(base_dir: Path, filename: str) -> Response:
+        target = (base_dir / filename).resolve()
+        try:
+            target.relative_to(base_dir.resolve())
+        except ValueError:
+            return Response("", status_code=404)
+        if target.suffix == ".svg" and target.is_file():
+            return Response(target.read_text(encoding="utf-8"), media_type="image/svg+xml")
+        return Response("", status_code=404)
+
+    @app.get("/api/plugins/tuner/assets/{filename}")
+    def get_asset_file(filename: str):
+        return _serve_svg_from(_assets_dir, filename)
 
     @app.get("/api/plugins/tuner/visualization/{filename}")
     def get_viz_file(filename: str):

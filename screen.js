@@ -359,6 +359,7 @@
                 <option value="strobe" ${visualizationMode === 'strobe' ? 'selected' : ''}>Strobe</option>
                 <option value="analogue-gauge" ${visualizationMode === 'analogue-gauge' ? 'selected' : ''}>Analogue Gauge</option>
                 <option value="axe-fx-iii" ${visualizationMode === 'axe-fx-iii' ? 'selected' : ''}>Axe-Fx III</option>
+                <option value="toilet-tuner" ${visualizationMode === 'toilet-tuner' ? 'selected' : ''}>Toilet Tuner</option>
             </select>
         `;
 
