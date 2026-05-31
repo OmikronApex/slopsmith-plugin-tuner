@@ -165,3 +165,9 @@ claude-sonnet-4-6
 ### File List
 
 - `visualization/analogue-gauge.js` (implemented in 3.1)
+
+### Review Findings
+
+- [x] [Review][Patch] Missing `vizMode` in viz-switch onchange handler — FIXED: compute `vizMode` and pass as 4th arg to `activeViz.update(null, 0, 0, vizMode)` in the `.tuner-viz-select` onchange handler. [`screen.js`]
+- [x] [Review][Defer] Already-queued RAF frame fires once after `destroy()` — single-threaded JS; `activeViz` is nulled by caller before any `update()` can be dispatched; not observable in practice — deferred, pre-existing
+- [x] [Review][Defer] RAF runs unconditionally from construction — pre-existing pattern matching `strobe.js`; no idle-detection — deferred, pre-existing

@@ -354,7 +354,8 @@
             visualizationMode = e.target.value;
             await _setVisualization(visualizationMode);
             saveConfig();
-            if (activeViz) activeViz.update(null, 0, 0);
+            const vizMode = manualTargetFreq ? 'manual' : (selectedTuning && selectedTuning.length > 0 ? 'auto' : 'free');
+            if (activeViz) activeViz.update(null, 0, 0, vizMode);
         };
 
         populateDevices(panel);

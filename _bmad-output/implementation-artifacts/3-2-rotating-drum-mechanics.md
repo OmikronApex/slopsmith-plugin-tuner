@@ -157,3 +157,10 @@ claude-sonnet-4-6
 ### File List
 
 - `visualization/analogue-gauge.js` (implemented in 3.1)
+
+### Review Findings
+
+- [x] [Review][Patch] `_computeDrumY` crashes silently on `freq=0` — FIXED: added `if (!freq || freq <= 0) return _IDLE_DRUM_Y;` guard at top of `_computeDrumY`. [`visualization/analogue-gauge.js`]
+- [x] [Review][Patch] `prevNote` is declared and written but never read — FIXED: removed declaration and the single write. [`visualization/analogue-gauge.js`]
+- [x] [Review][Defer] Out-of-range freq silently shows strip endpoint label while needle reflects real cents — acceptable edge case; strip covers 18–1047 Hz per spec — deferred, pre-existing
+- [x] [Review][Defer] No `white-space: nowrap` on freq labels — very long Hz strings could wrap and double row height at narrow widths — deferred, pre-existing

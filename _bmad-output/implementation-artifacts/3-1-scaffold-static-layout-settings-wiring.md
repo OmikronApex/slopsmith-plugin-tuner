@@ -153,3 +153,9 @@ claude-sonnet-4-6
 
 - `visualization/analogue-gauge.js` (new)
 - `screen.js` (modified — added analogue-gauge option to viz select)
+
+### Review Findings
+
+- [x] [Review][Decision] Inline `element.style` for cosmetic styling — **RESOLVED: accepted as intentional.** The vintage analogue aesthetic requires custom colours (`#e8e0cc`, `#cc2200`, etc.) with no Tailwind token equivalents. NFR-07 deviation is a deliberate design trade-off for this visualization.
+- [x] [Review][Decision] Graduation labels show ±30 not ±25 — **RESOLVED: keep ±30.** Deliberate departure from original AC2(e) per user request during iteration. AC considered updated to ±30.
+- [x] [Review][Defer] SVG geometry via `setAttribute` — not an inline `style=""` violation per NFR-07 — deferred, pre-existing

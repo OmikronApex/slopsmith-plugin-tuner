@@ -277,7 +277,6 @@
         var currentAngle = 0, targetAngle = 0;
         var lastTime = performance.now();
         var rafId = null;
-        var prevNote = null;
 
         // ── Needle SVG update ─────────────────────────────────────────
         function _setNeedle(angleDeg) {
@@ -289,6 +288,7 @@
         // ── Drum position ─────────────────────────────────────────────
 
         function _computeDrumY(freq, cents) {
+            if (!freq || freq <= 0) return _IDLE_DRUM_Y;
             var midi = 69 + 12 * Math.log2(freq / 440);
             var targetMidi = midi - cents / 100;
             var clamped = Math.max(-50, Math.min(50, cents));
@@ -343,7 +343,6 @@
             }
 
             targetDrumY = _computeDrumY(freq, cents);
-            prevNote = note;
 
             targetAngle = (Math.max(-50, Math.min(50, cents)) / 50) * _TUNER_NEEDLE_HALF_SWEEP;
 
