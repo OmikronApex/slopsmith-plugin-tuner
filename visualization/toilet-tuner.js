@@ -101,7 +101,8 @@
             var inTune = _currentNote !== null && Math.abs(_currentCents) <= _TUNER_TT_IN_TUNE_THR;
             var targetLeft = _currentNote === null
                 ? _TUNER_TT_CENTRE_PCT
-                : _TUNER_TT_CENTRE_PCT + (_currentCents / 50) * (_TUNER_TT_RIGHT_PCT - _TUNER_TT_CENTRE_PCT);
+                : Math.min(_TUNER_TT_RIGHT_PCT, Math.max(_TUNER_TT_LEFT_PCT,
+                    _TUNER_TT_CENTRE_PCT + (_currentCents / 50) * (_TUNER_TT_RIGHT_PCT - _TUNER_TT_CENTRE_PCT)));
 
             if (inTune && !_plungerDipped) {
                 _leftPct = _TUNER_TT_CENTRE_PCT;
@@ -125,7 +126,7 @@
         }
 
         // ── Public API ────────────────────────────────────────────────
-        function update(note, cents) {
+        function update(note, cents, freq) {
             _currentNote  = note;
             _currentCents = note === null ? 0 : cents;
             if (!_plungerDipped) { noteEl.textContent = note || '–'; }

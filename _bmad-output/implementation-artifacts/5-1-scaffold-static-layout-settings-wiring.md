@@ -4,7 +4,7 @@
 baseline_commit: 01244b1a3880fed6ecd8aaac845ee54ac39e9764
 ---
 
-Status: review
+Status: done
 
 ## Story
 
@@ -176,6 +176,11 @@ None — straightforward implementation.
 - routes.py
 - visualization/toilet-tuner.js
 - screen.js
+
+### Review Findings
+- [x] [Review][Patch] `_serve_svg_from` Windows backslash path traversal — `%5C` decoded as `\` can escape `_assets_dir` on win32; add explicit check `if '\\' in filename` [routes.py]
+- [x] [Review][Defer] SVG file read unbounded (`read_text` on large file blocks server thread) [routes.py] — deferred, pre-existing pattern identical to `_serve_js_from`
+- [x] [Review][Decision] Bowl overlay permanently visible vs spec "hidden by default" — accepted intentional design change per user feedback
 
 ### Change Log
 - 2026-05-31: Story 5.1 implemented — SVG asset route, toilet-tuner.js scaffold, settings wiring

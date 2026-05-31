@@ -96,6 +96,8 @@ def setup(app: FastAPI, context: dict):
         return Response("", status_code=404)
 
     def _serve_svg_from(base_dir: Path, filename: str) -> Response:
+        if '\\' in filename or '/' in filename:
+            return Response("", status_code=404)
         target = (base_dir / filename).resolve()
         try:
             target.relative_to(base_dir.resolve())

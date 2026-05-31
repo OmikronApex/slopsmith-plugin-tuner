@@ -4,7 +4,7 @@
 baseline_commit: 01244b1a3880fed6ecd8aaac845ee54ac39e9764
 ---
 
-Status: review
+Status: done
 
 ## Story
 
@@ -176,6 +176,14 @@ None — animation logic implemented as part of Story 5.1 scaffold (included ful
 
 ### File List
 - visualization/toilet-tuner.js
+
+### Review Findings
+- [x] [Review][Patch] `update()` signature missing `freq` parameter — breaks factory contract `update(note, cents, freq)` [toilet-tuner.js:128]
+- [x] [Review][Patch] `targetLeft` unclamped — cents outside ±50 moves plunger off-canvas; clamp to `[_TUNER_TT_LEFT_PCT, _TUNER_TT_RIGHT_PCT]` [toilet-tuner.js:102]
+- [x] [Review][Defer] `destroy()` allows stale `update()` calls on detached DOM after teardown [toilet-tuner.js:134] — deferred, no actual bug; detached DOM writes are harmless
+- [x] [Review][Defer] `requestAnimationFrame` not feature-detected [toilet-tuner.js:97] — deferred, project-wide pattern
+- [x] [Review][Decision] Teleport dip instead of smooth animation — accepted per user feedback
+- [x] [Review][Decision] 💩 emoji replaces note name when in tune — accepted per user feedback
 
 ### Change Log
 - 2026-05-31: Story 5.2 implemented — plunger animation, bowl dip, note display (logic in toilet-tuner.js from Story 5.1 commit)

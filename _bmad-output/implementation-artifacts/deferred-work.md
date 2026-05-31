@@ -1,5 +1,11 @@
 # Deferred Work
 
+## Deferred from: code review of stories 5.1 & 5.2 (2026-05-31)
+
+- **SVG file read unbounded** (`routes.py` `_serve_svg_from`) — `read_text()` loads entire file synchronously; large/malformed SVG blocks server thread. Pre-existing pattern identical to `_serve_js_from`; low risk for static assets under dev control.
+- **`destroy()` allows stale `update()` calls on detached DOM** (`toilet-tuner.js:134`) — After destroy, caller can still invoke `update()` on the closed closure; writes go to a detached DOM node (harmless). No practical bug in current Slopsmith teardown sequence.
+- **`requestAnimationFrame` not feature-detected** (`toilet-tuner.js:97`) — No `window.requestAnimationFrame || window.webkitRequestAnimationFrame` polyfill. Project-wide pattern; all other visualizations follow the same convention.
+
 ## Deferred from: code review of stories 3.1, 3.2, 3.3 (2026-05-31)
 
 - **Out-of-range freq shows strip endpoint label silently** (`analogue-gauge.js:_computeDrumY`) — Freq below ~18 Hz or above ~1047 Hz clamps to strip endpoints; needle still shows real cents, creating mismatch. Strip range covers full guitar/bass spec; out-of-range is an edge case.
