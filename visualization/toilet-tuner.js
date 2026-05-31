@@ -70,13 +70,14 @@
         var bowlEl = document.createElement('img');
         bowlEl.src = _TUNER_TT_ASSET_BASE + 'Toiletbowl.svg';
         bowlEl.className = 'absolute pointer-events-none';
-        // Bowl overlay sized to match toilet in background:
-        // toilet body x≈413-611 (19.3% wide), centred at 50%.
-        // Toiletbowl.svg is 74.3mm x 68.4mm (ratio 1.09:1).
-        // width=20% → height=20%/1.09=18.3%; top≈55% covers seat+rim+bowl.
-        bowlEl.style.left       = '40%';
-        bowlEl.style.top        = '55%';
-        bowlEl.style.width      = '20%';
+        // Bowl overlay aligned via shared path124 (lower bowl body) registration:
+        // Bathroom path102 ellipse centre: x=50%, y=65.8%; width=19.4% of panel.
+        // Toiletbowl path102 same ellipse: centre at y=0 (top of viewBox), rx=35.4% of viewBox.
+        // → width = 19.4% / 70.7% = 27.4%; left = 50% - 27.4%/2 = 36.3%; top = 65.8%.
+        // Verified: Toiletbowl path124 at y=60.93% × height(25.2%) + 65.8% = 81.2% = Bathroom path124 ✓
+        bowlEl.style.left       = '36%';
+        bowlEl.style.top        = '66%';
+        bowlEl.style.width      = '27%';
         bowlEl.style.visibility = 'hidden';
         panel.appendChild(bowlEl);
 
