@@ -109,11 +109,13 @@
                 if (Math.abs(_leftPct - _TUNER_TT_CENTRE_PCT) < 0.5) {
                     _topPct = _TUNER_TT_DIPPED_TOP;
                     _plungerDipped = true;
+                    noteEl.textContent = '💩';
                 }
             } else if (!inTune && _plungerDipped) {
                 // Rise immediately, then re-enable horizontal tracking
                 _topPct = _TUNER_TT_RAISED_TOP;
                 _plungerDipped = false;
+                noteEl.textContent = _currentNote || '–';
             }
 
             if (!_plungerDipped) {
@@ -131,8 +133,7 @@
         function update(note, cents) {
             _currentNote  = note;
             _currentCents = note === null ? 0 : cents;
-            var inTune = note !== null && Math.abs(_currentCents) <= _TUNER_TT_IN_TUNE_THR;
-            noteEl.textContent = inTune ? '💩' : (note || '–');
+            if (!_plungerDipped) { noteEl.textContent = note || '–'; }
         }
 
         function destroy() {
