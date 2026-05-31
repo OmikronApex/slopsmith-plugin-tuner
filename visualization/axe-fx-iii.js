@@ -391,23 +391,24 @@
             if (mode !== undefined) { _currentMode = mode; }
             _updateTabs(_currentMode);
 
-            // Gauge marker
+            // Gauge marker — clamp cents to [-50,50] so marker stays within gauge bounds
             if (hasNote) {
-                marker.style.left    = ((cents + 50) / 100 * 100) + '%';
+                marker.style.left    = Math.max(0, Math.min(100, cents + 50)) + '%';
                 marker.style.display = 'block';
             } else {
                 marker.style.display = 'none';
             }
 
-            // Direction arrows
+            // Direction arrows — use setAttribute('filter','none') not removeAttribute
+            // so the filter is explicitly cleared on every dim transition
             if (!hasNote) {
-                arrowL.setAttribute('fill', _COL_ARROW_DIM);
-                arrowR.setAttribute('fill', _COL_ARROW_DIM);
+                arrowL.setAttribute('fill', _COL_ARROW_DIM); arrowL.setAttribute('filter', 'none');
+                arrowR.setAttribute('fill', _COL_ARROW_DIM); arrowR.setAttribute('filter', 'none');
             } else if (cents <= -_TUNER_ARROW_THR) {
                 arrowL.setAttribute('fill', _COL_ARROW_WH);  arrowL.setAttribute('filter', _arrowGlowUrl);
-                arrowR.setAttribute('fill', _COL_ARROW_DIM); arrowR.removeAttribute('filter');
+                arrowR.setAttribute('fill', _COL_ARROW_DIM); arrowR.setAttribute('filter', 'none');
             } else if (cents >= _TUNER_ARROW_THR) {
-                arrowL.setAttribute('fill', _COL_ARROW_DIM); arrowL.removeAttribute('filter');
+                arrowL.setAttribute('fill', _COL_ARROW_DIM); arrowL.setAttribute('filter', 'none');
                 arrowR.setAttribute('fill', _COL_ARROW_WH);  arrowR.setAttribute('filter', _arrowGlowUrl);
             } else {
                 arrowL.setAttribute('fill', _COL_ARROW_WH);  arrowL.setAttribute('filter', _arrowGlowUrl);
