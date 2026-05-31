@@ -20,7 +20,7 @@
     // ── Pitch stability state ─────────────────────────────────────────
     let _freqHistory = [];
     let _peakRms     = 0;
-    const _FREQ_HISTORY_LEN = 7;
+    const _FREQ_HISTORY_LEN = 3;
     const _RMS_FADE_RATIO   = 0.1;
 
     function _median(arr) {
