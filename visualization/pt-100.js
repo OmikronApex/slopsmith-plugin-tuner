@@ -35,7 +35,7 @@
         panel.style.width        = '100%';
         panel.style.aspectRatio  = '4 / 3';
         panel.style.background   = 'linear-gradient(160deg, #e0e0e0 0%, #a8a8a8 30%, #c8c8c8 55%, #888 100%)';
-        panel.style.borderRadius = '50% 50% 18% 18% / 52% 52% 14% 14%';
+        panel.style.borderRadius = '50% 50% 10px 10px / 52% 52% 10px 10px';
         panel.style.padding      = '4% 5%';
         panel.style.boxSizing    = 'border-box';
         panel.style.userSelect   = 'none';
@@ -47,7 +47,7 @@
         face.style.width        = '100%';
         face.style.height       = '100%';
         face.style.background   = '#080808';
-        face.style.borderRadius = '47% 47% 13% 13% / 48% 48% 11% 11%';
+        face.style.borderRadius = '47% 47% 8px 8px / 48% 48% 8px 8px';
         face.style.overflow     = 'hidden';
         panel.appendChild(face);
 
@@ -56,9 +56,9 @@
         // y = yCenter + 16 * ((x - 50) / 38)²   x ∈ [12 %, 88 %]
         //
         // Row order top→bottom, centres and edges (x = 12 %/88 %):
-        //   LEDs   :  yCenter = 5 %,  k = 16  →  edges at 21 %
-        //   line   :  yCenter = 14 %, k = 16  →  edges at 30 %
-        //   labels :  yCenter = 23 %, k = 16  →  edges at 39 %
+        //   LEDs   :  yCenter = 9 %,  k = 16  →  edges at 25 %
+        //   line   :  yCenter = 18 %, k = 16  →  edges at 34 %
+        //   labels :  yCenter = 27 %, k = 16  →  edges at 43 %
 
         function _arcY(xPct, yCenter, k) {
             var dx = (xPct - 50) / 38;
@@ -70,7 +70,7 @@
         var leds = [];
         for (var i = 0; i < _TUNER_PT_LED_COUNT; i++) {
             var xPct = 12 + i * (76 / 8);          // 12 % → 88 %
-            var yPct = _arcY(xPct, 5, 16);
+            var yPct = _arcY(xPct, 9, 16);
 
             var led = document.createElement('div');
             led.style.position     = 'absolute';
@@ -93,17 +93,17 @@
         }
 
         // ── 2. Curved white line (SVG) ────────────────────────────────
-        // Quadratic bezier matching line-row parabola (yCenter=14, k=16).
-        // Endpoints at (12, 30), midpoint at y=14:
-        //   0.25*30 + 0.5*ctrl + 0.25*30 = 14  →  ctrl_y = -2
-        // SVG covers 0–40 % of face height; overflow:visible handles ctrl above 0.
+        // Quadratic bezier matching line-row parabola (yCenter=18, k=16).
+        // Endpoints at (12, 34), midpoint at y=18:
+        //   0.25*34 + 0.5*ctrl + 0.25*34 = 18  →  ctrl_y = 2
+        // SVG covers 0–45 % of face height.
         var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        svg.setAttribute('viewBox', '0 0 100 40');
+        svg.setAttribute('viewBox', '0 0 100 45');
         svg.setAttribute('preserveAspectRatio', 'none');
-        svg.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:40%;pointer-events:none;overflow:visible';
+        svg.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:45%;pointer-events:none;overflow:visible';
 
         var arcPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        arcPath.setAttribute('d', 'M 12,30 Q 50,-2 88,30');
+        arcPath.setAttribute('d', 'M 12,34 Q 50,2 88,34');
         arcPath.setAttribute('stroke', 'rgba(255,255,255,0.65)');
         arcPath.setAttribute('stroke-width', '0.9');
         arcPath.setAttribute('fill', 'none');
@@ -121,7 +121,7 @@
             var el = document.createElement('div');
             el.style.position   = 'absolute';
             el.style.left       = d.x + '%';
-            el.style.top        = _arcY(d.x, 23, 16).toFixed(2) + '%';
+            el.style.top        = _arcY(d.x, 27, 16).toFixed(2) + '%';
             el.style.transform  = 'translate(-50%, -50%)';
             el.style.color      = '#cccccc';
             el.style.fontSize   = '50%';
@@ -198,30 +198,30 @@
         sharpEl.textContent = '#';
         displayWrap.appendChild(sharpEl);
 
-        // ── 5. BATT. LED (always lit) ─────────────────────────────────
+        // ── 5. AUTO LED (lit when mode is 'free' or 'auto') ──────────
         // Positioned right of the display (display right edge ≈ 69 %), vertically
         // centred with it (display centre ≈ 62 %).
-        var battWrap = document.createElement('div');
-        battWrap.style.cssText = 'position:absolute;left:72%;top:62%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:4%;pointer-events:none';
+        var autoWrap = document.createElement('div');
+        autoWrap.style.cssText = 'position:absolute;left:72%;top:62%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:4%;pointer-events:none';
 
-        var battLed = document.createElement('div');
-        battLed.style.cssText = [
+        var autoLed = document.createElement('div');
+        autoLed.style.cssText = [
             'width:6%',
             'aspect-ratio:1/1',
             'border-radius:50%',
-            'background:radial-gradient(circle at 35% 35%, #ff6644, #cc1100)',
-            'box-shadow:0 0 5px 1px #ff3300, 0 0 10px 2px #aa1100',
-            'border:1px solid #ff2200',
+            'background:radial-gradient(circle at 35% 35%, #3a0000, #1a0000)',
+            'box-shadow:none',
+            'border:1px solid #400',
             'flex-shrink:0'
         ].join(';');
 
-        var battLabel = document.createElement('span');
-        battLabel.style.cssText = 'color:#cccccc;font-size:52%;font-weight:bold;letter-spacing:0.05em;font-family:sans-serif;';
-        battLabel.textContent = 'BATT.';
+        var autoLabel = document.createElement('span');
+        autoLabel.style.cssText = 'color:#cccccc;font-size:52%;font-weight:bold;letter-spacing:0.05em;font-family:sans-serif;';
+        autoLabel.textContent = 'AUTO';
 
-        battWrap.appendChild(battLed);
-        battWrap.appendChild(battLabel);
-        face.appendChild(battWrap);
+        autoWrap.appendChild(autoLed);
+        autoWrap.appendChild(autoLabel);
+        face.appendChild(autoWrap);
 
         // ── Brand label ───────────────────────────────────────────────
         var brandLabel = document.createElement('div');
@@ -309,8 +309,18 @@
             sharpEl.style.textShadow = lit ? _TUNER_PT_GLOW : 'none';
         }
 
+        function _setAuto(mode) {
+            var lit = (mode === 'free' || mode === 'auto');
+            autoLed.style.background = lit
+                ? 'radial-gradient(circle at 35% 35%, #ff6644, #cc1100)'
+                : 'radial-gradient(circle at 35% 35%, #3a0000, #1a0000)';
+            autoLed.style.boxShadow  = lit ? '0 0 5px 1px #ff3300, 0 0 10px 2px #aa1100' : 'none';
+            autoLed.style.border     = lit ? '1px solid #ff2200' : '1px solid #400';
+        }
+
         // ── Public API ────────────────────────────────────────────────
-        function update(note, cents, freq) {
+        function update(note, cents, freq, mode) {
+            _setAuto(mode);
             if (note === null) {
                 _updateLeds(0, false);
                 _renderNote(' ');
