@@ -430,9 +430,7 @@
             // Octave display — show target octave in auto/manual, detected octave in free
             if (hasNote) {
                 if (_currentMode === 'auto' || _currentMode === 'manual') {
-                    var clampedCents = Math.max(-600, Math.min(600, cents));
-                    var targetFreq = freq * Math.pow(2, -clampedCents / 1200);
-                    octaveEl.textContent = _freqToOctave(targetFreq);
+                    octaveEl.textContent = _freqToOctave(freq * Math.pow(2, -cents / 1200));
                 } else {
                     octaveEl.textContent = _freqToOctave(freq);
                 }
