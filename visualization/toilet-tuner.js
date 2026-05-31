@@ -17,14 +17,19 @@
     var _TUNER_TT_IN_TUNE_THR  = 2;
     var _TUNER_TT_ASSET_BASE   = '/api/plugins/tuner/assets/';
 
-    // Horizontal plunger range (% of panel width, applied to plunger left edge)
-    var _TUNER_TT_LEFT_PCT     = 30;
-    var _TUNER_TT_RIGHT_PCT    = 68;
-    var _TUNER_TT_CENTRE_PCT   = 49;
+    // Positions derived from Bathroom.svg 0-1024 coordinate space.
+    // Bowl ellipse centre: x=512 (50%), y=673 (65.7%), semi-major=99 (9.7%).
+    // Plunger SVG is 29.8mm wide x 69.5mm tall (ratio 1:2.33).
+    // At width=8%, rendered height = 8% x 2.33 = 18.6%.
+    // Raised: cup bottom at ~62% (above bowl top) → top = 62 - 18.6 = 43%.
+    // Dipped: cup inside bowl → top = 52%.
 
-    // Vertical plunger position (% of panel height)
-    var _TUNER_TT_RAISED_TOP   = 35;
-    var _TUNER_TT_DIPPED_TOP   = 52;
+    var _TUNER_TT_LEFT_PCT     = 36;   // x at cents=-50 (bowl left edge ≈ 40%)
+    var _TUNER_TT_RIGHT_PCT    = 64;   // x at cents=+50 (bowl right edge ≈ 60%)
+    var _TUNER_TT_CENTRE_PCT   = 50;   // x at cents=0  (bowl centre)
+
+    var _TUNER_TT_RAISED_TOP   = 43;   // plunger top % when hovering above bowl
+    var _TUNER_TT_DIPPED_TOP   = 52;   // plunger top % when cup inside bowl
 
     window['_tunerViz_toilet-tuner'] = function (container) {
         'use strict';
@@ -55,7 +60,7 @@
         var plungerEl = document.createElement('img');
         plungerEl.src = _TUNER_TT_ASSET_BASE + 'Plunger.svg';
         plungerEl.className = 'absolute pointer-events-none';
-        plungerEl.style.width     = '6%';
+        plungerEl.style.width     = '8%';   // ~198/1024 bowl width; plunger narrower
         plungerEl.style.left      = _TUNER_TT_CENTRE_PCT + '%';
         plungerEl.style.top       = _TUNER_TT_RAISED_TOP + '%';
         plungerEl.style.transform = 'translateX(-50%)';
@@ -65,9 +70,13 @@
         var bowlEl = document.createElement('img');
         bowlEl.src = _TUNER_TT_ASSET_BASE + 'Toiletbowl.svg';
         bowlEl.className = 'absolute pointer-events-none';
-        bowlEl.style.left       = '38%';
-        bowlEl.style.top        = '52%';
-        bowlEl.style.width      = '14%';
+        // Bowl overlay sized to match toilet in background:
+        // toilet body x≈413-611 (19.3% wide), centred at 50%.
+        // Toiletbowl.svg is 74.3mm x 68.4mm (ratio 1.09:1).
+        // width=20% → height=20%/1.09=18.3%; top≈55% covers seat+rim+bowl.
+        bowlEl.style.left       = '40%';
+        bowlEl.style.top        = '55%';
+        bowlEl.style.width      = '20%';
         bowlEl.style.visibility = 'hidden';
         panel.appendChild(bowlEl);
 
