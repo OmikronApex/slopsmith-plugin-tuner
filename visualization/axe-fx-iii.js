@@ -263,44 +263,18 @@
         panel.appendChild(strobeSvg);
 
         // ── LCD grid overlay ──────────────────────────────────────────
-        // Single full-panel grid, clipped to gauge/arrows + note/octave + strobe zones
-        // via an inline SVG clipPath (objectBoundingBox units = fractions of panel).
-        // Strobe height fraction: (viewBox 72/120) × 0.33 × (16/9) ≈ 0.352
-        var _lcdId  = 'lcd-clip-' + Math.random().toString(36).slice(2, 8);
-        var _clipSvg = document.createElementNS(_SVG_NS, 'svg');
-        _clipSvg.setAttribute('width', '0');
-        _clipSvg.setAttribute('height', '0');
-        _clipSvg.style.position = 'absolute';
-
-        var _clipDefs = document.createElementNS(_SVG_NS, 'defs');
-        var _clipPath = document.createElementNS(_SVG_NS, 'clipPath');
-        _clipPath.setAttribute('id', _lcdId);
-        _clipPath.setAttribute('clipPathUnits', 'objectBoundingBox');
-
-        [
-            { x: 0,     y: 0.25,  w: 1,    h: 0.25  },   // gauge + arrows
-            { x: 0,     y: 0.545, w: 1,    h: 0.25  },   // note + octave
-            { x: 0.335, y: 0.648, w: 0.33, h: 0.352 },   // strobe
-        ].forEach(function (z) {
-            var r = document.createElementNS(_SVG_NS, 'rect');
-            r.setAttribute('x', z.x); r.setAttribute('y', z.y);
-            r.setAttribute('width', z.w); r.setAttribute('height', z.h);
-            _clipPath.appendChild(r);
-        });
-
-        _clipDefs.appendChild(_clipPath);
-        _clipSvg.appendChild(_clipDefs);
-        panel.appendChild(_clipSvg);
-
+        // Spans everything below the tab bar (top: 12.5%), 3px cell, bg colour lines.
         var lcdGrid = document.createElement('div');
         lcdGrid.style.position        = 'absolute';
-        lcdGrid.style.inset           = '0';
+        lcdGrid.style.top             = '12.5%';
+        lcdGrid.style.left            = '0';
+        lcdGrid.style.right           = '0';
+        lcdGrid.style.bottom          = '0';
         lcdGrid.style.zIndex          = '50';
         lcdGrid.style.pointerEvents   = 'none';
-        lcdGrid.style.clipPath        = 'url(#' + _lcdId + ')';
         lcdGrid.style.backgroundImage = [
-            'repeating-linear-gradient(0deg,  ' + _COL_BG + ' 0px, ' + _COL_BG + ' 1px, transparent 1px, transparent 2px)',
-            'repeating-linear-gradient(90deg, ' + _COL_BG + ' 0px, ' + _COL_BG + ' 1px, transparent 1px, transparent 2px)'
+            'repeating-linear-gradient(0deg,  ' + _COL_BG + ' 0px, ' + _COL_BG + ' 1px, transparent 1px, transparent 3px)',
+            'repeating-linear-gradient(90deg, ' + _COL_BG + ' 0px, ' + _COL_BG + ' 1px, transparent 1px, transparent 3px)'
         ].join(',');
         panel.appendChild(lcdGrid);
 
