@@ -3,8 +3,8 @@
 
     // ── Constants ─────────────────────────────────────────────────────
     var _TUNER_PT_IN_TUNE_THR  = 2;
-    var _TUNER_PT_LED_COUNT    = 9;
-    var _TUNER_PT_CENTS_RANGE  = 40;
+    var _TUNER_PT_LED_COUNT    = 11;
+    var _TUNER_PT_CENTS_RANGE  = 50;
 
     // Display colours
     var _TUNER_PT_LIT   = '#ff2200';
@@ -35,7 +35,7 @@
         panel.style.width        = '100%';
         panel.style.aspectRatio  = '4 / 3';
         panel.style.background   = 'linear-gradient(160deg, #e0e0e0 0%, #a8a8a8 30%, #c8c8c8 55%, #888 100%)';
-        panel.style.borderRadius = '50% 50% 10px 10px / 52% 52% 10px 10px';
+        panel.style.borderRadius = '50% 50% 10px 10px / 66.7% 66.7% 10px 10px';
         panel.style.padding      = '4%';
         panel.style.boxSizing    = 'border-box';
         panel.style.userSelect   = 'none';
@@ -47,41 +47,53 @@
         face.style.width        = '100%';
         face.style.height       = '100%';
         face.style.background   = '#080808';
-        face.style.borderRadius = '47% 47% 8px 8px / 48% 48% 8px 8px';
+        face.style.borderRadius = '50% 50% 8px 8px / 69% 69% 8px 8px';
         face.style.overflow     = 'hidden';
         panel.appendChild(face);
 
         // ── Arc geometry ──────────────────────────────────────────────
-        // All three rows share k=16, matching the panel's top border-radius curve.
-        // y = yCenter + 16 * ((x - 50) / 38)²   x ∈ [12 %, 88 %]
+        // All three rows lie on circular arcs (visually round given the 4:3 face).
+        // Face aspect ≈ 0.92 / 0.67 ≈ 1.37, so ry (% of face height) = rx * 1.37.
+        // rx = 38 %, ry = 52 % keeps edges at x ≈ 12 %/88 % well inside the face.
         //
-        // Row order top→bottom, centres and edges (x = 12 %/88 %):
-        //   LEDs   :  yCenter = 9 %,  k = 16  →  edges at 25 %
-        //   line   :  yCenter = 18 %, k = 16  →  edges at 34 %
-        //   labels :  yCenter = 27 %, k = 16  →  edges at 43 %
+        // Each arc is a semicircle (180°): angles 180° → 0° in 10 equal steps.
+        //   arcCY is the y-coordinate of the circle centre (% of face height).
+        //   LEDs:   arcCY = 54  → top at 2 %,  sides at 54 %
+        //   line:   arcCY = 57  → top at 5 %,  sides at 57 %
+        //   labels: arcCY = 60  → top at 8 %,  sides at 60 %
 
-        function _arcY(xPct, yCenter, k) {
-            var dx = (xPct - 50) / 38;
-            return yCenter + k * dx * dx;
+        var _ARC_RX  = 38;
+        var _ARC_RY  = 52;
+        var _ARC_CX  = 50;
+        var _ARC_CY_LEDS   = 54;
+        var _ARC_CY_LINE   = 57;
+        var _ARC_CY_LABELS = 60;
+        var _ARC_CENTRE_IDX = Math.floor(_TUNER_PT_LED_COUNT / 2); // 5
+
+        function _arcPoint(i, arcCY) {
+            var angleDeg = 180 - i * (180 / (_TUNER_PT_LED_COUNT - 1));
+            var rad = angleDeg * Math.PI / 180;
+            return {
+                x: _ARC_CX + _ARC_RX * Math.cos(rad),
+                y: arcCY  - _ARC_RY * Math.sin(rad),
+            };
         }
 
         // ── 1. LED arc ────────────────────────────────────────────────
-        // Parabola: yCenter = 5 %, k = 16 → centre at 5 %, edges at 21 %.
         var leds = [];
         for (var i = 0; i < _TUNER_PT_LED_COUNT; i++) {
-            var xPct = 12 + i * (76 / 8);          // 12 % → 88 %
-            var yPct = _arcY(xPct, 9, 16);
+            var pt  = _arcPoint(i, _ARC_CY_LEDS);
 
             var led = document.createElement('div');
             led.style.position     = 'absolute';
-            led.style.left         = xPct.toFixed(2) + '%';
-            led.style.top          = yPct.toFixed(2) + '%';
+            led.style.left         = pt.x.toFixed(2) + '%';
+            led.style.top          = pt.y.toFixed(2) + '%';
             led.style.transform    = 'translate(-50%, -50%)';
             led.style.width        = '5%';
             led.style.aspectRatio  = '1 / 1';
             led.style.borderRadius = '50%';
 
-            var isCentre = (i === 4);
+            var isCentre = (i === _ARC_CENTRE_IDX);
             led.style.background = isCentre
                 ? 'radial-gradient(circle at 35% 35%, #3a0000, #1a0000)'
                 : 'radial-gradient(circle at 35% 35%, #2a2000, #141000)';
@@ -92,36 +104,41 @@
             leds.push(led);
         }
 
-        // ── 2. Curved white line (SVG) ────────────────────────────────
-        // Quadratic bezier matching line-row parabola (yCenter=18, k=16).
-        // Endpoints at (12, 34), midpoint at y=18:
-        //   0.25*34 + 0.5*ctrl + 0.25*34 = 18  →  ctrl_y = 2
-        // SVG covers 0–45 % of face height.
+        // ── 2. White arc line (SVG) ───────────────────────────────────
+        // True circular arc from (cx-rx, arcCY_line) to (cx+rx, arcCY_line).
+        // SVG viewBox "0 0 100 100" with preserveAspectRatio=none maps SVG units
+        // directly to % of face width/height, matching element % positions.
+        // Sweep-flag=0 (counter-clockwise) draws the upper semicircle.
         var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        svg.setAttribute('viewBox', '0 0 100 45');
+        svg.setAttribute('viewBox', '0 0 100 100');
         svg.setAttribute('preserveAspectRatio', 'none');
-        svg.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:45%;pointer-events:none;overflow:visible';
+        svg.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;overflow:visible';
 
+        var x0Line = (_ARC_CX - _ARC_RX).toFixed(1);
+        var x1Line = (_ARC_CX + _ARC_RX).toFixed(1);
         var arcPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        arcPath.setAttribute('d', 'M 12,34 Q 50,2 88,34');
+        arcPath.setAttribute('d',
+            'M ' + x0Line + ',' + _ARC_CY_LINE +
+            ' A ' + _ARC_RX + ',' + _ARC_RY + ' 0 0 0 ' +
+            x1Line + ',' + _ARC_CY_LINE);
         arcPath.setAttribute('stroke', 'rgba(255,255,255,0.65)');
-        arcPath.setAttribute('stroke-width', '0.9');
+        arcPath.setAttribute('stroke-width', '0.8');
         arcPath.setAttribute('fill', 'none');
         svg.appendChild(arcPath);
         face.appendChild(svg);
 
         // ── 3. Range labels ───────────────────────────────────────────
-        // Parabola: yCenter = 23 %, k = 16 → centre at 23 %, edges at 39 %.
         var labelDefs = [
-            { text: '-40', x: 12 },
-            { text:  '0',  x: 50 },
-            { text: '+40', x: 88 },
+            { text: '-50', i: 0 },
+            { text:  '0',  i: _ARC_CENTRE_IDX },
+            { text: '+50', i: _TUNER_PT_LED_COUNT - 1 },
         ];
         labelDefs.forEach(function (d) {
-            var el = document.createElement('div');
+            var pt  = _arcPoint(d.i, _ARC_CY_LABELS);
+            var el  = document.createElement('div');
             el.style.position   = 'absolute';
-            el.style.left       = d.x + '%';
-            el.style.top        = _arcY(d.x, 27, 16).toFixed(2) + '%';
+            el.style.left       = pt.x.toFixed(2) + '%';
+            el.style.top        = pt.y.toFixed(2) + '%';
             el.style.transform  = 'translate(-50%, -50%)';
             el.style.color      = '#cccccc';
             el.style.fontSize   = '50%';
@@ -137,10 +154,10 @@
         displayWrap.style.cssText = [
             'position:absolute',
             'left:50%',
-            'top:42%',
+            'top:65%',
             'transform:translateX(-50%)',
             'width:38%',
-            'height:40%',
+            'height:28%',
             'background:' + _TUNER_PT_BG,
             'border-radius:3px',
             'border:1px solid #2a0000',
@@ -202,7 +219,7 @@
         // Positioned right of the display (display right edge ≈ 69 %), vertically
         // centred with it (display centre ≈ 62 %).
         var autoWrap = document.createElement('div');
-        autoWrap.style.cssText = 'position:absolute;left:72%;top:62%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:4%;pointer-events:none';
+        autoWrap.style.cssText = 'position:absolute;left:72%;top:79%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:4%;pointer-events:none';
 
         var autoLed = document.createElement('div');
         autoLed.style.cssText = [
@@ -246,7 +263,7 @@
 
         function _setLed(index, lit) {
             var led      = leds[index];
-            var isCentre = (index === 4);
+            var isCentre = (index === _ARC_CENTRE_IDX);
             if (lit) {
                 if (isCentre) {
                     led.style.background = 'radial-gradient(circle at 35% 35%, #ff6644, #cc1100)';
@@ -276,15 +293,15 @@
                 return;
             }
             var c = Math.max(-_TUNER_PT_CENTS_RANGE, Math.min(_TUNER_PT_CENTS_RANGE, cents));
-            var targetIdx = 4 + Math.round(c / 10);
-            targetIdx = Math.max(0, Math.min(8, targetIdx));
+            var targetIdx = _ARC_CENTRE_IDX + Math.round(c / 10);
+            targetIdx = Math.max(0, Math.min(_TUNER_PT_LED_COUNT - 1, targetIdx));
 
             for (var j = 0; j < _TUNER_PT_LED_COUNT; j++) {
                 var lit;
                 if (c >= 0) {
-                    lit = (j >= 4 && j <= targetIdx);
+                    lit = (j >= _ARC_CENTRE_IDX && j <= targetIdx);
                 } else {
-                    lit = (j <= 4 && j >= targetIdx);
+                    lit = (j <= _ARC_CENTRE_IDX && j >= targetIdx);
                 }
                 _setLed(j, lit);
             }
