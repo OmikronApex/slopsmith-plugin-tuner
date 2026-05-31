@@ -244,7 +244,7 @@
         strobeSvg.style.bottom    = '0';
         strobeSvg.style.left      = '50%';
         strobeSvg.style.transform = 'translateX(-50%)';
-        strobeSvg.style.width    = '33%';
+        strobeSvg.style.width    = '30.94%';
         strobeSvg.style.overflow = 'visible';
         strobeSvg.style.zIndex   = '4';
 
