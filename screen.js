@@ -19,9 +19,7 @@
 
     // ── Pitch stability state ─────────────────────────────────────────
     let _freqHistory = [];
-    let _peakRms     = 0;
     const _FREQ_HISTORY_LEN = 3;
-    const _RMS_FADE_RATIO   = 0.1;
 
     function _median(arr) {
         var s = arr.slice().sort(function(a, b) { return a - b; });
@@ -473,7 +471,6 @@
         pendingBuffer = null;
         accumBuffer = new Float32Array(0);
         _freqHistory = [];
-        _peakRms     = 0;
         if (processor) { processor.disconnect(); processor = null; }
         if (gainNode) { gainNode.disconnect(); gainNode = null; }
         if (sourceNode) { sourceNode.disconnect(); sourceNode = null; }
@@ -586,11 +583,7 @@
         const rms = result ? result.rms : 0;
         const vizMode = manualTargetFreq ? 'manual' : (selectedTuning && selectedTuning.length > 0 ? 'auto' : 'free');
 
-        // Adaptive silence threshold: below 10% of peak RMS for this note = no signal.
-        // True silence (rms < 0.01) resets the peak so the next pluck starts fresh.
-        const hasAbsoluteSignal = rms > 0.01;
-        if (!hasAbsoluteSignal) _peakRms = 0;
-        const hasSignal = hasAbsoluteSignal && rms >= Math.max(0.01, _peakRms * _RMS_FADE_RATIO);
+        const hasSignal = rms > 0.01;
 
         if (!result || (!hasSignal && result.confidence < 0.5) || (result.freq < _TUNER_MIN_DETECTABLE_HZ && result.freq !== 0)) {
             if (activeViz) activeViz.update(null, 0, 0, vizMode);
@@ -605,8 +598,7 @@
             return;
         }
 
-        // Valid signal: update peak RMS and median frequency history.
-        _peakRms = Math.max(_peakRms, rms);
+        // Valid signal: push raw YIN freq into median history.
         _freqHistory.push(result.freq);
         if (_freqHistory.length > _FREQ_HISTORY_LEN) _freqHistory.shift();
         const freq = _median(_freqHistory);
