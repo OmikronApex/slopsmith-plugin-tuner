@@ -391,18 +391,16 @@
             if (mode !== undefined) { _currentMode = mode; }
             _updateTabs(_currentMode);
 
-            // Gauge marker — cents<0 = sharp/too high → right of centre
-            // Invert sign so rightward = sharp, clamp to gauge bounds
+            // Gauge marker — clamp cents to [-50,50] so marker stays within gauge bounds
             if (hasNote) {
-                marker.style.left    = Math.max(0, Math.min(100, 50 - cents)) + '%';
+                marker.style.left    = Math.max(0, Math.min(100, cents + 50)) + '%';
                 marker.style.display = 'block';
             } else {
                 marker.style.display = 'none';
             }
 
-            // Direction arrows
-            // Too high (cents<0, sharp): indicator right → left arrow (▶) lit
-            // Too low  (cents>0, flat):  indicator left  → right arrow (◀) lit
+            // Direction arrows — use setAttribute('filter','none') not removeAttribute
+            // so the filter is explicitly cleared on every dim transition
             if (!hasNote) {
                 arrowL.setAttribute('fill', _COL_ARROW_DIM); arrowL.setAttribute('filter', 'none');
                 arrowR.setAttribute('fill', _COL_ARROW_DIM); arrowR.setAttribute('filter', 'none');
