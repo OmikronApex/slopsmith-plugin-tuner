@@ -1,5 +1,5 @@
 ---
-stepsCompleted: ['step-01', 'step-02', 'step-03', 'step-04', 'epic2-step-01', 'epic2-step-02', 'epic2-step-03', 'epic3-step-01', 'epic3-step-02', 'epic3-step-03', 'epic4-step-01', 'epic4-step-02', 'epic4-step-03']
+stepsCompleted: ['step-01', 'step-02', 'step-03', 'step-04', 'epic2-step-01', 'epic2-step-02', 'epic2-step-03', 'epic3-step-01', 'epic3-step-02', 'epic3-step-03', 'epic4-step-01', 'epic4-step-02', 'epic4-step-03', 'epic5-step-01', 'epic5-step-02']
 inputDocuments:
   - _bmad-output/planning-artifacts/prds/prd-slopsmith-plugin-tuner-2026-05-30/prd.md
   - _bmad-output/project-context.md
@@ -182,6 +182,7 @@ No UX Design document exists yet. Story 2.1 will produce `_bmad-output/planning-
 ### Epic 2: UI/UX Audit & Improvements
 ### Epic 3: Analogue Gauge Visualization
 ### Epic 4: Axe-Fx III Visualization
+### Epic 5: Toilet Tuner Visualization
 
 Establish a formal architecture document for the slopsmith-plugin-tuner using the BMad workflow, providing AI agents and contributors with authoritative system design guidance; then implement code corrections surfaced during the architectural review.
 
@@ -558,3 +559,127 @@ So that I can use the strobe as a precision in-tune confirmation alongside the c
 **Given** the strobe RAF loop is running
 **When** `destroy()` is called
 **Then** `cancelAnimationFrame()` is called with all active RAF IDs (strobe RAF and any others from prior stories); all DOM nodes are removed from the container; no globals or timers are leaked after destroy
+
+---
+
+### New Functional Requirements (Epic 5 — Toilet Tuner Visualization)
+
+- **FR-TT-01:** The visualization background is the bathroom scene from `visualization/assets/Bathroom.svg`, rendered to fill the container. The scene includes a wall-mounted calendar.
+- **FR-TT-02:** A toilet plunger (`visualization/assets/Plunger.svg`) serves as the chromatic indicator. It moves horizontally above the toilet bowl: −50 cents = far left, 0 cents = centre, +50 cents = far right.
+- **FR-TT-03:** The detected note name is displayed as a DOM text element positioned over the calendar area of the background SVG.
+- **FR-TT-04:** Plunger horizontal position is linearly proportional to cents deviation (−50…+50 range), animated smoothly via `requestAnimationFrame`.
+- **FR-TT-05:** When `|cents| ≤ 2` (in tune), the plunger animates downward into the toilet bowl.
+- **FR-TT-06:** When the plunger is lowered, `visualization/assets/Toiletbowl.svg` is overlaid on the bowl area to occlude the plunger's rubber cup.
+- **FR-TT-07:** When `note === null` (no signal), the plunger rests at the centre position (0 cents), and the calendar text shows "–".
+- **FR-TT-08:** The visualization conforms to the factory contract: `window._tunerViz_toiletTuner(container)` returning `{ update(note, cents, freq), destroy() }`.
+- **FR-TT-09:** A "Toilet Tuner" option with value `"toilet-tuner"` is added to the viz selector in `settings.html`. SVG assets are already present in `visualization/assets/`.
+
+### Applicable NFRs (Epic 5)
+
+- **NFR-03** — no external JS libs
+- **NFR-06** — viz factory contract
+- **NFR-07** — Tailwind-only styling; no inline `style=""`, no hardcoded colours
+
+### Additional Requirements (Epic 5)
+
+- IIFE pattern; exposed as `window._tunerViz_toiletTuner`
+- Constants prefixed `_TUNER_`
+- DOM via `document.createElement` / `classList` / `textContent` only; SVGs loaded via `<img>` tags referencing `/api/plugins/tuner/static/assets/<filename>`
+- `destroy()` must cancel all active RAF IDs and remove all DOM nodes from container
+
+### FR Coverage Map (Epic 5)
+
+- **FR-TT-01:** Epic 5 (Story 5.1) — Background bathroom SVG rendered
+- **FR-TT-02:** Epic 5 (Story 5.1) — Plunger SVG element positioned in DOM
+- **FR-TT-03:** Epic 5 (Story 5.1) — Note name text overlay on calendar area
+- **FR-TT-04:** Epic 5 (Story 5.2) — Plunger L/R animation driven by cents
+- **FR-TT-05:** Epic 5 (Story 5.2) — Plunger dip-into-bowl animation at ±2 cents
+- **FR-TT-06:** Epic 5 (Story 5.2) — Toilet bowl overlay shown/hidden with plunger state
+- **FR-TT-07:** Epic 5 (Story 5.2) — No-signal idle state
+- **FR-TT-08:** Epic 5 (Story 5.1) — Factory function and destroy scaffold
+- **FR-TT-09:** Epic 5 (Story 5.1) — settings.html option wired
+
+---
+
+## Epic 5: Toilet Tuner Visualization
+
+Deliver a new built-in visualization featuring a bathroom scene as the background. A toilet plunger slides left (flat) or right (sharp) above the bowl based on cents deviation from the target pitch; when in tune (±2 cents) the plunger dips into the bowl and a toilet-front overlay hides its rubber cup. The wall calendar displays the current detected note name. Selectable via the settings panel.
+
+**FRs covered:** FR-TT-01 through FR-TT-09, FR-18
+**NFRs:** NFR-03, NFR-06, NFR-07
+
+---
+
+### Story 5.1: Scaffold, Static Layout & Settings Wiring
+
+As a developer implementing the Toilet Tuner visualization,
+I want a fully structured static panel with all DOM elements in place and the visualization registered in settings,
+So that subsequent stories can layer live data and animation onto a stable, correctly-laid-out foundation.
+
+**Acceptance Criteria:**
+
+**Given** the file `visualization/toilet-tuner.js` is created
+**When** the IIFE executes
+**Then** `window._tunerViz_toiletTuner` is a factory function that accepts a `container` DOM element and returns `{ update(note, cents, freq), destroy() }`
+
+**Given** the factory is called with a container
+**When** the static DOM is rendered
+**Then** the panel contains:
+- A background layer with `Bathroom.svg` loaded via `<img src="/api/plugins/tuner/static/assets/Bathroom.svg">` filling the container
+- A plunger element with `Plunger.svg` loaded via `<img>`, positioned absolutely above the toilet bowl area at the horizontal centre
+- A toilet-bowl overlay element with `Toiletbowl.svg` loaded via `<img>`, positioned absolutely over the bowl area and set to `visibility: hidden` (hidden by default)
+- A note name text element positioned absolutely over the calendar area of the background, showing "–" as its initial value
+
+**Given** the DOM is rendered
+**When** inspected
+**Then** all layout uses Tailwind utility classes for positioning and sizing; no inline `style=""` attributes and no hardcoded colour values; the container uses `relative` positioning so child elements can be placed absolutely within it
+
+**Given** `settings.html` is updated
+**When** the viz selector is rendered
+**Then** a "Toilet Tuner" option with value `"toilet-tuner"` is present in the visualization select element
+
+**Given** the `destroy()` method is called at this stage (no RAF loops yet)
+**When** executed
+**Then** all DOM nodes appended to the container are removed; no timers or RAF loops exist to cancel at this stage
+
+---
+
+### Story 5.2: Plunger Animation, Bowl Dip & Note Display
+
+As a musician using the Toilet Tuner visualization,
+I want the plunger to move left and right with my pitch deviation and dip into the bowl when I'm in tune, with the note name shown on the calendar,
+So that I can tune by watching the plunger's position and get a satisfying visual confirmation when I hit the target pitch.
+
+**Acceptance Criteria:**
+
+**Given** `update(note, cents, freq)` is called with a non-null `note` and `cents` = 0
+**When** rendered
+**Then** the plunger is horizontally centred above the toilet bowl; the toilet-bowl overlay is hidden; note name text shows the current `note` value
+
+**Given** `cents` is −50 (maximally flat)
+**When** rendered
+**Then** the plunger is at its leftmost position above the bowl; the bowl overlay remains hidden
+
+**Given** `cents` is +50 (maximally sharp)
+**When** rendered
+**Then** the plunger is at its rightmost position above the bowl; the bowl overlay remains hidden
+
+**Given** `cents` is any value between −50 and +50 (outside ±2)
+**When** rendered
+**Then** the plunger's horizontal offset is linearly proportional to the cent value; animation is smooth via `requestAnimationFrame`; the plunger remains at its "raised" vertical position (above the bowl)
+
+**Given** `|cents| ≤ 2` (in tune)
+**When** rendered
+**Then** the plunger animates to the centre horizontal position and then moves downward to its "lowered" vertical position (into the bowl); the toilet-bowl overlay (`Toiletbowl.svg`) becomes visible, occluding the plunger's rubber cup
+
+**Given** `|cents|` transitions from ≤ 2 back to > 2
+**When** rendered
+**Then** the plunger animates back up to its raised position; the toilet-bowl overlay is hidden again; horizontal movement resumes tracking cents
+
+**Given** `update(null, 0, 0)` is called (no pitch signal)
+**When** rendered
+**Then** the plunger is at the horizontal centre in its raised position; the bowl overlay is hidden; the note name text shows "–"
+
+**Given** the RAF animation loop is running
+**When** `destroy()` is called
+**Then** `cancelAnimationFrame()` is called with all active RAF IDs; all DOM nodes appended to the container are removed; no globals, timers, or orphaned animation frames remain
