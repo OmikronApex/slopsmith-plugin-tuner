@@ -36,7 +36,7 @@
         panel.style.aspectRatio  = '4 / 3';
         panel.style.background   = 'linear-gradient(160deg, #e0e0e0 0%, #a8a8a8 30%, #c8c8c8 55%, #888 100%)';
         panel.style.borderRadius = '50% 50% 10px 10px / 52% 52% 10px 10px';
-        panel.style.padding      = '4% 5%';
+        panel.style.padding      = '4%';
         panel.style.boxSizing    = 'border-box';
         panel.style.userSelect   = 'none';
         panel.style.overflow     = 'hidden';
