@@ -330,13 +330,13 @@
                 arrowL.setAttribute('fill', _COL_ARROW_DIM);
                 arrowR.setAttribute('fill', _COL_ARROW_DIM);
             } else if (cents <= -_TUNER_ARROW_THR) {
-                arrowL.setAttribute('fill', _COL_ARROW_TEAL);   // flat → raise → ▶ lit
+                arrowL.setAttribute('fill', _COL_ARROW_WH);
                 arrowR.setAttribute('fill', _COL_ARROW_DIM);
             } else if (cents >= _TUNER_ARROW_THR) {
                 arrowL.setAttribute('fill', _COL_ARROW_DIM);
-                arrowR.setAttribute('fill', _COL_ARROW_WH);     // sharp → lower → ◀ lit
+                arrowR.setAttribute('fill', _COL_ARROW_WH);
             } else {
-                arrowL.setAttribute('fill', _COL_ARROW_TEAL);   // in tune → both lit
+                arrowL.setAttribute('fill', _COL_ARROW_WH);     // in tune → both lit
                 arrowR.setAttribute('fill', _COL_ARROW_WH);
             }
 
