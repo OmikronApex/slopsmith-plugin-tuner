@@ -29,7 +29,7 @@
 
     // ── Colours (custom palette; no Tailwind token equivalents) ──────
     var _COL_BG         = '#04041a';   // dark navy background
-    var _COL_TICK       = '#00c878';   // green/teal gauge ticks
+    var _COL_TICK       = '#7ad400';   // yellow-green gauge ticks
     var _COL_MARKER     = '#ffffff';   // white pitch-position marker
     var _COL_NOTE       = '#ffffff';   // white note/octave text
     var _COL_ARROW_TEAL = '#10b878';   // teal ▶ arrow
@@ -99,7 +99,7 @@
         gaugeBg.style.top             = '50%';
         gaugeBg.style.left            = '0';
         gaugeBg.style.right           = '0';
-        gaugeBg.style.height          = '0.55em';
+        gaugeBg.style.height          = '0.77em';
         gaugeBg.style.transform       = 'translateY(-50%)';
         gaugeBg.style.backgroundColor = 'rgba(0,60,20,0.7)';
         gaugeBg.style.borderRadius    = '2px';
