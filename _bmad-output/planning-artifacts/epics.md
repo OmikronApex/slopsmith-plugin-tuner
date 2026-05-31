@@ -1,5 +1,5 @@
 ---
-stepsCompleted: ['step-01', 'step-02', 'step-03', 'step-04', 'epic2-step-01', 'epic2-step-02', 'epic2-step-03', 'epic3-step-01', 'epic3-step-02', 'epic3-step-03', 'epic4-step-01', 'epic4-step-02', 'epic4-step-03', 'epic5-step-01', 'epic5-step-02']
+stepsCompleted: ['step-01', 'step-02', 'step-03', 'step-04', 'epic2-step-01', 'epic2-step-02', 'epic2-step-03', 'epic3-step-01', 'epic3-step-02', 'epic3-step-03', 'epic4-step-01', 'epic4-step-02', 'epic4-step-03', 'epic5-step-01', 'epic5-step-02', 'epic6-step-01', 'epic6-step-02']
 inputDocuments:
   - _bmad-output/planning-artifacts/prds/prd-slopsmith-plugin-tuner-2026-05-30/prd.md
   - _bmad-output/project-context.md
@@ -183,6 +183,7 @@ No UX Design document exists yet. Story 2.1 will produce `_bmad-output/planning-
 ### Epic 3: Analogue Gauge Visualization
 ### Epic 4: Axe-Fx III Visualization
 ### Epic 5: Toilet Tuner Visualization
+### Epic 6: PT-100 Visualization
 
 Establish a formal architecture document for the slopsmith-plugin-tuner using the BMad workflow, providing AI agents and contributors with authoritative system design guidance; then implement code corrections surfaced during the architectural review.
 
@@ -679,6 +680,126 @@ So that I can tune by watching the plunger's position and get a satisfying visua
 **Given** `update(null, 0, 0)` is called (no pitch signal)
 **When** rendered
 **Then** the plunger is at the horizontal centre in its raised position; the bowl overlay is hidden; the note name text shows "–"
+
+**Given** the RAF animation loop is running
+**When** `destroy()` is called
+**Then** `cancelAnimationFrame()` is called with all active RAF IDs; all DOM nodes appended to the container are removed; no globals, timers, or orphaned animation frames remain
+
+---
+
+### New Functional Requirements (Epic 6 — PT-100 Visualization)
+
+- **FR-PT-01:** The panel shall use the iconic PT-100 shape — a wide oval/trapezoid chrome-bordered face rendered in black, with white text labels, matching the Fender PT-100 physical form factor.
+- **FR-PT-02:** Nine small LED lightbulbs shall be arranged in a curved arc across the upper panel area, spanning the deviation range. The centremost bulb glows red (in-tune), the remaining 8 glow blue.
+- **FR-PT-03:** The LED arc shall span −40 to +40 cents, with the centremost bulb at 0. The lit LED pattern is bar-graph style: all LEDs from the centre (0, red) up to and including the LED closest to the current deviation are lit. E.g., at −30 cents, the red centre LED plus all blue LEDs between 0 and −30 are lit; at +20 cents, the red centre plus all blue LEDs between 0 and +20 are lit. LEDs beyond the current deviation position are unlit.
+- **FR-PT-04:** An 8-segment display shall be positioned at the centre of the panel, showing the detected note name. The display background shall be a very dark red (near-black) to simulate an unlit LCD panel. Lit segments glow bright red with a light-glow effect; unlit segments are rendered in a very dark red, making them faintly visible as inactive segments — consistent with the appearance of a real 7/8-segment LED display. The centre horizontal bar is split into two independent half-segments (left and right), enabling accurate rendering of note name letters. A "#" symbol is rendered adjacent to the display; it is lit bright red when the note is sharp and shown in dim dark red otherwise.
+- **FR-PT-05:** A red LED-bulb element in the lower-left corner, labelled "BATT.", shall always be lit/glowing regardless of tuning state or signal.
+- **FR-PT-06:** When `note === null` (no signal), the 8-segment display shows nothing (all segments unlit — rendered in dark red against the dark red background); no arc LED is lit (other than the always-on BATT. bulb); the "#" symbol is in its dim/unlit state.
+- **FR-PT-07:** The visualization conforms to the factory contract: `window._tunerViz_pt100(container)` returning `{ update(note, cents, freq), destroy() }`.
+- **FR-PT-08:** A "PT-100" option with value `"pt-100"` shall be added to the viz selector in `settings.html`.
+
+### Applicable NFRs (Epic 6)
+
+- **NFR-03** — no external JS libs
+- **NFR-06** — viz factory contract
+- **NFR-07** — exempt; inline styles required for hardware-accurate rendering of the physical PT-100 panel
+
+### Additional Requirements (Epic 6)
+
+- IIFE pattern; exposed as `window._tunerViz_pt100`
+- Constants prefixed `_TUNER_`
+- DOM via `document.createElement` / `classList` / `textContent` only
+- `destroy()` must cancel all active RAF IDs and remove all DOM nodes from container
+
+### FR Coverage Map (Epic 6)
+
+- **FR-PT-01:** Epic 6 (Story 6.1) — Panel shape and chrome border
+- **FR-PT-02:** Epic 6 (Story 6.1) — 9-LED curved arc layout
+- **FR-PT-03:** Epic 6 (Story 6.2) — Bar-graph LED illumination from centre to deviation
+- **FR-PT-04:** Epic 6 (Story 6.1 + 6.2) — 8-segment display with dark-red background, split centre bar, glow effect
+- **FR-PT-05:** Epic 6 (Story 6.1) — Always-on BATT. LED in lower-left
+- **FR-PT-06:** Epic 6 (Story 6.2) — No-signal idle state
+- **FR-PT-07:** Epic 6 (Story 6.1) — Factory contract: window._tunerViz_pt100
+- **FR-PT-08:** Epic 6 (Story 6.1) — settings.html "PT-100" option
+
+---
+
+## Epic 6: PT-100 Visualization
+
+Deliver a new built-in visualization faithfully replicating the classic Fender PT-100 chromatic tuner panel. A curved arc of 9 LEDs (red at centre, blue on each side) lights bar-graph style from centre out to show cents deviation; an 8-segment display with split centre bar shows the note name in glowing red against a near-black dark-red background; an always-on BATT. LED glows in the lower-left corner. Selectable via the settings panel.
+
+**FRs covered:** FR-PT-01 through FR-PT-08, FR-18
+**NFRs:** NFR-03, NFR-06 *(NFR-07 exempt — inline styles required for hardware-accurate rendering)*
+
+---
+
+### Story 6.1: Scaffold, Static Panel Layout & Settings Wiring
+
+As a developer implementing the PT-100 visualization,
+I want a fully structured static panel with all DOM elements in place and the visualization registered in settings,
+So that the subsequent story can layer live data and animation onto a stable, correctly-laid-out foundation.
+
+**Acceptance Criteria:**
+
+**Given** the file `visualization/pt-100.js` is created
+**When** the IIFE executes
+**Then** `window._tunerViz_pt100` is a factory function that accepts a `container` DOM element and returns `{ update(note, cents, freq), destroy() }`
+
+**Given** the factory is called with a container
+**When** the static DOM is rendered
+**Then** the panel contains:
+- An outer chrome-bordered oval/trapezoid panel face matching the PT-100 form factor, with a black background and white text labels
+- A curved arc of 9 LED elements across the upper panel area; the centremost LED is styled red, the 4 on each side are styled blue; all LEDs are in their unlit/dark state at this stage
+- Range labels "−40" on the far left and "+40" on the far right of the arc, with "0" above the centre LED — all in white
+- An 8-segment display element at the centre of the panel; the display background is very dark red (near-black); all 8 segments (including the split centre bar rendered as two half-segments) are visible in their unlit dark-red state; a "#" symbol element is positioned to the right of the display in its dim/unlit state
+- A red LED-bulb element in the lower-left corner with a "BATT." label — in its lit/glowing state (always on)
+- The "PT-100" brand label on the panel face in white
+
+**Given** `settings.html` is updated
+**When** the viz selector is rendered
+**Then** a "PT-100" option with value `"pt-100"` is present in the visualization select element
+
+**Given** the `destroy()` method is called at this stage (no RAF loops yet)
+**When** executed
+**Then** all DOM nodes appended to the container are removed; no timers or RAF loops exist to cancel at this stage
+
+---
+
+### Story 6.2: LED Arc Animation, 8-Segment Display & No-Signal State
+
+As a guitar player using the PT-100 visualization,
+I want the LED arc to show my deviation bar-graph style and the display to show my note name, with a clean idle state when no signal is detected,
+So that I can tune by reading the familiar PT-100 interface.
+
+**Acceptance Criteria:**
+
+**Given** `update(note, cents, freq)` is called with a non-null `note` and `cents` = 0
+**When** rendered
+**Then** only the centre red LED is lit; all blue LEDs are unlit; the 8-segment display shows the note name in bright red with a glow effect; the BATT. LED remains lit
+
+**Given** `cents` is −30
+**When** rendered
+**Then** the centre red LED and all blue LEDs from the centre toward the −40 position up to and including the LED nearest to −30 are lit; blue LEDs beyond −30 (toward −40) are unlit; blue LEDs on the +40 side are all unlit
+
+**Given** `cents` is +20
+**When** rendered
+**Then** the centre red LED and all blue LEDs from the centre toward +40 up to and including the LED nearest to +20 are lit; blue LEDs beyond +20 and all LEDs on the −40 side are unlit
+
+**Given** `cents` is any value between −40 and +40
+**When** rendered
+**Then** the lit LEDs form a contiguous bar from the centre to the closest LED to the current deviation; LED position mapping is linear across the 9-bulb arc (centre = 0, outermost = ±40)
+
+**Given** the detected note is sharp (contains "#", e.g., "A#")
+**When** rendered
+**Then** the "#" symbol adjacent to the display is lit bright red; only the note letter(s) before the "#" are shown on the 8-segment display (e.g., "A" on the display, "#" symbol lit)
+
+**Given** the detected note is natural (no "#", e.g., "E", "A")
+**When** rendered
+**Then** the note letter is shown on the 8-segment display; the "#" symbol is in its dim dark-red unlit state
+
+**Given** `update(null, 0, 0)` is called (no pitch signal)
+**When** rendered
+**Then** all arc LEDs are unlit (centre red LED and all blue LEDs dark); the 8-segment display shows nothing (all segments in their unlit dark-red state against the dark-red background); the "#" symbol is unlit; the BATT. LED remains lit
 
 **Given** the RAF animation loop is running
 **When** `destroy()` is called
