@@ -231,11 +231,11 @@
         // Arc is a ∩ shape (upward arch) positioned at the bottom of the panel.
         // Diamonds arranged from left through top to right around the arc.
         // Strobe SVG: viewBox 120×72, R=60 fills full width.
-        // gap = (2/3)*dash; 4 dashes + 1 gap = halfCirc → (4 + 2/3)*dash = halfCirc → dash = 3*halfCirc/14
+        // gap = (2/3)*dash; 4 dashes + 4 gaps = halfCirc → (4 + 4*2/3)*dash = halfCirc → dash = 3*halfCirc/20
         var _sVB_W = 120, _sVB_H = 72;
         var _scx = 60, _scy = _sVB_H;
         var _halfCirc  = Math.PI * _TUNER_STROBE_R;
-        var _dashLen   = 3 * _halfCirc / 14;
+        var _dashLen   = 3 * _halfCirc / 20;
         var _gapLen    = (2 / 3) * _dashLen;
 
         var strobeSvg = document.createElementNS(_SVG_NS, 'svg');
