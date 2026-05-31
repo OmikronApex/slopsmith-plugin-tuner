@@ -35,7 +35,7 @@
         panel.style.width        = '100%';
         panel.style.aspectRatio  = '4 / 3';
         panel.style.background   = 'linear-gradient(160deg, #e0e0e0 0%, #a8a8a8 30%, #c8c8c8 55%, #888 100%)';
-        panel.style.borderRadius = '50% 50% 10px 10px / 66.7% 66.7% 10px 10px';
+        panel.style.borderRadius = '50% 50% 10px 10px / 54% 54% 10px 10px';
         panel.style.padding      = '4%';
         panel.style.boxSizing    = 'border-box';
         panel.style.userSelect   = 'none';
@@ -47,7 +47,7 @@
         face.style.width        = '100%';
         face.style.height       = '100%';
         face.style.background   = '#080808';
-        face.style.borderRadius = '50% 50% 8px 8px / 69% 69% 8px 8px';
+        face.style.borderRadius = '50% 50% 8px 8px / 54% 54% 8px 8px';
         face.style.overflow     = 'hidden';
         panel.appendChild(face);
 
@@ -119,7 +119,7 @@
         var arcPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         arcPath.setAttribute('d',
             'M ' + x0Line + ',' + _ARC_CY_LINE +
-            ' A ' + _ARC_RX + ',' + _ARC_RY + ' 0 0 0 ' +
+            ' A ' + _ARC_RX + ',' + _ARC_RY + ' 0 0 1 ' +
             x1Line + ',' + _ARC_CY_LINE);
         arcPath.setAttribute('stroke', 'rgba(255,255,255,0.65)');
         arcPath.setAttribute('stroke-width', '0.8');
@@ -157,7 +157,7 @@
             'top:65%',
             'transform:translateX(-50%)',
             'width:38%',
-            'height:28%',
+            'height:40%',
             'background:' + _TUNER_PT_BG,
             'border-radius:3px',
             'border:1px solid #2a0000',
