@@ -32,8 +32,7 @@
     var _COL_TICK       = '#7ad400';   // yellow-green gauge ticks
     var _COL_MARKER     = '#ffffff';   // white pitch-position marker
     var _COL_NOTE       = '#ffffff';   // white note/octave text
-    var _COL_ARROW_TEAL = '#10b878';   // teal ▶ arrow
-    var _COL_ARROW_WH   = '#e8e8e8';   // near-white ◀ arrow
+    var _COL_ARROW_WH   = '#e8e8e8';   // lit arrow colour
     var _COL_ARROW_DIM  = '#1e3030';   // dimmed arrow colour
     var _COL_STROBE     = '#e83060';   // pink/magenta diamond fill
     var _COL_TAB_ACT_BG = '#2060d8';   // active tab background (blue)
@@ -431,7 +430,8 @@
             // Octave display — show target octave in auto/manual, detected octave in free
             if (hasNote) {
                 if (_currentMode === 'auto' || _currentMode === 'manual') {
-                    var targetFreq = freq * Math.pow(2, -cents / 1200);
+                    var clampedCents = Math.max(-600, Math.min(600, cents));
+                    var targetFreq = freq * Math.pow(2, -clampedCents / 1200);
                     octaveEl.textContent = _freqToOctave(targetFreq);
                 } else {
                     octaveEl.textContent = _freqToOctave(freq);

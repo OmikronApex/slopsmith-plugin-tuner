@@ -22,6 +22,7 @@
     const _FREQ_HISTORY_LEN = 3;
 
     function _median(arr) {
+        if (!arr.length) return 0;
         var s = arr.slice().sort(function(a, b) { return a - b; });
         var mid = Math.floor(s.length / 2);
         return s.length % 2 !== 0 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
