@@ -72,10 +72,9 @@
 
         var _ARC_CX         = 50;
         var _ARC_CY         = 50;
-        var _ARC_ASPECT     = 1.373; // face_width / face_height for 4:3 + 4% padding
-        var _ARC_R_LEDS     = 34;
-        var _ARC_R_LINE     = 29;
-        var _ARC_R_LABELS   = 24;
+        var _ARC_R_LEDS     = 40;
+        var _ARC_R_LINE     = 35;
+        var _ARC_R_LABELS   = 30;
         var _ARC_CENTRE_IDX = Math.floor(_TUNER_PT_LED_COUNT / 2); // 5
 
         function _arcPoint(i, r) {
@@ -83,7 +82,7 @@
             var rad = angleDeg * Math.PI / 180;
             return {
                 x: _ARC_CX + r * Math.cos(rad),
-                y: _ARC_CY - r * _ARC_ASPECT * Math.sin(rad),
+                y: _ARC_CY - r * Math.sin(rad),
             };
         }
 
@@ -124,10 +123,9 @@
         var x0Line = _ARC_CX - _ARC_R_LINE;
         var x1Line = _ARC_CX + _ARC_R_LINE;
         var arcPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        var _ry_line = (_ARC_R_LINE * _ARC_ASPECT).toFixed(1);
         arcPath.setAttribute('d',
             'M ' + x0Line + ',' + _ARC_CY +
-            ' A ' + _ARC_R_LINE + ',' + _ry_line + ' 0 0 1 ' +
+            ' A ' + _ARC_R_LINE + ',' + _ARC_R_LINE + ' 0 0 1 ' +
             x1Line + ',' + _ARC_CY);
         arcPath.setAttribute('stroke', 'rgba(255,255,255,0.65)');
         arcPath.setAttribute('stroke-width', '0.8');
