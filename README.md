@@ -1,5 +1,7 @@
 # Slopsmith Tuner Plugin
 
+<img width="514" height="624" alt="grafik" src="https://github.com/user-attachments/assets/33755eed-4284-40e2-9ff3-a918e09a03a2" />
+
 A real-time guitar and bass tuner plugin for [Slopsmith](https://github.com/byrongamatos/slopsmith).
 
 This plugin adds a floating "Tuner" button to the Slopsmith interface, providing a high-accuracy chromatic tuner with support for multiple presets, custom tunings, and automatic song tuning detection.
@@ -20,10 +22,10 @@ This plugin adds a floating "Tuner" button to the Slopsmith interface, providing
 
 | Name | Image |
 |------|-------|
-| Default | <img width="320" alt="Default visualization" src="https://github.com/user-attachments/assets/1cde859e-d978-416a-b68b-5f4fda218309" /> |
-| Strobe | <img width="320" alt="Strobe visualization" src="https://github.com/user-attachments/assets/ccecb441-d3eb-4e48-a290-0dd15abf2205" /> |
-| Analogue Gauge | <img width="320" alt="Analogue Gauge visualization" src="https://github.com/user-attachments/assets/0dfffdb0-8d44-4ce2-9255-0a5658d3c71c" /> |
-| Axe-Fx III | _Image coming soon_ |
+| Default | <img width="450" height="261" alt="grafik" src="https://github.com/user-attachments/assets/7b63cac5-07c8-4fea-88ba-60e051a3cbb4" /> |
+| Strobe | <img width="446" height="229" alt="grafik" src="https://github.com/user-attachments/assets/e6a1fa2f-d17c-4d7e-9c43-602a81373e79" /> |
+| Analogue Gauge | <img width="443" height="273" alt="grafik" src="https://github.com/user-attachments/assets/d1fb1d3a-a186-4813-bd9c-fd604b90d3a0" /> |
+| Axe-Fx III | <img width="437" height="247" alt="grafik" src="https://github.com/user-attachments/assets/94a039c6-26e4-4d1c-8e4c-6b8edac9c12d" /> |
 
 ## Installation
 
