@@ -14,14 +14,6 @@
 
     // ── 8-segment map ─────────────────────────────────────────────────
     // Segments indexed: [a, b, c, d, e, f, g1, g2]
-    //   a  = top bar
-    //   b  = top-right vertical
-    //   c  = bottom-right vertical
-    //   d  = bottom bar
-    //   e  = bottom-left vertical
-    //   f  = top-left vertical
-    //   g1 = middle bar left half
-    //   g2 = middle bar right half
     var _TUNER_PT_SEGMENTS = {
         //         a      b      c      d      e      f      g1     g2
         'A': [ true,  true,  true,  false, true,  true,  true,  true  ],
@@ -37,14 +29,16 @@
     window['_tunerViz_pt-100'] = function (container) {
         'use strict';
 
-        // ── Chrome bezel (outer oval) ─────────────────────────────────
+        // ── Chrome bezel ──────────────────────────────────────────────
+        // 4:3 aspect ratio; top is a pronounced semi-circle, bottom a shallow curve
         var panel = document.createElement('div');
-        panel.style.position     = 'relative';
-        panel.style.width        = '100%';
-        panel.style.aspectRatio  = '2.8 / 1';
-        panel.style.background   = 'linear-gradient(145deg, #d8d8d8 0%, #a0a0a0 35%, #c0c0c0 55%, #888 100%)';
-        panel.style.borderRadius = '50% / 38%';
-        panel.style.padding      = '5.5% 4.5%';
+        panel.style.position    = 'relative';
+        panel.style.width       = '100%';
+        panel.style.aspectRatio = '4 / 3';
+        panel.style.background  = 'linear-gradient(160deg, #e0e0e0 0%, #a8a8a8 30%, #c8c8c8 55%, #888 100%)';
+        // top corners: large radius (semi-circle); bottom corners: shallow curve
+        panel.style.borderRadius = '50% 50% 18% 18% / 52% 52% 14% 14%';
+        panel.style.padding      = '4% 5%';
         panel.style.boxSizing    = 'border-box';
         panel.style.userSelect   = 'none';
         panel.style.overflow     = 'hidden';
@@ -55,97 +49,107 @@
         face.style.width        = '100%';
         face.style.height       = '100%';
         face.style.background   = '#080808';
-        face.style.borderRadius = '44% / 28%';
+        face.style.borderRadius = '47% 47% 13% 13% / 48% 48% 11% 11%';
         face.style.overflow     = 'hidden';
         panel.appendChild(face);
 
         // ── LED arc ───────────────────────────────────────────────────
-        // Arc positioned in upper half of face. Centre at x=50%, y=110%
-        // (below the face centre so arc curves upward into view).
-        var arcCentreX = 50;   // % of face width
-        var arcCentreY = 108;  // % of face height
-        var arcRadius  = 58;   // % of face width
-        var startAngle = 212;  // degrees (leftmost LED, roughly 8 o'clock)
-        var endAngle   = 328;  // degrees (rightmost LED, roughly 4 o'clock)
-
+        // Shallow parabolic arc: LEDs span x=10%–90%, centre at top y=10%,
+        // edges drop to y=17% — matches the gentle curve on the physical unit.
         var leds = [];
         for (var i = 0; i < _TUNER_PT_LED_COUNT; i++) {
-            var t     = i / (_TUNER_PT_LED_COUNT - 1);
-            var angle = startAngle + (endAngle - startAngle) * t;
-            var rad   = angle * Math.PI / 180;
-            var x     = arcCentreX + arcRadius * Math.cos(rad);
-            var y     = arcCentreY + arcRadius * Math.sin(rad);
+            var xPct = 10 + i * (80 / 8);          // 10 % → 90 %
+            var dx   = (xPct - 50) / 40;            // −1 at edges, 0 at centre
+            var yPct = 10 + 7 * dx * dx;            // 10 % at centre, 17 % at edges
 
             var led = document.createElement('div');
             led.style.position     = 'absolute';
-            led.style.left         = x.toFixed(2) + '%';
-            led.style.top          = y.toFixed(2) + '%';
+            led.style.left         = xPct.toFixed(2) + '%';
+            led.style.top          = yPct.toFixed(2) + '%';
             led.style.transform    = 'translate(-50%, -50%)';
-            led.style.width        = '5.5%';
+            led.style.width        = '5%';
             led.style.aspectRatio  = '1 / 1';
             led.style.borderRadius = '50%';
 
             var isCentre = (i === 4);
-            // Unlit state
             led.style.background = isCentre
                 ? 'radial-gradient(circle at 35% 35%, #3a0000, #1a0000)'
                 : 'radial-gradient(circle at 35% 35%, #00003a, #00001a)';
-            led.style.border = '1px solid ' + (isCentre ? '#400' : '#004');
+            led.style.border    = '1px solid ' + (isCentre ? '#400' : '#004');
             led.style.boxShadow = 'none';
 
             face.appendChild(led);
             leds.push(led);
         }
 
+        // ── White divider line ────────────────────────────────────────
+        // Separates the LED arc zone from the label / display zone below.
+        var divider = document.createElement('div');
+        divider.style.cssText = [
+            'position:absolute',
+            'left:3%',
+            'right:3%',
+            'top:24%',
+            'height:1px',
+            'background:#ffffff',
+            'opacity:0.7',
+            'pointer-events:none'
+        ].join(';');
+        face.appendChild(divider);
+
         // ── Range labels ──────────────────────────────────────────────
-        function _makeLabel(text, leftPct, topPct) {
+        // Sit just below the white divider line.
+        function _makeLabel(text, leftPct) {
             var el = document.createElement('div');
             el.style.position   = 'absolute';
             el.style.left       = leftPct + '%';
-            el.style.top        = topPct + '%';
+            el.style.top        = '26%';
             el.style.transform  = 'translateX(-50%)';
             el.style.color      = '#cccccc';
-            el.style.fontSize   = '55%';
+            el.style.fontSize   = '50%';
             el.style.fontWeight = 'bold';
             el.style.fontFamily = 'sans-serif';
             el.style.lineHeight = '1';
-            el.textContent = text;
+            el.textContent      = text;
             face.appendChild(el);
-            return el;
         }
 
-        // Position labels near the corresponding outermost LEDs
-        _makeLabel('-40', 6,  22);
-        _makeLabel('0',   50, 4);
-        _makeLabel('+40', 94, 22);
+        _makeLabel('-40', 10);
+        _makeLabel('b',   3.5);   // flat symbol on the reference (below -40 LED)
+        _makeLabel('0',   50);
+        _makeLabel('+40', 90);
 
-        // ── 8-segment display ─────────────────────────────────────────
+        // ── LCD display (letter + # symbol inside one box) ────────────
+        // Centred horizontally; occupies middle band of the panel face.
         var displayWrap = document.createElement('div');
         displayWrap.style.cssText = [
             'position:absolute',
-            'left:33%',
-            'top:18%',
-            'width:20%',
-            'height:58%',
+            'left:50%',
+            'top:33%',
+            'transform:translateX(-50%)',
+            'width:38%',
+            'height:44%',
             'background:' + _TUNER_PT_BG,
             'border-radius:3px',
             'border:1px solid #2a0000',
             'display:flex',
+            'flex-direction:row',
             'align-items:center',
             'justify-content:center',
+            'gap:4%',
+            'padding:4%',
+            'box-sizing:border-box',
             'box-shadow:inset 0 0 8px #000'
         ].join(';');
         face.appendChild(displayWrap);
 
-        // Build the 8 segments inside displayWrap.
-        // We use a relative inner container sized to the display area.
+        // Letter digit (8-segment)
         var segContainer = document.createElement('div');
-        segContainer.style.cssText = 'position:relative;width:60%;height:85%;';
+        segContainer.style.cssText = 'position:relative;flex:0 0 42%;height:80%;';
         displayWrap.appendChild(segContainer);
 
         var segmentEls = {};
 
-        // Helper: create one segment div
         function _makeSeg(key, cssText) {
             var el = document.createElement('div');
             el.style.cssText = cssText + ';position:absolute;background:' + _TUNER_PT_UNLIT + ';border-radius:2px;transition:background 0.05s,box-shadow 0.05s;';
@@ -153,25 +157,26 @@
             segmentEls[key] = el;
         }
 
-        // Segment geometry (percentages of segContainer)
-        var bw = '20%';   // bar thickness
-        _makeSeg('a',  'top:0%;left:10%;width:80%;height:' + bw);                          // top
-        _makeSeg('b',  'top:5%;right:0%;width:' + bw + ';height:42%');                     // top-right
-        _makeSeg('c',  'bottom:5%;right:0%;width:' + bw + ';height:42%');                  // bottom-right
-        _makeSeg('d',  'bottom:0%;left:10%;width:80%;height:' + bw);                       // bottom
-        _makeSeg('e',  'bottom:5%;left:0%;width:' + bw + ';height:42%');                   // bottom-left
-        _makeSeg('f',  'top:5%;left:0%;width:' + bw + ';height:42%');                      // top-left
-        _makeSeg('g1', 'top:50%;left:8%;width:36%;height:' + bw + ';transform:translateY(-50%)');   // middle-left
-        _makeSeg('g2', 'top:50%;right:8%;width:36%;height:' + bw + ';transform:translateY(-50%)');  // middle-right
+        var bw = '18%';
+        _makeSeg('a',  'top:0%;left:10%;width:80%;height:' + bw);
+        _makeSeg('b',  'top:4%;right:0%;width:' + bw + ';height:43%');
+        _makeSeg('c',  'bottom:4%;right:0%;width:' + bw + ';height:43%');
+        _makeSeg('d',  'bottom:0%;left:10%;width:80%;height:' + bw);
+        _makeSeg('e',  'bottom:4%;left:0%;width:' + bw + ';height:43%');
+        _makeSeg('f',  'top:4%;left:0%;width:' + bw + ';height:43%');
+        _makeSeg('g1', 'top:50%;left:8%;width:34%;height:' + bw + ';transform:translateY(-50%)');
+        _makeSeg('g2', 'top:50%;right:8%;width:34%;height:' + bw + ';transform:translateY(-50%)');
 
-        // ── "#" symbol ────────────────────────────────────────────────
+        // "#" symbol — inside the display box, right side
         var sharpEl = document.createElement('div');
         sharpEl.style.cssText = [
-            'position:absolute',
-            'left:55%',
-            'top:26%',
+            'flex:0 0 30%',
+            'height:75%',
+            'display:flex',
+            'align-items:center',
+            'justify-content:center',
             'color:' + _TUNER_PT_UNLIT,
-            'font-size:130%',
+            'font-size:200%',
             'font-weight:bold',
             'font-family:sans-serif',
             'line-height:1',
@@ -179,15 +184,15 @@
             'pointer-events:none'
         ].join(';');
         sharpEl.textContent = '#';
-        face.appendChild(sharpEl);
+        displayWrap.appendChild(sharpEl);
 
         // ── BATT. LED (always lit) ────────────────────────────────────
         var battWrap = document.createElement('div');
-        battWrap.style.cssText = 'position:absolute;left:6%;bottom:7%;display:flex;align-items:center;gap:3%;pointer-events:none';
+        battWrap.style.cssText = 'position:absolute;left:4%;bottom:8%;display:flex;align-items:center;gap:5%;pointer-events:none';
 
         var battLed = document.createElement('div');
         battLed.style.cssText = [
-            'width:5.5%',
+            'width:6%',
             'aspect-ratio:1/1',
             'border-radius:50%',
             'background:radial-gradient(circle at 35% 35%, #ff6644, #cc1100)',
@@ -208,11 +213,11 @@
         var brandLabel = document.createElement('div');
         brandLabel.style.cssText = [
             'position:absolute',
-            'bottom:7%',
+            'bottom:8%',
             'left:50%',
             'transform:translateX(-50%)',
             'color:#cccccc',
-            'font-size:62%',
+            'font-size:60%',
             'font-weight:bold',
             'letter-spacing:0.1em',
             'font-family:sans-serif',
@@ -230,23 +235,23 @@
             var isCentre = (index === 4);
             if (lit) {
                 if (isCentre) {
-                    led.style.background  = 'radial-gradient(circle at 35% 35%, #ff6644, #cc1100)';
-                    led.style.boxShadow   = '0 0 5px 2px #ff3300, 0 0 10px 4px #aa1100';
-                    led.style.border      = '1px solid #ff4400';
+                    led.style.background = 'radial-gradient(circle at 35% 35%, #ff6644, #cc1100)';
+                    led.style.boxShadow  = '0 0 5px 2px #ff3300, 0 0 10px 4px #aa1100';
+                    led.style.border     = '1px solid #ff4400';
                 } else {
-                    led.style.background  = 'radial-gradient(circle at 35% 35%, #4488ff, #0033cc)';
-                    led.style.boxShadow   = '0 0 5px 2px #2266ff, 0 0 10px 4px #0022aa';
-                    led.style.border      = '1px solid #3366ff';
+                    led.style.background = 'radial-gradient(circle at 35% 35%, #4488ff, #0033cc)';
+                    led.style.boxShadow  = '0 0 5px 2px #2266ff, 0 0 10px 4px #0022aa';
+                    led.style.border     = '1px solid #3366ff';
                 }
             } else {
                 if (isCentre) {
-                    led.style.background  = 'radial-gradient(circle at 35% 35%, #3a0000, #1a0000)';
-                    led.style.boxShadow   = 'none';
-                    led.style.border      = '1px solid #400';
+                    led.style.background = 'radial-gradient(circle at 35% 35%, #3a0000, #1a0000)';
+                    led.style.boxShadow  = 'none';
+                    led.style.border     = '1px solid #400';
                 } else {
-                    led.style.background  = 'radial-gradient(circle at 35% 35%, #00003a, #00001a)';
-                    led.style.boxShadow   = 'none';
-                    led.style.border      = '1px solid #004';
+                    led.style.background = 'radial-gradient(circle at 35% 35%, #00003a, #00001a)';
+                    led.style.boxShadow  = 'none';
+                    led.style.border     = '1px solid #004';
                 }
             }
         }
@@ -257,7 +262,6 @@
                 return;
             }
             var c = Math.max(-_TUNER_PT_CENTS_RANGE, Math.min(_TUNER_PT_CENTS_RANGE, cents));
-            // index 0 = -40, index 4 = 0, index 8 = +40 → step = 10 cents per LED
             var targetIdx = 4 + Math.round(c / 10);
             targetIdx = Math.max(0, Math.min(8, targetIdx));
 
