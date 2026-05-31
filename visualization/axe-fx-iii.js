@@ -262,17 +262,29 @@
         strobeSvg.appendChild(arcPath);
         panel.appendChild(strobeSvg);
 
-        // ── LCD grid overlay ──────────────────────────────────────────
-        var lcdGrid = document.createElement('div');
-        lcdGrid.style.position   = 'absolute';
-        lcdGrid.style.inset      = '0';
-        lcdGrid.style.zIndex     = '50';
-        lcdGrid.style.pointerEvents = 'none';
-        lcdGrid.style.backgroundImage = [
-            'repeating-linear-gradient(0deg,   rgba(0,0,0,0.18) 0px, rgba(0,0,0,0.18) 1px, transparent 1px, transparent 4px)',
-            'repeating-linear-gradient(90deg,  rgba(0,0,0,0.18) 0px, rgba(0,0,0,0.18) 1px, transparent 1px, transparent 4px)'
+        // ── LCD grid overlay (gauge/arrows, note/octave, strobe zones) ─
+        // Cell size = 2px, matching gauge tick width. 1px dark line + 1px gap.
+        var _lcdBg = [
+            'repeating-linear-gradient(0deg,  rgba(0,0,10,0.22) 0px, rgba(0,0,10,0.22) 1px, transparent 1px, transparent 2px)',
+            'repeating-linear-gradient(90deg, rgba(0,0,10,0.22) 0px, rgba(0,0,10,0.22) 1px, transparent 1px, transparent 2px)'
         ].join(',');
-        panel.appendChild(lcdGrid);
+
+        function _lcdOverlay(styles) {
+            var el = document.createElement('div');
+            el.style.position        = 'absolute';
+            el.style.zIndex          = '50';
+            el.style.pointerEvents   = 'none';
+            el.style.backgroundImage = _lcdBg;
+            for (var k in styles) { el.style[k] = styles[k]; }
+            return el;
+        }
+
+        // Gauge + arrows zone
+        panel.appendChild(_lcdOverlay({ top: '25%', left: '0', right: '0', height: '25%' }));
+        // Note + octave zone (vertical centre 67%, height 25%)
+        panel.appendChild(_lcdOverlay({ top: '54.5%', left: '0', right: '0', height: '25%' }));
+        // Strobe zone: SVG width=33% centred, height = 0.6×width = 0.6×33% panel_w = ~35% panel_h (16:9)
+        panel.appendChild(_lcdOverlay({ bottom: '0', left: '33.5%', width: '33%', height: '35%' }));
 
         container.appendChild(panel);
 
