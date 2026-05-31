@@ -299,8 +299,8 @@
         lcdGrid.style.pointerEvents   = 'none';
         lcdGrid.style.clipPath        = 'url(#' + _lcdId + ')';
         lcdGrid.style.backgroundImage = [
-            'repeating-linear-gradient(0deg,  rgba(0,0,10,0.22) 0px, rgba(0,0,10,0.22) 1px, transparent 1px, transparent 2px)',
-            'repeating-linear-gradient(90deg, rgba(0,0,10,0.22) 0px, rgba(0,0,10,0.22) 1px, transparent 1px, transparent 2px)'
+            'repeating-linear-gradient(0deg,  ' + _COL_BG + ' 0px, ' + _COL_BG + ' 1px, transparent 1px, transparent 2px)',
+            'repeating-linear-gradient(90deg, ' + _COL_BG + ' 0px, ' + _COL_BG + ' 1px, transparent 1px, transparent 2px)'
         ].join(',');
         panel.appendChild(lcdGrid);
 
