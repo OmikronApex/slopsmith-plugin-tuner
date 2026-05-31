@@ -30,13 +30,11 @@
         'use strict';
 
         // ── Chrome bezel ──────────────────────────────────────────────
-        // 4:3 aspect ratio; top is a pronounced semi-circle, bottom a shallow curve
         var panel = document.createElement('div');
-        panel.style.position    = 'relative';
-        panel.style.width       = '100%';
-        panel.style.aspectRatio = '4 / 3';
-        panel.style.background  = 'linear-gradient(160deg, #e0e0e0 0%, #a8a8a8 30%, #c8c8c8 55%, #888 100%)';
-        // top corners: large radius (semi-circle); bottom corners: shallow curve
+        panel.style.position     = 'relative';
+        panel.style.width        = '100%';
+        panel.style.aspectRatio  = '4 / 3';
+        panel.style.background   = 'linear-gradient(160deg, #e0e0e0 0%, #a8a8a8 30%, #c8c8c8 55%, #888 100%)';
         panel.style.borderRadius = '50% 50% 18% 18% / 52% 52% 14% 14%';
         panel.style.padding      = '4% 5%';
         panel.style.boxSizing    = 'border-box';
@@ -53,14 +51,57 @@
         face.style.overflow     = 'hidden';
         panel.appendChild(face);
 
-        // ── LED arc ───────────────────────────────────────────────────
-        // Shallow parabolic arc: LEDs span x=10%–90%, centre at top y=10%,
-        // edges drop to y=17% — matches the gentle curve on the physical unit.
+        // ── Layout (top → bottom) ─────────────────────────────────────
+        // 1. Range labels          ~5 %
+        // 2. Curved white line     ~10–15 %  (SVG arc matching LED curve)
+        // 3. LED bulbs             ~18–25 %  (parabolic arc)
+        // 4. LCD display           ~34–76 %
+        // 5. BATT. / brand         ~82–88 %
+
+        // ── 1. Range labels ───────────────────────────────────────────
+        function _makeLabel(text, leftPct) {
+            var el = document.createElement('div');
+            el.style.position   = 'absolute';
+            el.style.left       = leftPct + '%';
+            el.style.top        = '4%';
+            el.style.transform  = 'translateX(-50%)';
+            el.style.color      = '#cccccc';
+            el.style.fontSize   = '50%';
+            el.style.fontWeight = 'bold';
+            el.style.fontFamily = 'sans-serif';
+            el.style.lineHeight = '1';
+            el.textContent      = text;
+            face.appendChild(el);
+        }
+
+        _makeLabel('-40', 10);
+        _makeLabel('0',   50);
+        _makeLabel('+40', 90);
+
+        // ── 2. Curved white line (SVG) ────────────────────────────────
+        // SVG covers the top 32 % of the face height; viewBox 0 0 100 32.
+        // The quadratic bezier arc sits below the labels and above the LEDs:
+        //   endpoints at (3, 26), control point at (50, 15) → gentle upward bow.
+        var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('viewBox', '0 0 100 32');
+        svg.setAttribute('preserveAspectRatio', 'none');
+        svg.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:32%;pointer-events:none;overflow:visible';
+
+        var arcPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        arcPath.setAttribute('d', 'M 3,26 Q 50,14 97,26');
+        arcPath.setAttribute('stroke', 'rgba(255,255,255,0.65)');
+        arcPath.setAttribute('stroke-width', '0.8');
+        arcPath.setAttribute('fill', 'none');
+        svg.appendChild(arcPath);
+        face.appendChild(svg);
+
+        // ── 3. LED arc ────────────────────────────────────────────────
+        // Parabolic arc: x 10 %–90 %, centre at y=20 %, edges at y=26 %.
         var leds = [];
         for (var i = 0; i < _TUNER_PT_LED_COUNT; i++) {
-            var xPct = 10 + i * (80 / 8);          // 10 % → 90 %
-            var dx   = (xPct - 50) / 40;            // −1 at edges, 0 at centre
-            var yPct = 10 + 7 * dx * dx;            // 10 % at centre, 17 % at edges
+            var xPct = 10 + i * (80 / 8);
+            var dx   = (xPct - 50) / 40;   // −1 at edges, 0 at centre
+            var yPct = 20 + 6 * dx * dx;   // 20 % centre → 26 % edges
 
             var led = document.createElement('div');
             led.style.position     = 'absolute';
@@ -82,50 +123,12 @@
             leds.push(led);
         }
 
-        // ── White divider line ────────────────────────────────────────
-        // Separates the LED arc zone from the label / display zone below.
-        var divider = document.createElement('div');
-        divider.style.cssText = [
-            'position:absolute',
-            'left:3%',
-            'right:3%',
-            'top:24%',
-            'height:1px',
-            'background:#ffffff',
-            'opacity:0.7',
-            'pointer-events:none'
-        ].join(';');
-        face.appendChild(divider);
-
-        // ── Range labels ──────────────────────────────────────────────
-        // Sit just below the white divider line.
-        function _makeLabel(text, leftPct) {
-            var el = document.createElement('div');
-            el.style.position   = 'absolute';
-            el.style.left       = leftPct + '%';
-            el.style.top        = '26%';
-            el.style.transform  = 'translateX(-50%)';
-            el.style.color      = '#cccccc';
-            el.style.fontSize   = '50%';
-            el.style.fontWeight = 'bold';
-            el.style.fontFamily = 'sans-serif';
-            el.style.lineHeight = '1';
-            el.textContent      = text;
-            face.appendChild(el);
-        }
-
-        _makeLabel('-40', 10);
-        _makeLabel('b',   3.5);   // flat symbol on the reference (below -40 LED)
-        _makeLabel('0',   50);
-        _makeLabel('+40', 90);
-
-        // ── LCD display (letter + # symbol inside one box) ────────────
-        // Centred horizontally; occupies middle band of the panel face.
+        // ── 4. LCD display (letter + # inside one box) ────────────────
         var displayWrap = document.createElement('div');
         displayWrap.style.cssText = [
             'position:absolute',
             'left:50%',
-            'top:33%',
+            'top:34%',
             'transform:translateX(-50%)',
             'width:38%',
             'height:44%',
@@ -167,7 +170,7 @@
         _makeSeg('g1', 'top:50%;left:8%;width:34%;height:' + bw + ';transform:translateY(-50%)');
         _makeSeg('g2', 'top:50%;right:8%;width:34%;height:' + bw + ';transform:translateY(-50%)');
 
-        // "#" symbol — inside the display box, right side
+        // "#" symbol inside the display box
         var sharpEl = document.createElement('div');
         sharpEl.style.cssText = [
             'flex:0 0 30%',
@@ -186,7 +189,7 @@
         sharpEl.textContent = '#';
         displayWrap.appendChild(sharpEl);
 
-        // ── BATT. LED (always lit) ────────────────────────────────────
+        // ── 5. BATT. LED (always lit) ─────────────────────────────────
         var battWrap = document.createElement('div');
         battWrap.style.cssText = 'position:absolute;left:4%;bottom:8%;display:flex;align-items:center;gap:5%;pointer-events:none';
 
@@ -223,7 +226,7 @@
             'font-family:sans-serif',
             'pointer-events:none'
         ].join(';');
-        brandLabel.textContent = 'PT-100';
+        brandLabel.textContent = 'PP-Tiny';
         face.appendChild(brandLabel);
 
         container.appendChild(panel);

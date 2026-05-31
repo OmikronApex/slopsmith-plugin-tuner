@@ -360,7 +360,7 @@
                 <option value="analogue-gauge" ${visualizationMode === 'analogue-gauge' ? 'selected' : ''}>Analogue Gauge</option>
                 <option value="axe-fx-iii" ${visualizationMode === 'axe-fx-iii' ? 'selected' : ''}>Axe-Fx III</option>
                 <option value="toilet-tuner" ${visualizationMode === 'toilet-tuner' ? 'selected' : ''}>Toilet Tuner</option>
-                <option value="pt-100" ${visualizationMode === 'pt-100' ? 'selected' : ''}>PT-100</option>
+                <option value="pt-100" ${visualizationMode === 'pt-100' ? 'selected' : ''}>PP-Tiny</option>
             </select>
         `;
 
