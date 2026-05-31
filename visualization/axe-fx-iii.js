@@ -50,30 +50,18 @@
         panel.style.aspectRatio = '16 / 9';
         panel.style.minHeight = '120px';
 
-        // ── Mode tabs (full-width bar, 12.5% total height) ───────────
-        // Layout: [0–6.25%] tabs row + first line | [6.25%–12.5%] empty + second line
+        // ── Mode tabs (full-width bar, ~12.5% height) ────────────────
         var tabsWrap = document.createElement('div');
-        tabsWrap.style.position = 'absolute';
-        tabsWrap.style.top      = '0';
-        tabsWrap.style.left     = '0';
-        tabsWrap.style.right    = '0';
-        tabsWrap.style.height   = '12.5%';
-        tabsWrap.style.zIndex   = '10';
-
-        // Top half: tabs row, right-aligned, with bottom border (first line)
-        var tabsRow = document.createElement('div');
-        tabsRow.style.height         = '50%';
-        tabsRow.style.display        = 'flex';
-        tabsRow.style.alignItems     = 'flex-end';
-        tabsRow.style.justifyContent = 'flex-end';
-        tabsRow.style.borderBottom   = '2px solid ' + _COL_TAB_ACT_BG;
-        tabsWrap.appendChild(tabsRow);
-
-        // Bottom half: empty, with bottom border (second line)
-        var tabsGap = document.createElement('div');
-        tabsGap.style.height       = '50%';
-        tabsGap.style.borderBottom = '2px solid ' + _COL_TAB_ACT_BG;
-        tabsWrap.appendChild(tabsGap);
+        tabsWrap.style.position      = 'absolute';
+        tabsWrap.style.top           = '0';
+        tabsWrap.style.left          = '0';
+        tabsWrap.style.right         = '0';
+        tabsWrap.style.height        = '12.5%';
+        tabsWrap.style.display       = 'flex';
+        tabsWrap.style.alignItems    = 'flex-end';
+        tabsWrap.style.justifyContent = 'flex-end';
+        tabsWrap.style.borderBottom  = '2px solid ' + _COL_TAB_ACT_BG;
+        tabsWrap.style.zIndex        = '10';
 
         var _tabNames = ['Free', 'Auto', 'Manual'];
         var _tabEls = _tabNames.map(function (name) {
@@ -82,7 +70,7 @@
             tab.style.borderRadius = '2px 2px 0 0';
             tab.style.cursor = 'default';
             tab.textContent = name;
-            tabsRow.appendChild(tab);
+            tabsWrap.appendChild(tab);
             return tab;
         });
         panel.appendChild(tabsWrap);
