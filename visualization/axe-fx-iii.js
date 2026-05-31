@@ -169,7 +169,7 @@
         var strobeSvg = document.createElementNS(_SVG_NS, 'svg');
         strobeSvg.setAttribute('viewBox', '0 0 120 65');
         strobeSvg.setAttribute('preserveAspectRatio', 'xMidYMax meet');
-        strobeSvg.className = 'absolute';
+        strobeSvg.setAttribute('class', 'absolute');
         strobeSvg.style.bottom    = '0';
         strobeSvg.style.left      = '50%';
         strobeSvg.style.transform = 'translateX(-50%)';
