@@ -1,6 +1,10 @@
 # Story 4.2: Chromatic Gauge, Arrows, Note/Octave Display & Mode Tabs
 
-Status: ready-for-dev
+---
+baseline_commit: f34a4c2ddd6638a85faa6ef9932947e240ce5d60
+---
+
+Status: review
 
 ## Story
 
@@ -20,23 +24,23 @@ so that I can immediately see what note I'm playing, which octave, and which dir
 
 ## Tasks / Subtasks
 
-- [ ] Wire chromatic gauge position marker (AC: 1–4)
-  - [ ] Show/hide the marker element based on `note !== null`
-  - [ ] Compute marker left offset: `offsetPct = (cents + 50) / 100` → set `markerEl.style.left = (offsetPct * 100) + '%'`
-  - [ ] The gauge strip is full-width; the marker is an absolutely-positioned white `div` (thin vertical bar) overlaid on the tick strip
-- [ ] Wire direction arrows (AC: 1–3, 7)
-  - [ ] When `note === null`: both arrows dim (e.g., `opacity-20`)
-  - [ ] When `cents ≤ −3` (flat): right `▶` arrow bright (`opacity-100` teal/green), left `◀` dim
-  - [ ] When `cents ≥ +3` (sharp): left `◀` arrow bright (`opacity-100` white), right `▶` dim
-  - [ ] When `|cents| < 3` (in tune): both arrows bright and equal
-- [ ] Wire note name display (AC: 5, 7)
-  - [ ] `noteEl.textContent = note !== null ? note : '- -'`
-- [ ] Wire octave display (AC: 5, 7)
-  - [ ] Derive octave from freq using `_freqToOctave(freq)` helper (see formula below)
-  - [ ] `octaveEl.textContent = note !== null ? _freqToOctave(freq) : '-'`
-- [ ] Wire mode tabs (AC: 6, 7)
-  - [ ] On each `update()` call, apply highlight class to the matching tab, dim the others
-  - [ ] Map: `'free'` → tab[0], `'auto'` → tab[1], `'manual'` → tab[2]
+- [x] Wire chromatic gauge position marker (AC: 1–4)
+  - [x] Show/hide the marker element based on `note !== null`
+  - [x] Compute marker left offset: `offsetPct = (cents + 50) / 100` → set `markerEl.style.left = (offsetPct * 100) + '%'`
+  - [x] The gauge strip is full-width; the marker is an absolutely-positioned white `div` (thin vertical bar) overlaid on the tick strip
+- [x] Wire direction arrows (AC: 1–3, 7)
+  - [x] When `note === null`: both arrows dim (e.g., `opacity-20`)
+  - [x] When `cents ≤ −3` (flat): right `▶` arrow bright (`opacity-100` teal/green), left `◀` dim
+  - [x] When `cents ≥ +3` (sharp): left `◀` arrow bright (`opacity-100` white), right `▶` dim
+  - [x] When `|cents| < 3` (in tune): both arrows bright and equal
+- [x] Wire note name display (AC: 5, 7)
+  - [x] `noteEl.textContent = note !== null ? note : '- -'`
+- [x] Wire octave display (AC: 5, 7)
+  - [x] Derive octave from freq using `_freqToOctave(freq)` helper (see formula below)
+  - [x] `octaveEl.textContent = note !== null ? _freqToOctave(freq) : '-'`
+- [x] Wire mode tabs (AC: 6, 7)
+  - [x] On each `update()` call, apply highlight class to the matching tab, dim the others
+  - [x] Map: `'free'` → tab[0], `'auto'` → tab[1], `'manual'` → tab[2]
 
 ## Dev Notes
 
@@ -96,9 +100,21 @@ Values are exactly `'free'`, `'auto'`, `'manual'` — always a string, never nul
 ## Dev Agent Record
 
 ### Agent Model Used
+claude-sonnet-4-6
 
 ### Debug Log References
+None — implementation straightforward, all logic self-contained in `update()`.
 
 ### Completion Notes List
+- Added `_freqToOctave(freq)` helper (MIDI formula, A4=440 Hz)
+- Replaced `update()` stub with full implementation: gauge marker positioning, arrow fill colours, note/accidental split, octave derivation, tab highlighting
+- Marker left offset = `((cents+50)/100*100)%`, linear per AC4
+- Arrow colours driven by `_TUNER_ARROW_THR` (3¢) constant; SVG `fill` attribute used (not CSS opacity) as arrows are polygons
+- Note split: `charAt(0)` → noteLetter (1ch wide, stable position), `slice(1)` → noteAccidental
+- Validated all 7 ACs via Node.js simulation
 
 ### File List
+- visualization/axe-fx-iii.js
+
+### Change Log
+- 2026-05-31: Story 4.2 implemented — gauge marker, arrows, note/octave, mode tabs wired in `update()`

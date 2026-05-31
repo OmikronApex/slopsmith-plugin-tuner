@@ -284,6 +284,13 @@
         var _rafId       = null;
         var _currentMode = 'free';
 
+        // ── Helper: derive octave number from frequency ───────────────
+        function _freqToOctave(freq) {
+            if (!freq || freq <= 0) return '-';
+            var midi = Math.round(69 + 12 * Math.log2(freq / 440));
+            return String(Math.floor(midi / 12) - 1);
+        }
+
         // ── Helper: update mode tab highlights ────────────────────────
         function _updateTabs(mode) {
             var map = { free: 0, auto: 1, manual: 2 };
@@ -302,11 +309,49 @@
         // Initialise tabs
         _updateTabs('free');
 
-        // ── Public: update (stubs wired in Story 4.2 and 4.3) ────────
+        // ── Public: update ────────────────────────────────────────────
         function update(note, cents, freq, mode) {
+            var hasNote = (note !== null && note !== undefined);
+
+            // Mode tabs
             if (mode !== undefined) { _currentMode = mode; }
             _updateTabs(_currentMode);
-            // Gauge, arrows, note/octave wired in Story 4.2
+
+            // Gauge marker
+            if (hasNote) {
+                marker.style.left    = ((cents + 50) / 100 * 100) + '%';
+                marker.style.display = 'block';
+            } else {
+                marker.style.display = 'none';
+            }
+
+            // Direction arrows
+            if (!hasNote) {
+                arrowL.setAttribute('fill', _COL_ARROW_DIM);
+                arrowR.setAttribute('fill', _COL_ARROW_DIM);
+            } else if (cents <= -_TUNER_ARROW_THR) {
+                arrowL.setAttribute('fill', _COL_ARROW_TEAL);   // flat → raise → ▶ lit
+                arrowR.setAttribute('fill', _COL_ARROW_DIM);
+            } else if (cents >= _TUNER_ARROW_THR) {
+                arrowL.setAttribute('fill', _COL_ARROW_DIM);
+                arrowR.setAttribute('fill', _COL_ARROW_WH);     // sharp → lower → ◀ lit
+            } else {
+                arrowL.setAttribute('fill', _COL_ARROW_TEAL);   // in tune → both lit
+                arrowR.setAttribute('fill', _COL_ARROW_WH);
+            }
+
+            // Note display
+            if (hasNote) {
+                noteLetter.textContent     = note.charAt(0);
+                noteAccidental.textContent = note.slice(1);
+            } else {
+                noteLetter.textContent     = '-';
+                noteAccidental.textContent = '';
+            }
+
+            // Octave display
+            octaveEl.textContent = hasNote ? _freqToOctave(freq) : '-';
+
             // Strobe animation wired in Story 4.3
         }
 
