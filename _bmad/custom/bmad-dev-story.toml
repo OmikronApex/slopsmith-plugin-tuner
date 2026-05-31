@@ -12,7 +12,7 @@ activation_steps_prepend = [
 
 3. Find the full epic branch name — it follows the pattern `epic/<N>-<slug>` where <N> is the
    epic's SEQUENTIAL NUMBER (1, 2, 3… as numbered in epics.md), NOT the GitHub issue number.
-   Example: "Epic 6: PT-100 Visualization" → branch is epic/6-pt-100-visualization
+   Example: "Epic 6: PP-Tiny Visualization" → branch is epic/6-pp-tiny-visualization
    git branch -a | grep "epic/<N>-"
    Also check remote: git ls-remote --heads origin "epic/<N>-*"
 

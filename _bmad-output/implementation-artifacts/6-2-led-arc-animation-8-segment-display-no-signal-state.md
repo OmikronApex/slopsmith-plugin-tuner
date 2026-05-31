@@ -8,9 +8,9 @@ Status: review
 
 ## Story
 
-As a guitar player using the PT-100 visualization,
+As a guitar player using the PP-Tiny visualization,
 I want the LED arc to show my deviation bar-graph style and the display to show my note name, with a clean idle state when no signal is detected,
-so that I can tune by reading the familiar PT-100 interface.
+so that I can tune by reading the PP-Tiny interface.
 
 ## Acceptance Criteria
 
@@ -25,7 +25,7 @@ so that I can tune by reading the familiar PT-100 interface.
 
 ## Tasks / Subtasks
 
-- [x] Add live-update helper functions to `visualization/pt-100.js` (AC: 1–7)
+- [x] Add live-update helper functions to `visualization/pp-tiny.js` (AC: 1–7)
   - [x] `_setLed(index, lit)` — sets LED at index to lit or unlit state (see LED States section)
   - [x] `_updateLeds(cents, hasSignal)` — computes which LEDs to light per bar-graph rules (see Bar-Graph Logic)
   - [x] `_setSegment(segEl, lit)` — sets a single segment element lit or unlit
@@ -43,7 +43,7 @@ so that I can tune by reading the familiar PT-100 interface.
 
 ### No RAF Required
 
-Unlike the strobe or axe-fx-iii, the PT-100 LED arc and display update synchronously inside `update()`. There is no continuous animation when idle — LEDs either light or don't based on the current call. Do NOT add an always-running RAF loop; it is unnecessary and wastes CPU when idle. `destroy()` stays as `panel.remove()`.
+Unlike the strobe or axe-fx-iii, the PP-Tiny LED arc and display update synchronously inside `update()`. There is no continuous animation when idle — LEDs either light or don't based on the current call. Do NOT add an always-running RAF loop; it is unnecessary and wastes CPU when idle. `destroy()` stays as `panel.remove()`.
 
 ### Bar-Graph Logic
 
@@ -166,11 +166,11 @@ Story 6.2 needs access to `leds[]`, `segmentEls{}`, and `sharpEl` that are creat
 
 ### No screen.js / routes.py / settings.html Changes
 
-Story 6.2 is entirely within `visualization/pt-100.js`.
+Story 6.2 is entirely within `visualization/pp-tiny.js`.
 
 ### Manual Verification
 
-- Open tuner with PT-100 selected; play a note at 0 cents: only centre red LED lit, correct note letter on display
+- Open tuner with PP-Tiny selected; play a note at 0 cents: only centre red LED lit, correct note letter on display
 - Play at −30 cents: centre LED + 3 left-side LEDs lit (bar of 4)
 - Play at +20 cents: centre LED + 2 right-side LEDs lit (bar of 3)
 - Play a sharp note (A#): display shows "A", "#" symbol glows red
@@ -183,7 +183,7 @@ Story 6.2 is entirely within `visualization/pt-100.js`.
 - Bar-graph LED design: `_bmad-output/planning-artifacts/epics.md` FR-PT-03
 - 8-segment display spec (split centre bar): `_bmad-output/planning-artifacts/epics.md` FR-PT-04
 - No-signal idle: `_bmad-output/planning-artifacts/epics.md` FR-PT-06
-- LED/display visual constants defined in Story 6.1: `visualization/pt-100.js`
+- LED/display visual constants defined in Story 6.1: `visualization/pp-tiny.js`
 - Strobe segment update pattern (reference): `visualization/strobe.js` lines 57–62 (`_updateSegmentDigit`)
 - destroy() RAF pattern (reference): `visualization/strobe.js` lines 176–179
 - Viz factory contract: `_bmad-output/planning-artifacts/architecture.md` §5
@@ -197,7 +197,7 @@ claude-sonnet-4-6
 None — all live logic was implemented together with the Story 6.1 scaffold.
 
 ### Completion Notes List
-- All update helpers implemented in `visualization/pt-100.js` during Story 6.1 (no separate file changes needed)
+- All update helpers implemented in `visualization/pp-tiny.js` during Story 6.1 (no separate file changes needed)
 - `_updateLeds`: bar-graph from centre; clamps cents to ±40; `targetIdx = 4 + Math.round(c/10)`; c≥0 lights j∈[4,targetIdx], c<0 lights j∈[targetIdx,4]
 - `_renderNote`: maps letter to `_TUNER_PT_SEGMENTS` array; drives all 8 segment divs (including split g1/g2)
 - `_setSharp`: toggles `#` symbol colour and text-shadow glow
@@ -205,7 +205,7 @@ None — all live logic was implemented together with the Story 6.1 scaffold.
 - No RAF loop; all updates synchronous inside `update()`; `destroy()` is `panel.remove()`
 
 ### File List
-- visualization/pt-100.js
+- visualization/pp-tiny.js
 
 ### Change Log
 - 2026-05-31: Story 6.2 complete — live update logic implemented as part of Story 6.1 commit

@@ -8,24 +8,24 @@ Status: review
 
 ## Story
 
-As a developer implementing the PT-100 visualization,
+As a developer implementing the PP-Tiny visualization,
 I want a fully structured static panel with all DOM elements in place and the visualization registered in settings,
 so that the subsequent story can layer live data and animation onto a stable, correctly-laid-out foundation.
 
 ## Acceptance Criteria
 
-1. `visualization/pt-100.js` exists as an IIFE that registers `window['_tunerViz_pt-100']` — a factory accepting a `container` DOM element and returning `{ update(note, cents, freq), destroy() }`.
+1. `visualization/pp-tiny.js` exists as an IIFE that registers `window['_tunerViz_pp-tiny']` — a factory accepting a `container` DOM element and returning `{ update(note, cents, freq), destroy() }`.
 2. The static panel renders: chrome-bordered oval/trapezoid panel face (black background, white labels), 9 LED elements in a curved arc (centre LED red-styled, 4 each side blue-styled, all in unlit/dark state), range labels "−40" / "0" / "+40" in white, an 8-segment display element with very-dark-red background and all 8 segments in unlit dark-red state, a "#" symbol element to the right of the display in dim/unlit state, and a red BATT. LED in lower-left with "BATT." label always glowing.
-3. The "PT-100" brand label is visible on the panel face in white.
+3. The "PP-Tiny" brand label is visible on the panel face in white.
 4. `destroy()` removes the panel from the container; no RAF IDs to cancel at this stage.
-5. A "PT-100" option (`value="pt-100"`) is added to the viz selector in `screen.js`.
+5. A "PP-Tiny" option (`value="pp-tiny"`) is added to the viz selector in `screen.js`.
 
 ## Tasks / Subtasks
 
-- [x] Create `visualization/pt-100.js` scaffold (AC: 1, 2, 3, 4)
+- [x] Create `visualization/pp-tiny.js` scaffold (AC: 1, 2, 3, 4)
   - [x] IIFE wrapper `(function() { 'use strict'; ... })()`
   - [x] Module-level constants: `_TUNER_PT_IN_TUNE_THR = 2`, `_TUNER_PT_LED_COUNT = 9`, `_TUNER_PT_CENTS_RANGE = 40`
-  - [x] Register as `window['_tunerViz_pt-100'] = function(container) { ... }` (bracket notation — hyphenated name)
+  - [x] Register as `window['_tunerViz_pp-tiny'] = function(container) { ... }` (bracket notation — hyphenated name)
   - [x] Build outer chrome-bezel container (see Panel Layout section)
   - [x] Build inner black panel face
   - [x] Render 9 LED elements in arc curve (see LED Arc section)
@@ -33,11 +33,11 @@ so that the subsequent story can layer live data and animation onto a stable, co
   - [x] Render 8-segment display element (see 8-Segment Display section)
   - [x] Render "#" symbol element (dim/unlit state)
   - [x] Render BATT. LED element in lit/glowing state with label (see BATT. LED section)
-  - [x] Render "PT-100" brand label
+  - [x] Render "PP-Tiny" brand label
   - [x] Stub `update(note, cents, freq)` — no-op for now (full impl in Story 6.2)
   - [x] `destroy()` that calls `panel.remove()`
 - [x] Wire viz select in `screen.js` (AC: 5)
-  - [x] Add `<option value="pt-100" ${visualizationMode === 'pt-100' ? 'selected' : ''}>PT-100</option>` after the "Toilet Tuner" option (~line 362)
+  - [x] Add `<option value="pp-tiny" ${visualizationMode === 'pp-tiny' ? 'selected' : ''}>PP-Tiny</option>` after the "Toilet Tuner" option (~line 362)
 
 ## Dev Notes
 
@@ -46,18 +46,18 @@ so that the subsequent story can layer live data and animation onto a stable, co
 Same pattern as `toilet-tuner` and `axe-fx-iii`:
 
 ```javascript
-window['_tunerViz_pt-100'] = function(container) { ... };
+window['_tunerViz_pp-tiny'] = function(container) { ... };
 ```
 
-`screen.js` uses `` window[`_tunerViz_${name}`] `` — the template literal resolves correctly for `"pt-100"`. No change to `screen.js` internals beyond adding the `<option>`.
+`screen.js` uses `` window[`_tunerViz_${name}`] `` — the template literal resolves correctly for `"PP-Tiny"`. No change to `screen.js` internals beyond adding the `<option>`.
 
 ### NFR-07 Exempt — Inline Styles Required
 
-This visualization faithfully reproduces the physical Fender PT-100 hardware panel. Pixel-precise colors, gradients, shadows, and shapes require inline styles throughout. **Do not use Tailwind classes for visual styling of the PT-100 panel itself.** The container/wrapper integration with the tuner panel may still use Tailwind for outer dimensions.
+This visualization faithfully reproduces the physical PP-Tiny panel. Pixel-precise colors, gradients, shadows, and shapes require inline styles throughout. **Do not use Tailwind classes for visual styling of the PP-Tiny panel itself.** The container/wrapper integration with the tuner panel may still use Tailwind for outer dimensions.
 
 ### Panel Layout
 
-The PT-100 has a wide, low-profile oval/trapezoid shape with a chrome/silver bezel. Suggested approach:
+The PP-Tiny has a wide, low-profile oval/trapezoid shape with a chrome/silver bezel. Suggested approach:
 
 ```javascript
 // Outer chrome bezel
@@ -131,7 +131,7 @@ for (var i = 0; i < _TUNER_PT_LED_COUNT; i++) {
 
 ### 8-Segment Display
 
-The PT-100 centre display uses 8 segments: standard 7-segment layout EXCEPT the middle horizontal bar is split into left-half (g1) and right-half (g2). This enables cleaner letter rendering.
+The PP-Tiny centre display uses 8 segments: standard 7-segment layout EXCEPT the middle horizontal bar is split into left-half (g1) and right-half (g2). This enables cleaner letter rendering.
 
 Segment layout (positions within a rectangle):
 - `a` — top horizontal bar
@@ -229,7 +229,7 @@ face.appendChild(battWrap);
 
 Note: `battLed.style.width = '5%'` uses percentage of `face` width. Since `face` uses `position:relative` at 100% of the chrome bezel interior, this scales proportionally.
 
-### "PT-100" Brand Label
+### "PP-Tiny" Brand Label
 
 Centred at the bottom of the face:
 
@@ -246,7 +246,7 @@ brandLabel.style.cssText = [
     'letter-spacing:0.08em',
     'pointer-events:none'
 ].join(';');
-brandLabel.textContent = 'PT-100';
+brandLabel.textContent = 'PP-Tiny';
 face.appendChild(brandLabel);
 ```
 
@@ -267,19 +267,19 @@ Current block ends (~line 362 after Epic 5):
 
 Add immediately after:
 ```javascript
-<option value="pt-100" ${visualizationMode === 'pt-100' ? 'selected' : ''}>PT-100</option>
+<option value="pp-tiny" ${visualizationMode === 'pp-tiny' ? 'selected' : ''}>PP-Tiny</option>
 ```
 
 ### Manual Verification
 
-- Docker restart → open tuner panel → switch to "PT-100" via settings
+- Docker restart → open tuner panel → switch to "PP-Tiny" via settings
 - Panel renders with chrome oval bezel, black inner face
 - 9 LED domes visible in arc — all dark (unlit)
 - Range labels −40, 0, +40 visible in white
 - 8-segment display: dark-red background, all segments in dark-red unlit state
 - "#" symbol visible but dim
 - BATT. LED glowing red in lower-left with "BATT." label
-- "PT-100" brand label visible
+- "PP-Tiny" brand label visible
 - Switch to another visualization → `destroy()` → container empty, no errors
 
 ### References
@@ -301,17 +301,17 @@ claude-sonnet-4-6
 None — straightforward scaffold implementation.
 
 ### Completion Notes List
-- Created `visualization/pt-100.js` as IIFE; registered as `window['_tunerViz_pt-100']` (bracket notation for hyphenated name)
+- Created `visualization/pp-tiny.js` as IIFE; registered as `window['_tunerViz_pp-tiny']` (bracket notation for hyphenated name)
 - Chrome oval bezel uses `border-radius: 50% / 38%` with linear-gradient silver; inner black face uses `border-radius: 44% / 28%`
 - 9 LEDs positioned along computed arc (centre x=50%, y=108%, radius=58%); arc sweep 212°–328° gives a shallow upward curve
 - 8-segment display built as absolute-positioned divs; g1/g2 are left/right halves of the split centre bar
 - All live update helpers (_setLed, _updateLeds, _renderNote, _setSharp) included — Story 6.2 is entirely within this file with no structural changes needed
-- BATT. LED always glowing red; "PT-100" brand label and range labels in white
-- Added `<option value="pt-100">PT-100</option>` to viz selector in `screen.js` after the Toilet Tuner option
+- BATT. LED always glowing red; "PP-Tiny" brand label and range labels in white
+- Added `<option value="pp-tiny">PP-Tiny</option>` to viz selector in `screen.js` after the Toilet Tuner option
 
 ### File List
-- visualization/pt-100.js
+- visualization/pp-tiny.js
 - screen.js
 
 ### Change Log
-- 2026-05-31: Story 6.1 implemented — PT-100 scaffold, static layout, settings wiring
+- 2026-05-31: Story 6.1 implemented — PP-Tiny scaffold, static layout, settings wiring

@@ -26,7 +26,7 @@
         ' ': [ false, false, false, false, false, false, false, false ],
     };
 
-    window['_tunerViz_pt-100'] = function (container) {
+    window['_tunerViz_pp-tiny'] = function (container) {
         'use strict';
 
         // ── Chrome bezel ──────────────────────────────────────────────
