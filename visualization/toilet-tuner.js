@@ -49,10 +49,12 @@
         // ── Note label (over calendar on wall) ────────────────────────
         var noteEl = document.createElement('div');
         noteEl.className = 'absolute font-bold pointer-events-none';
-        noteEl.style.right      = '9%';
-        noteEl.style.top        = '9%';
-        noteEl.style.fontSize   = '1.4rem';
+        noteEl.style.right      = '14.25%';
+        noteEl.style.top        = '17%';
+        noteEl.style.fontSize   = '1.6rem';
         noteEl.style.color      = '#303332';
+        noteEl.style.textAlign  = 'center';
+        noteEl.style.transform  = 'translateX(50%)';
         noteEl.textContent      = '–';
         panel.appendChild(noteEl);
 
