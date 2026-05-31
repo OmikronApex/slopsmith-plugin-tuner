@@ -29,26 +29,33 @@
     window['_tunerViz_toilet-tuner'] = function (container) {
         'use strict';
 
-        // ── Root panel ────────────────────────────────────────────────
+        // ── Root panel — 1:1 square, full width ───────────────────────
+        // padding-bottom: 100% trick: reliable square even with all-absolute children
         var panel = document.createElement('div');
         panel.className = 'relative w-full overflow-hidden select-none';
-        panel.style.aspectRatio = '16 / 9';
-        panel.style.minHeight = '120px';
+        panel.style.height        = '0';
+        panel.style.paddingBottom = '100%';
 
         // ── Background ────────────────────────────────────────────────
         var bgImg = document.createElement('img');
         bgImg.src = _TUNER_TT_ASSET_BASE + 'Bathroom.svg';
-        bgImg.className = 'absolute inset-0 w-full h-full object-cover pointer-events-none';
+        bgImg.style.position = 'absolute';
+        bgImg.style.top      = '0';
+        bgImg.style.left     = '0';
+        bgImg.style.width    = '100%';
+        bgImg.style.height   = '100%';
+        bgImg.style.objectFit = 'cover';
+        bgImg.className = 'pointer-events-none';
         panel.appendChild(bgImg);
 
         // ── Note label (over calendar on wall) ────────────────────────
         var noteEl = document.createElement('div');
         noteEl.className = 'absolute font-bold pointer-events-none';
-        noteEl.style.right     = '9%';
-        noteEl.style.top       = '9%';
-        noteEl.style.fontSize  = '3.5%';
-        noteEl.style.color     = '#303332';
-        noteEl.textContent     = '–';
+        noteEl.style.right      = '9%';
+        noteEl.style.top        = '9%';
+        noteEl.style.fontSize   = '1.4rem';
+        noteEl.style.color      = '#303332';
+        noteEl.textContent      = '–';
         panel.appendChild(noteEl);
 
         // ── Plunger ───────────────────────────────────────────────────
