@@ -17,6 +17,18 @@
     let processingFrame = false;
     let yinWorker = null;
 
+    // ── Pitch stability state ─────────────────────────────────────────
+    let _freqHistory = [];
+    let _peakRms     = 0;
+    const _FREQ_HISTORY_LEN = 7;
+    const _RMS_FADE_RATIO   = 0.1;
+
+    function _median(arr) {
+        var s = arr.slice().sort(function(a, b) { return a - b; });
+        var mid = Math.floor(s.length / 2);
+        return s.length % 2 !== 0 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
+    }
+
     // ── Player sync state ─────────────────────────────────────────────
     let _onScreenChanged = null;
     let _onSongReady = null;
@@ -460,6 +472,8 @@
         processingFrame = false;
         pendingBuffer = null;
         accumBuffer = new Float32Array(0);
+        _freqHistory = [];
+        _peakRms     = 0;
         if (processor) { processor.disconnect(); processor = null; }
         if (gainNode) { gainNode.disconnect(); gainNode = null; }
         if (sourceNode) { sourceNode.disconnect(); sourceNode = null; }
@@ -570,8 +584,13 @@
     // ── UI update (called from detection loop) ────────────────────────
     function updateUI(result) {
         const rms = result ? result.rms : 0;
-        const hasSignal = rms > 0.01;
         const vizMode = manualTargetFreq ? 'manual' : (selectedTuning && selectedTuning.length > 0 ? 'auto' : 'free');
+
+        // Adaptive silence threshold: below 10% of peak RMS for this note = no signal.
+        // True silence (rms < 0.01) resets the peak so the next pluck starts fresh.
+        const hasAbsoluteSignal = rms > 0.01;
+        if (!hasAbsoluteSignal) _peakRms = 0;
+        const hasSignal = hasAbsoluteSignal && rms >= Math.max(0.01, _peakRms * _RMS_FADE_RATIO);
 
         if (!result || (!hasSignal && result.confidence < 0.5) || (result.freq < _TUNER_MIN_DETECTABLE_HZ && result.freq !== 0)) {
             if (activeViz) activeViz.update(null, 0, 0, vizMode);
@@ -586,7 +605,11 @@
             return;
         }
 
-        const freq = result.freq;
+        // Valid signal: update peak RMS and median frequency history.
+        _peakRms = Math.max(_peakRms, rms);
+        _freqHistory.push(result.freq);
+        if (_freqHistory.length > _FREQ_HISTORY_LEN) _freqHistory.shift();
+        const freq = _median(_freqHistory);
 
         let targetFreq;
         let isManual = false;
