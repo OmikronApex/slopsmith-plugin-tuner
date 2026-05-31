@@ -19,7 +19,7 @@ This plugin adds a floating "Tuner" button to the Slopsmith interface, providing
 - **Custom Tunings**: Add your own tunings via note names (e.g., E2, A2) or Hz frequencies in the settings.
 - **Audio Device Selection**: Choose specific input devices and channels (Mono, Left, Right) for professional interfaces.
 - **Themable UI**: Styled with Tailwind CSS to match your Slopsmith theme.
-- **Visualizations**: Pick from different visualizations to suite your needs (Currently: Default and Strobe)
+- **Visualizations**: Pick from different visualizations to suit your needs (Currently: Default, Strobe, and Analogue Gauge)
 
 ## Installation
 
@@ -61,6 +61,11 @@ Access advanced settings via the Slopsmith Plugin Manager (Settings -> Plugins -
 
 
 ## Changelog
+
+### [1.2.6] - 2026-05-31
+- Added Analogue Gauge visualization: vintage mechanical instrument panel with rotating frequency and note name drums, semicircular needle gauge, and a physical-style in-tune lightbulb.
+- Added AUTO mode indicator lamp: lights when Free Tune is active, dims on manual string lock.
+- Visualizations now receive tuning mode context (`free` / `auto` / `manual`) from the core plugin.
 
 ### [1.2.5] - 2026-05-30
 - Improved mic error handling: better error messages and inline error banner instead of browser alert.

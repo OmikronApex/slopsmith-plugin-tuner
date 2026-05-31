@@ -334,6 +334,7 @@
             <select class="tuner-viz-select w-full bg-dark-800 border border-gray-700 rounded px-2 py-1 text-gray-200 outline-none focus:border-accent">
                 <option value="default" ${visualizationMode === 'default' ? 'selected' : ''}>Default</option>
                 <option value="strobe" ${visualizationMode === 'strobe' ? 'selected' : ''}>Strobe</option>
+                <option value="analogue-gauge" ${visualizationMode === 'analogue-gauge' ? 'selected' : ''}>Analogue Gauge</option>
             </select>
         `;
 
@@ -353,7 +354,8 @@
             visualizationMode = e.target.value;
             await _setVisualization(visualizationMode);
             saveConfig();
-            if (activeViz) activeViz.update(null, 0, 0);
+            const vizMode = manualTargetFreq ? 'manual' : (selectedTuning && selectedTuning.length > 0 ? 'auto' : 'free');
+            if (activeViz) activeViz.update(null, 0, 0, vizMode);
         };
 
         populateDevices(panel);
@@ -568,16 +570,17 @@
     function updateUI(result) {
         const rms = result ? result.rms : 0;
         const hasSignal = rms > 0.01;
+        const vizMode = manualTargetFreq ? 'manual' : (selectedTuning && selectedTuning.length > 0 ? 'auto' : 'free');
 
         if (!result || (!hasSignal && result.confidence < 0.5) || (result.freq < _TUNER_MIN_DETECTABLE_HZ && result.freq !== 0)) {
-            if (activeViz) activeViz.update(null, 0, 0);
+            if (activeViz) activeViz.update(null, 0, 0, vizMode);
             _syncStringHighlight(manualTargetFreq);
             return;
         }
 
         if (result.confidence < 0.5 && hasSignal) {
             // dim signal — let viz handle its own timeout
-            if (activeViz) activeViz.update(null, 0, 0);
+            if (activeViz) activeViz.update(null, 0, 0, vizMode);
             _syncStringHighlight(manualTargetFreq);
             return;
         }
@@ -598,7 +601,7 @@
         const cents = (window._tunerUtils.freqToMidi(freq) - window._tunerUtils.freqToMidi(targetFreq)) * 100;
         const note = window._tunerUtils.midiToNote(window._tunerUtils.freqToMidi(targetFreq));
 
-        if (activeViz) activeViz.update(note, cents, freq);
+        if (activeViz) activeViz.update(note, cents, freq, vizMode);
         _syncActiveStringFromFreq(targetFreq, isManual);
     }
 

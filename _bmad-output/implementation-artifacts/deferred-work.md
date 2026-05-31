@@ -1,5 +1,12 @@
 # Deferred Work
 
+## Deferred from: code review of stories 3.1, 3.2, 3.3 (2026-05-31)
+
+- **Out-of-range freq shows strip endpoint label silently** (`analogue-gauge.js:_computeDrumY`) — Freq below ~18 Hz or above ~1047 Hz clamps to strip endpoints; needle still shows real cents, creating mismatch. Strip range covers full guitar/bass spec; out-of-range is an edge case.
+- **No `white-space: nowrap` on freq drum labels** (`analogue-gauge.js`) — Very long Hz strings (e.g. "1047.5 Hz") could wrap and double the effective label row height at narrow container widths, desynchronising the two drums visually. Low probability in typical Slopsmith layouts.
+- **RAF runs unconditionally from factory construction** (`analogue-gauge.js:317`) — No idle-detection or visibility pause. Pre-existing pattern matching `strobe.js`; Slopsmith always calls `destroy()` before navigation.
+- **Already-queued RAF fires once after `destroy()`** (`analogue-gauge.js:362`) — Frame enqueued before `cancelAnimationFrame` fires once more; `activeViz` is nulled by `screen.js` before any `update()` can reach the detached DOM. Not observable in practice.
+
 ## Deferred from: code review of Epic 2 stories 2.3 & 2.4 (2026-05-30)
 
 - **`errEl.innerHTML` XSS pattern** (`screen.js` `_showMicError`) — `errEl.innerHTML` interpolates `e?.message` which is browser-controlled; pre-existing before this epic. Recommend migrating to `textContent` + DOM-built structure when `_showMicError` is next touched.
