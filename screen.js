@@ -19,7 +19,9 @@
 
     // ── Pitch stability state ─────────────────────────────────────────
     let _freqHistory = [];
+    let _validFrameCount = 0;
     const _FREQ_HISTORY_LEN = 3;
+    const _WARMUP_FRAMES = 2;   // skip pluck-attack transient before showing pitch
 
     function _median(arr) {
         if (!arr.length) return 0;
@@ -472,6 +474,7 @@
         pendingBuffer = null;
         accumBuffer = new Float32Array(0);
         _freqHistory = [];
+        _validFrameCount = 0;
         if (processor) { processor.disconnect(); processor = null; }
         if (gainNode) { gainNode.disconnect(); gainNode = null; }
         if (sourceNode) { sourceNode.disconnect(); sourceNode = null; }
@@ -587,6 +590,8 @@
         const hasSignal = rms > 0.01;
 
         if (!result || (!hasSignal && result.confidence < 0.5) || (result.freq < _TUNER_MIN_DETECTABLE_HZ && result.freq !== 0)) {
+            _validFrameCount = 0;
+            _freqHistory = [];
             if (activeViz) activeViz.update(null, 0, 0, vizMode);
             _syncStringHighlight(manualTargetFreq);
             return;
@@ -594,6 +599,8 @@
 
         if (result.confidence < 0.5 && hasSignal) {
             // dim signal — let viz handle its own timeout
+            _validFrameCount = 0;
+            _freqHistory = [];
             if (activeViz) activeViz.update(null, 0, 0, vizMode);
             _syncStringHighlight(manualTargetFreq);
             return;
@@ -602,6 +609,16 @@
         // Valid signal: push raw YIN freq into median history.
         _freqHistory.push(result.freq);
         if (_freqHistory.length > _FREQ_HISTORY_LEN) _freqHistory.shift();
+
+        // Skip the pluck-attack transient — keep filling history but hold the
+        // display until a few consecutive valid frames have settled the pitch.
+        _validFrameCount++;
+        if (_validFrameCount <= _WARMUP_FRAMES) {
+            if (activeViz) activeViz.update(null, 0, 0, vizMode);
+            _syncStringHighlight(manualTargetFreq);
+            return;
+        }
+
         const freq = _median(_freqHistory);
 
         let targetFreq;
