@@ -262,6 +262,18 @@
         strobeSvg.appendChild(arcPath);
         panel.appendChild(strobeSvg);
 
+        // ── LCD grid overlay ──────────────────────────────────────────
+        var lcdGrid = document.createElement('div');
+        lcdGrid.style.position   = 'absolute';
+        lcdGrid.style.inset      = '0';
+        lcdGrid.style.zIndex     = '50';
+        lcdGrid.style.pointerEvents = 'none';
+        lcdGrid.style.backgroundImage = [
+            'repeating-linear-gradient(0deg,   rgba(0,0,0,0.18) 0px, rgba(0,0,0,0.18) 1px, transparent 1px, transparent 4px)',
+            'repeating-linear-gradient(90deg,  rgba(0,0,0,0.18) 0px, rgba(0,0,0,0.18) 1px, transparent 1px, transparent 4px)'
+        ].join(',');
+        panel.appendChild(lcdGrid);
+
         container.appendChild(panel);
 
         // ── Internal state ────────────────────────────────────────────
