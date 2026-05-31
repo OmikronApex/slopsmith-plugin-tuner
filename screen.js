@@ -335,6 +335,7 @@
                 <option value="default" ${visualizationMode === 'default' ? 'selected' : ''}>Default</option>
                 <option value="strobe" ${visualizationMode === 'strobe' ? 'selected' : ''}>Strobe</option>
                 <option value="analogue-gauge" ${visualizationMode === 'analogue-gauge' ? 'selected' : ''}>Analogue Gauge</option>
+                <option value="axe-fx-iii" ${visualizationMode === 'axe-fx-iii' ? 'selected' : ''}>Axe-Fx III</option>
             </select>
         `;
 
