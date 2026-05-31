@@ -50,10 +50,18 @@
         panel.style.aspectRatio = '16 / 9';
         panel.style.minHeight = '120px';
 
-        // ── Mode tabs (top-right) ─────────────────────────────────────
+        // ── Mode tabs (full-width bar, ~12.5% height) ────────────────
         var tabsWrap = document.createElement('div');
-        tabsWrap.className = 'absolute top-0 right-0 flex';
-        tabsWrap.style.zIndex = '10';
+        tabsWrap.style.position      = 'absolute';
+        tabsWrap.style.top           = '0';
+        tabsWrap.style.left          = '0';
+        tabsWrap.style.right         = '0';
+        tabsWrap.style.height        = '12.5%';
+        tabsWrap.style.display       = 'flex';
+        tabsWrap.style.alignItems    = 'flex-end';
+        tabsWrap.style.justifyContent = 'flex-end';
+        tabsWrap.style.borderBottom  = '2px solid ' + _COL_TAB_ACT_BG;
+        tabsWrap.style.zIndex        = '10';
 
         var _tabNames = ['Free', 'Auto', 'Manual'];
         var _tabEls = _tabNames.map(function (name) {
@@ -67,17 +75,25 @@
         });
         panel.appendChild(tabsWrap);
 
-        // ── Chromatic gauge strip (upper area) ───────────────────────
-        // Outer wrapper spans from center of note name to center of octave (~7% each side)
-        var gaugeOuter = document.createElement('div');
-        gaugeOuter.className = 'absolute';
-        gaugeOuter.style.top   = '12%';
-        gaugeOuter.style.left  = '7%';
-        gaugeOuter.style.right = '7%';
-        gaugeOuter.style.zIndex = '5';
+        // ── Gauge + arrows zone (25%→50% from top) ───────────────────
+        var gaugeZone = document.createElement('div');
+        gaugeZone.style.position      = 'absolute';
+        gaugeZone.style.top           = '25%';
+        gaugeZone.style.left          = '0';
+        gaugeZone.style.right         = '0';
+        gaugeZone.style.height        = '25%';
+        gaugeZone.style.display       = 'flex';
+        gaugeZone.style.flexDirection = 'column';
+        gaugeZone.style.justifyContent = 'center';
+        gaugeZone.style.zIndex        = '5';
 
-        // Dark green background panel — height = regular tick height
-        var TICK_REG_H = 10;   // px in SVG-like units; we use em below
+        // Chromatic gauge — spans note-center to octave-center (7% inset each side)
+        var gaugeOuter = document.createElement('div');
+        gaugeOuter.style.position   = 'relative';
+        gaugeOuter.style.marginLeft = '7%';
+        gaugeOuter.style.marginRight = '7%';
+        gaugeOuter.style.flexShrink = '0';
+
         var gaugeBg = document.createElement('div');
         gaugeBg.style.position        = 'absolute';
         gaugeBg.style.top             = '50%';
@@ -89,7 +105,6 @@
         gaugeBg.style.borderRadius    = '2px';
         gaugeOuter.appendChild(gaugeBg);
 
-        // Tick container
         var gaugeWrap = document.createElement('div');
         gaugeWrap.className = 'relative flex items-center justify-between';
         gaugeWrap.style.height = '1.4em';
@@ -107,7 +122,6 @@
             _tickEls.push(tick);
         }
 
-        // White pitch-position marker
         var marker = document.createElement('div');
         marker.style.position        = 'absolute';
         marker.style.top             = '0';
@@ -122,21 +136,22 @@
         gaugeWrap.appendChild(marker);
 
         gaugeOuter.appendChild(gaugeWrap);
-        panel.appendChild(gaugeOuter);
+        gaugeZone.appendChild(gaugeOuter);
 
-        // ── Direction arrows (SVG) ────────────────────────────────────
-        // Single SVG, width = ±10¢ zone (17.2% of panel), centered.
-        // viewBox 100×10: left triangle 0→42.5, gap 42.5→57.5 (15% = ~3¢), right triangle 57.5→100.
+        // Spacer: 1/3 of regular tick height (1/3 * 55% * 1.4em ≈ 0.257em)
+        var gaugeArrowGap = document.createElement('div');
+        gaugeArrowGap.style.height     = '0.257em';
+        gaugeArrowGap.style.flexShrink = '0';
+        gaugeZone.appendChild(gaugeArrowGap);
+
+        // Direction arrows SVG — outer edges at ±10¢, gap 15% (~3¢)
         var arrowSvg = document.createElementNS(_SVG_NS, 'svg');
         arrowSvg.setAttribute('viewBox', '0 0 100 10');
         arrowSvg.setAttribute('preserveAspectRatio', 'none');
-        arrowSvg.setAttribute('class', 'absolute');
-        arrowSvg.style.top       = '38%';
-        arrowSvg.style.left      = '50%';
-        arrowSvg.style.transform = 'translateX(-50%)';
+        arrowSvg.style.alignSelf = 'center';
         arrowSvg.style.width     = '17.2%';
         arrowSvg.style.height    = '0.77rem';
-        arrowSvg.style.zIndex    = '5';
+        arrowSvg.style.flexShrink = '0';
         arrowSvg.style.overflow  = 'visible';
 
         var arrowLPoly = document.createElementNS(_SVG_NS, 'polygon');
@@ -149,30 +164,40 @@
 
         arrowSvg.appendChild(arrowLPoly);
         arrowSvg.appendChild(arrowRPoly);
-        panel.appendChild(arrowSvg);
+        gaugeZone.appendChild(arrowSvg);
+        panel.appendChild(gaugeZone);
 
         // Keep refs for colour updates
         var arrowL = arrowLPoly;
         var arrowR = arrowRPoly;
 
-        // ── Note name display (bottom-left) ───────────────────────────
+        // ── Note name display (bottom-left) ──────────────────────────
+        // Vertical center at 33% from bottom (= 67% from top), height 25%.
         var noteWrap = document.createElement('div');
-        noteWrap.className = 'absolute bottom-0 left-0 flex items-end leading-none';
-        noteWrap.style.paddingLeft   = '4%';
-        noteWrap.style.paddingBottom = '4%';
-        noteWrap.style.color         = _COL_NOTE;
-        noteWrap.style.zIndex        = '5';
+        noteWrap.style.position    = 'absolute';
+        noteWrap.style.left        = '0';
+        noteWrap.style.top         = '67%';
+        noteWrap.style.transform   = 'translateY(-50%)';
+        noteWrap.style.height      = '25%';
+        noteWrap.style.display     = 'flex';
+        noteWrap.style.alignItems  = 'center';
+        noteWrap.style.paddingLeft = '4%';
+        noteWrap.style.color       = _COL_NOTE;
+        noteWrap.style.zIndex      = '5';
 
         var noteLetter = document.createElement('span');
-        noteLetter.style.fontSize  = '3.2rem';
+        noteLetter.style.fontSize   = '3.2rem';
         noteLetter.style.fontWeight = '700';
+        noteLetter.style.lineHeight = '1';
         noteLetter.textContent      = '-';
 
         var noteAccidental = document.createElement('span');
         noteAccidental.style.fontSize     = '1.7rem';
         noteAccidental.style.fontWeight   = '700';
-        noteAccidental.style.marginBottom = '0.3rem';
+        noteAccidental.style.lineHeight   = '1';
         noteAccidental.style.marginLeft   = '1px';
+        noteAccidental.style.alignSelf    = 'flex-start';
+        noteAccidental.style.marginTop    = '0.3em';
         noteAccidental.textContent        = '';
 
         noteWrap.appendChild(noteLetter);
@@ -181,14 +206,20 @@
 
         // ── Octave display (bottom-right) ─────────────────────────────
         var octaveEl = document.createElement('div');
-        octaveEl.className = 'absolute bottom-0 right-0 leading-none';
-        octaveEl.style.paddingRight  = '4%';
-        octaveEl.style.paddingBottom = '4%';
-        octaveEl.style.fontSize      = '3.2rem';
-        octaveEl.style.fontWeight    = '700';
-        octaveEl.style.color         = _COL_NOTE;
-        octaveEl.style.zIndex        = '5';
-        octaveEl.textContent         = '-';
+        octaveEl.style.position     = 'absolute';
+        octaveEl.style.right        = '0';
+        octaveEl.style.top          = '67%';
+        octaveEl.style.transform    = 'translateY(-50%)';
+        octaveEl.style.height       = '25%';
+        octaveEl.style.display      = 'flex';
+        octaveEl.style.alignItems   = 'center';
+        octaveEl.style.paddingRight = '4%';
+        octaveEl.style.fontSize     = '3.2rem';
+        octaveEl.style.fontWeight   = '700';
+        octaveEl.style.lineHeight   = '1';
+        octaveEl.style.color        = _COL_NOTE;
+        octaveEl.style.zIndex       = '5';
+        octaveEl.textContent        = '-';
         panel.appendChild(octaveEl);
 
         // ── Strobe semicircle SVG (bottom-centre) ─────────────────────
@@ -209,7 +240,7 @@
         strobeSvg.style.bottom    = '0';
         strobeSvg.style.left      = '50%';
         strobeSvg.style.transform = 'translateX(-50%)';
-        strobeSvg.style.width    = '25%';
+        strobeSvg.style.width    = '33%';
         strobeSvg.style.overflow = 'visible';
         strobeSvg.style.zIndex   = '4';
 
