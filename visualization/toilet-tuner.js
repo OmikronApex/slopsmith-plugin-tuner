@@ -104,6 +104,7 @@
                 : _TUNER_TT_CENTRE_PCT + (_currentCents / 50) * (_TUNER_TT_RIGHT_PCT - _TUNER_TT_CENTRE_PCT);
 
             if (inTune && !_plungerDipped) {
+                _leftPct = _TUNER_TT_CENTRE_PCT;
                 _topPct = _TUNER_TT_DIPPED_TOP;
                 _plungerDipped = true;
                 noteEl.textContent = '💩';
