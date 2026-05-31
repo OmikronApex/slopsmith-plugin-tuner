@@ -1,6 +1,10 @@
 # Story 4.3: Strobe Animation & No-Signal Polish
 
-Status: ready-for-dev
+---
+baseline_commit: d3166f44afc97073209ff331cc8c2114b3a0d139
+---
+
+Status: review
 
 ## Story
 
@@ -19,23 +23,23 @@ so that I can use the strobe as a precision in-tune confirmation alongside the c
 
 ## Tasks / Subtasks
 
-- [ ] Implement strobe RAF animation loop (AC: 1–3)
-  - [ ] Declare `var rafId = null; var strobeAngle = 0; var currentCents = 0; var strobeActive = false;` in factory scope
-  - [ ] Write `_animateStrobe()` RAF callback:
+- [x] Implement strobe RAF animation loop (AC: 1–3)
+  - [x] Declare `var rafId = null; var strobeAngle = 0; var currentCents = 0; var strobeActive = false;` in factory scope
+  - [x] Write `_animateStrobe()` RAF callback:
     - Compute `dt` from `performance.now()` delta (cap at 100 ms to handle tab-background pauses)
     - Only advance `strobeAngle` when `strobeActive && Math.abs(currentCents) > 2`
     - Speed formula (matches strobe.js exponential feel): `speed = maxSpeed * (Math.pow(base, Math.abs(currentCents) / 50) - 1) / (base - 1)` where `maxSpeed = 180` (deg/s), `base = 10`
     - Direction: `if (currentCents < 0) speed = -speed;`
     - `strobeAngle = (strobeAngle + speed * dt + 360) % 360`
-    - Apply: `strobeGroup.setAttribute('transform', 'rotate(' + strobeAngle + ',' + cx + ',' + cy + ')')` where `cx, cy` is the SVG arc centre
+    - Apply: `stroke-dashoffset` on arcPath (equivalent to group rotation for dashed arc)
     - `rafId = requestAnimationFrame(_animateStrobe)`
-  - [ ] Start loop immediately: `rafId = requestAnimationFrame(_animateStrobe)`
-- [ ] Wire strobe state into `update()` (AC: 1–4)
-  - [ ] If `note === null`: set `strobeActive = false; currentCents = 0;` (loop continues running but angle does not advance)
-  - [ ] If `note !== null`: set `strobeActive = true; currentCents = cents;`
-- [ ] Update `destroy()` (AC: 5–6)
-  - [ ] `if (rafId) { cancelAnimationFrame(rafId); rafId = null; }`
-  - [ ] Remove panel from container (single `panel.remove()` call removes all DOM)
+  - [x] Start loop immediately: `rafId = requestAnimationFrame(_animateStrobe)`
+- [x] Wire strobe state into `update()` (AC: 1–4)
+  - [x] If `note === null`: set `strobeActive = false; currentCents = 0;` (loop continues running but angle does not advance)
+  - [x] If `note !== null`: set `strobeActive = true; currentCents = cents;`
+- [x] Update `destroy()` (AC: 5–6)
+  - [x] `if (rafId) { cancelAnimationFrame(rafId); rafId = null; }`
+  - [x] Remove panel from container (single `panel.remove()` call removes all DOM)
 
 ## Dev Notes
 
@@ -109,9 +113,21 @@ function destroy() {
 ## Dev Agent Record
 
 ### Agent Model Used
+claude-sonnet-4-6
 
 ### Debug Log References
+None — implementation straightforward. Key deviation from Dev Notes: used `stroke-dashoffset` instead of `<g transform="rotate(...)">` since the strobe is a dashed arc path (not a diamond group). This produces the identical visual effect with no arc distortion.
 
 ### Completion Notes List
+- Added `_strobeOffset`, `_currentCents`, `_strobeActive`, `_lastTime`, `_totalDash` state vars
+- `_animateStrobe(now)`: dt-capped RAF loop; exponential speed formula `halfCirc*(10^(|c|/50)-1)/9`; only advances offset when `strobeActive && |cents|>2`; direction: flat→positive offset (clockwise), sharp→negative (counter-clockwise)
+- Loop starts immediately on factory init; always runs, angle freezes when inactive (no leak)
+- `update()`: sets `_strobeActive`/`_currentCents` on every call
+- `destroy()`: pre-existing `cancelAnimationFrame(_rafId)` is sufficient; no change needed
+- Validated speed range and direction via Node.js simulation
 
 ### File List
+- visualization/axe-fx-iii.js
+
+### Change Log
+- 2026-05-31: Story 4.3 implemented — strobe RAF animation, no-signal freeze, destroy cleanup

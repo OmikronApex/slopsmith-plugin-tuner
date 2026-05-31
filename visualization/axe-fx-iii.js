@@ -329,8 +329,34 @@
         container.appendChild(panel);
 
         // ── Internal state ────────────────────────────────────────────
-        var _rafId       = null;
-        var _currentMode = 'free';
+        var _rafId         = null;
+        var _currentMode   = 'free';
+        var _strobeOffset  = 0;      // stroke-dashoffset accumulator (SVG length units)
+        var _currentCents  = 0;
+        var _strobeActive  = false;
+        var _lastTime      = null;
+        var _totalDash     = _dashLen + _gapLen;  // one dash-cycle period
+
+        // ── Strobe RAF animation loop ─────────────────────────────────
+        // Uses stroke-dashoffset to slide the pattern along the fixed arc path —
+        // equivalent to rotating a diamond group but correct for a dashed stroke.
+        // Speed formula mirrors strobe.js exponential curve; max = halfCirc units/s.
+        function _animateStrobe(now) {
+            if (_lastTime === null) { _lastTime = now; }
+            var dt = Math.min((now - _lastTime) / 1000, 0.1);
+            _lastTime = now;
+
+            if (_strobeActive && Math.abs(_currentCents) > _TUNER_IN_TUNE_THR) {
+                var absCents = Math.min(50, Math.abs(_currentCents));
+                var speed    = _halfCirc * (Math.pow(10, absCents / 50) - 1) / 9;
+                if (_currentCents > 0) { speed = -speed; }  // sharp → counter-clockwise
+                _strobeOffset = ((_strobeOffset + speed * dt) % _totalDash + _totalDash) % _totalDash;
+                arcPath.setAttribute('stroke-dashoffset', String(_strobeOffset));
+            }
+
+            _rafId = requestAnimationFrame(_animateStrobe);
+        }
+        _rafId = requestAnimationFrame(_animateStrobe);
 
         // ── Helper: derive octave number from frequency ───────────────
         function _freqToOctave(freq) {
@@ -400,7 +426,14 @@
             // Octave display
             octaveEl.textContent = hasNote ? _freqToOctave(freq) : '-';
 
-            // Strobe animation wired in Story 4.3
+            // Strobe state
+            if (!hasNote) {
+                _strobeActive = false;
+                _currentCents = 0;
+            } else {
+                _strobeActive = true;
+                _currentCents = cents;
+            }
         }
 
         // ── Public: destroy ───────────────────────────────────────────
