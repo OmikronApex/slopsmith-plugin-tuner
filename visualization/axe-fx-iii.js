@@ -96,11 +96,10 @@
 
         var gaugeBg = document.createElement('div');
         gaugeBg.style.position        = 'absolute';
-        gaugeBg.style.top             = '50%';
+        gaugeBg.style.top             = '22.5%';   // (100% - 55%) / 2, matches flex items-center
         gaugeBg.style.left            = '0';
         gaugeBg.style.right           = '0';
-        gaugeBg.style.height          = '0.77em';
-        gaugeBg.style.transform       = 'translateY(-50%)';
+        gaugeBg.style.height          = '55%';
         gaugeBg.style.backgroundColor = 'rgba(0,60,20,0.7)';
         gaugeBg.style.borderRadius    = '2px';
         gaugeOuter.appendChild(gaugeBg);
