@@ -80,7 +80,6 @@
         bowlEl.style.left       = '36.3%';
         bowlEl.style.top        = '65.8%';
         bowlEl.style.width      = '27.4%';
-        bowlEl.style.visibility = 'hidden';
         panel.appendChild(bowlEl);
 
         container.appendChild(panel);
@@ -110,13 +109,11 @@
                 if (Math.abs(_leftPct - _TUNER_TT_CENTRE_PCT) < 0.5) {
                     _topPct = _TUNER_TT_DIPPED_TOP;
                     _plungerDipped = true;
-                    bowlEl.style.visibility = 'visible';
                 }
             } else if (!inTune && _plungerDipped) {
                 // Rise immediately, then re-enable horizontal tracking
                 _topPct = _TUNER_TT_RAISED_TOP;
                 _plungerDipped = false;
-                bowlEl.style.visibility = 'hidden';
             }
 
             if (!_plungerDipped) {
