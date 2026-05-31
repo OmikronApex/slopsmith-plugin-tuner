@@ -348,7 +348,7 @@
 
             if (_strobeActive && Math.abs(_currentCents) > _TUNER_IN_TUNE_THR) {
                 var absCents = Math.min(50, Math.abs(_currentCents));
-                var speed    = _halfCirc * (Math.pow(10, absCents / 50) - 1) / 9;
+                var speed    = _halfCirc * Math.pow(absCents / 50, 0.4);
                 if (_currentCents > 0) { speed = -speed; }  // sharp → counter-clockwise
                 _strobeOffset = ((_strobeOffset + speed * dt) % _totalDash + _totalDash) % _totalDash;
                 arcPath.setAttribute('stroke-dashoffset', String(_strobeOffset));
