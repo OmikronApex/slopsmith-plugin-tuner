@@ -152,6 +152,7 @@
         arrowSvg.style.height    = '0.77rem';
         arrowSvg.style.flexShrink = '0';
         arrowSvg.style.overflow  = 'visible';
+        arrowSvg.style.filter    = 'drop-shadow(0 0 3px rgba(255,255,255,0.4))';
 
         var arrowLPoly = document.createElementNS(_SVG_NS, 'polygon');
         arrowLPoly.setAttribute('points', '0,0 0,10 42.5,5');
@@ -186,6 +187,7 @@
         noteWrap.style.color      = _COL_NOTE;
         noteWrap.style.zIndex     = '5';
         noteWrap.style.overflow   = 'visible';
+        noteWrap.style.textShadow = '0 0 5px rgba(255,255,255,0.4)';
 
         var noteLetter = document.createElement('span');
         noteLetter.style.display    = 'inline-block';
@@ -222,7 +224,8 @@
         octaveEl.style.fontWeight = '700';
         octaveEl.style.lineHeight = '1';
         octaveEl.style.color      = _COL_NOTE;
-        octaveEl.style.zIndex     = '5';
+        octaveEl.style.zIndex      = '5';
+        octaveEl.style.textShadow  = '0 0 5px rgba(255,255,255,0.4)';
         octaveEl.textContent      = '-';
         panel.appendChild(octaveEl);
 
