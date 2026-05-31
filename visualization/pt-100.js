@@ -52,68 +52,25 @@
         panel.appendChild(face);
 
         // ── Arc geometry ──────────────────────────────────────────────
-        // All three rows (labels, white line, LEDs) follow the same parabolic
-        // family: y = yCenter + k * ((x - 50) / 38)²
-        // x runs 12 %–88 % so edge elements stay inside the rounded corners.
+        // All three rows share k=16, matching the panel's top border-radius curve.
+        // y = yCenter + 16 * ((x - 50) / 38)²   x ∈ [12 %, 88 %]
         //
-        // Row centres (at x = 50 %) and edge drop (at x = 12 % / 88 %):
-        //   labels :  yCenter = 6 %,  k = 14  →  edges at 20 %
-        //   line   :  yCenter = 18 %, k = 10  →  edges at 28 %
-        //   LEDs   :  yCenter = 28 %, k = 8   →  edges at 36 %
-        //
-        // Gaps at edges: labels=20 %, line=28 %, LEDs=36 % → 8 % each
-        // Gaps at centre: labels=6 %, line=18 %, LEDs=28 %  → 10–12 % each
+        // Row order top→bottom, centres and edges (x = 12 %/88 %):
+        //   LEDs   :  yCenter = 5 %,  k = 16  →  edges at 21 %
+        //   line   :  yCenter = 14 %, k = 16  →  edges at 30 %
+        //   labels :  yCenter = 23 %, k = 16  →  edges at 39 %
 
         function _arcY(xPct, yCenter, k) {
             var dx = (xPct - 50) / 38;
             return yCenter + k * dx * dx;
         }
 
-        // ── 1. Range labels ───────────────────────────────────────────
-        var labelDefs = [
-            { text: '-40', x: 12 },
-            { text:  '0',  x: 50 },
-            { text: '+40', x: 88 },
-        ];
-        labelDefs.forEach(function (d) {
-            var el = document.createElement('div');
-            el.style.position   = 'absolute';
-            el.style.left       = d.x + '%';
-            el.style.top        = _arcY(d.x, 6, 14).toFixed(2) + '%';
-            el.style.transform  = 'translate(-50%, -50%)';
-            el.style.color      = '#cccccc';
-            el.style.fontSize   = '50%';
-            el.style.fontWeight = 'bold';
-            el.style.fontFamily = 'sans-serif';
-            el.style.lineHeight = '1';
-            el.textContent      = d.text;
-            face.appendChild(el);
-        });
-
-        // ── 2. Curved white line (SVG) ────────────────────────────────
-        // Quadratic bezier matching the line-row parabola (yCenter=18, k=10).
-        // Endpoints at (12, 28), control point chosen so bezier midpoint = 18:
-        //   bezier_mid = 0.25 * 28 + 0.5 * ctrl + 0.25 * 28 = 18  →  ctrl_y = 8
-        // SVG height covers 0–40 % of face; viewBox "0 0 100 40".
-        var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        svg.setAttribute('viewBox', '0 0 100 40');
-        svg.setAttribute('preserveAspectRatio', 'none');
-        svg.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:40%;pointer-events:none;overflow:visible';
-
-        var arcPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        arcPath.setAttribute('d', 'M 12,28 Q 50,8 88,28');
-        arcPath.setAttribute('stroke', 'rgba(255,255,255,0.65)');
-        arcPath.setAttribute('stroke-width', '0.9');
-        arcPath.setAttribute('fill', 'none');
-        svg.appendChild(arcPath);
-        face.appendChild(svg);
-
-        // ── 3. LED arc ────────────────────────────────────────────────
-        // Parabola: yCenter = 28 %, k = 8 → centre at 28 %, edges at 36 %.
+        // ── 1. LED arc ────────────────────────────────────────────────
+        // Parabola: yCenter = 5 %, k = 16 → centre at 5 %, edges at 21 %.
         var leds = [];
         for (var i = 0; i < _TUNER_PT_LED_COUNT; i++) {
             var xPct = 12 + i * (76 / 8);          // 12 % → 88 %
-            var yPct = _arcY(xPct, 28, 8);
+            var yPct = _arcY(xPct, 5, 16);
 
             var led = document.createElement('div');
             led.style.position     = 'absolute';
@@ -127,13 +84,53 @@
             var isCentre = (i === 4);
             led.style.background = isCentre
                 ? 'radial-gradient(circle at 35% 35%, #3a0000, #1a0000)'
-                : 'radial-gradient(circle at 35% 35%, #00003a, #00001a)';
-            led.style.border    = '1px solid ' + (isCentre ? '#400' : '#004');
+                : 'radial-gradient(circle at 35% 35%, #2a2000, #141000)';
+            led.style.border    = '1px solid ' + (isCentre ? '#400' : '#420');
             led.style.boxShadow = 'none';
 
             face.appendChild(led);
             leds.push(led);
         }
+
+        // ── 2. Curved white line (SVG) ────────────────────────────────
+        // Quadratic bezier matching line-row parabola (yCenter=14, k=16).
+        // Endpoints at (12, 30), midpoint at y=14:
+        //   0.25*30 + 0.5*ctrl + 0.25*30 = 14  →  ctrl_y = -2
+        // SVG covers 0–40 % of face height; overflow:visible handles ctrl above 0.
+        var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('viewBox', '0 0 100 40');
+        svg.setAttribute('preserveAspectRatio', 'none');
+        svg.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:40%;pointer-events:none;overflow:visible';
+
+        var arcPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        arcPath.setAttribute('d', 'M 12,30 Q 50,-2 88,30');
+        arcPath.setAttribute('stroke', 'rgba(255,255,255,0.65)');
+        arcPath.setAttribute('stroke-width', '0.9');
+        arcPath.setAttribute('fill', 'none');
+        svg.appendChild(arcPath);
+        face.appendChild(svg);
+
+        // ── 3. Range labels ───────────────────────────────────────────
+        // Parabola: yCenter = 23 %, k = 16 → centre at 23 %, edges at 39 %.
+        var labelDefs = [
+            { text: '-40', x: 12 },
+            { text:  '0',  x: 50 },
+            { text: '+40', x: 88 },
+        ];
+        labelDefs.forEach(function (d) {
+            var el = document.createElement('div');
+            el.style.position   = 'absolute';
+            el.style.left       = d.x + '%';
+            el.style.top        = _arcY(d.x, 23, 16).toFixed(2) + '%';
+            el.style.transform  = 'translate(-50%, -50%)';
+            el.style.color      = '#cccccc';
+            el.style.fontSize   = '50%';
+            el.style.fontWeight = 'bold';
+            el.style.fontFamily = 'sans-serif';
+            el.style.lineHeight = '1';
+            el.textContent      = d.text;
+            face.appendChild(el);
+        });
 
         // ── 4. LCD display (letter + # inside one box) ────────────────
         var displayWrap = document.createElement('div');
@@ -202,8 +199,10 @@
         displayWrap.appendChild(sharpEl);
 
         // ── 5. BATT. LED (always lit) ─────────────────────────────────
+        // Positioned right of the display (display right edge ≈ 69 %), vertically
+        // centred with it (display centre ≈ 62 %).
         var battWrap = document.createElement('div');
-        battWrap.style.cssText = 'position:absolute;left:4%;bottom:8%;display:flex;align-items:center;gap:5%;pointer-events:none';
+        battWrap.style.cssText = 'position:absolute;left:72%;top:62%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:4%;pointer-events:none';
 
         var battLed = document.createElement('div');
         battLed.style.cssText = [
@@ -254,9 +253,9 @@
                     led.style.boxShadow  = '0 0 5px 2px #ff3300, 0 0 10px 4px #aa1100';
                     led.style.border     = '1px solid #ff4400';
                 } else {
-                    led.style.background = 'radial-gradient(circle at 35% 35%, #4488ff, #0033cc)';
-                    led.style.boxShadow  = '0 0 5px 2px #2266ff, 0 0 10px 4px #0022aa';
-                    led.style.border     = '1px solid #3366ff';
+                    led.style.background = 'radial-gradient(circle at 35% 35%, #ffee66, #cc9900)';
+                    led.style.boxShadow  = '0 0 5px 2px #ffcc00, 0 0 10px 4px #aa8800';
+                    led.style.border     = '1px solid #ffbb00';
                 }
             } else {
                 if (isCentre) {
@@ -264,9 +263,9 @@
                     led.style.boxShadow  = 'none';
                     led.style.border     = '1px solid #400';
                 } else {
-                    led.style.background = 'radial-gradient(circle at 35% 35%, #00003a, #00001a)';
+                    led.style.background = 'radial-gradient(circle at 35% 35%, #2a2000, #141000)';
                     led.style.boxShadow  = 'none';
-                    led.style.border     = '1px solid #004';
+                    led.style.border     = '1px solid #420';
                 }
             }
         }
