@@ -20,7 +20,7 @@
 
     // ── Constants ─────────────────────────────────────────────────────
     var _TUNER_TICK_COUNT  = 11;
-    var _TUNER_STROBE_N    = 5;    // max visible segments on arc
+    var _TUNER_STROBE_N    = 4;    // segments fitting in 180° (plus one trailing gap)
     var _TUNER_STROBE_R    = 60;   // arc radius in SVG units (fills 120-wide viewBox)
     var _TUNER_IN_TUNE_THR = 2;    // cents threshold for in-tune state
     var _TUNER_ARROW_THR   = 3;    // cents threshold for arrow direction
@@ -231,11 +231,11 @@
         // Arc is a ∩ shape (upward arch) positioned at the bottom of the panel.
         // Diamonds arranged from left through top to right around the arc.
         // Strobe SVG: viewBox 120×72, R=60 fills full width.
-        // gap = (2/3)*dash; 5 dashes + 4 gaps → (5 + 4*2/3)*dash = halfCirc → dash = 3*halfCirc/23
+        // gap = (2/3)*dash; 4 dashes + 1 gap = halfCirc → (4 + 2/3)*dash = halfCirc → dash = 3*halfCirc/14
         var _sVB_W = 120, _sVB_H = 72;
         var _scx = 60, _scy = _sVB_H;
         var _halfCirc  = Math.PI * _TUNER_STROBE_R;
-        var _dashLen   = 3 * _halfCirc / 23;
+        var _dashLen   = 3 * _halfCirc / 14;
         var _gapLen    = (2 / 3) * _dashLen;
 
         var strobeSvg = document.createElementNS(_SVG_NS, 'svg');
