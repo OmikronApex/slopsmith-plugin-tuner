@@ -124,36 +124,36 @@
         gaugeOuter.appendChild(gaugeWrap);
         panel.appendChild(gaugeOuter);
 
-        // ── Direction arrows ▶ ◀ ─────────────────────────────────────
-        // Width spans the ±10¢ zone (20% of 86% gauge = ~17.2% of panel).
-        // Height matches the regular (short) gauge tick height: 55% of 1.4em ≈ 0.77rem.
-        // justify-between places outer arrow edges at ±10¢ tick positions.
-        var arrowsWrap = document.createElement('div');
-        arrowsWrap.className = 'absolute flex items-center';
-        arrowsWrap.style.top             = '38%';
-        arrowsWrap.style.left            = '50%';
-        arrowsWrap.style.transform       = 'translateX(-50%)';
-        arrowsWrap.style.width           = '17.2%';
-        arrowsWrap.style.gap             = '15%';   // 3¢ gap = 15% of ±10¢ wrap width
-        arrowsWrap.style.zIndex          = '5';
+        // ── Direction arrows (SVG) ────────────────────────────────────
+        // Single SVG, width = ±10¢ zone (17.2% of panel), centered.
+        // viewBox 100×10: left triangle 0→42.5, gap 42.5→57.5 (15% = ~3¢), right triangle 57.5→100.
+        var arrowSvg = document.createElementNS(_SVG_NS, 'svg');
+        arrowSvg.setAttribute('viewBox', '0 0 100 10');
+        arrowSvg.setAttribute('preserveAspectRatio', 'none');
+        arrowSvg.setAttribute('class', 'absolute');
+        arrowSvg.style.top       = '38%';
+        arrowSvg.style.left      = '50%';
+        arrowSvg.style.transform = 'translateX(-50%)';
+        arrowSvg.style.width     = '17.2%';
+        arrowSvg.style.height    = '0.77rem';
+        arrowSvg.style.zIndex    = '5';
+        arrowSvg.style.overflow  = 'visible';
 
-        var arrowL = document.createElement('div');
-        arrowL.style.flex       = '1';
-        arrowL.style.fontSize   = '0.77rem';
-        arrowL.style.lineHeight = '1';
-        arrowL.style.color      = _COL_ARROW_DIM;
-        arrowL.textContent      = '▶';
+        var arrowLPoly = document.createElementNS(_SVG_NS, 'polygon');
+        arrowLPoly.setAttribute('points', '0,0 0,10 42.5,5');
+        arrowLPoly.setAttribute('fill', _COL_ARROW_DIM);
 
-        var arrowR = document.createElement('div');
-        arrowR.style.flex       = '1';
-        arrowR.style.fontSize   = '0.77rem';
-        arrowR.style.lineHeight = '1';
-        arrowR.style.color      = _COL_ARROW_DIM;
-        arrowR.textContent      = '◀';
+        var arrowRPoly = document.createElementNS(_SVG_NS, 'polygon');
+        arrowRPoly.setAttribute('points', '100,0 100,10 57.5,5');
+        arrowRPoly.setAttribute('fill', _COL_ARROW_DIM);
 
-        arrowsWrap.appendChild(arrowL);
-        arrowsWrap.appendChild(arrowR);
-        panel.appendChild(arrowsWrap);
+        arrowSvg.appendChild(arrowLPoly);
+        arrowSvg.appendChild(arrowRPoly);
+        panel.appendChild(arrowSvg);
+
+        // Keep refs for colour updates
+        var arrowL = arrowLPoly;
+        var arrowR = arrowRPoly;
 
         // ── Note name display (bottom-left) ───────────────────────────
         var noteWrap = document.createElement('div');
