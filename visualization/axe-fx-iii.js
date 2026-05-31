@@ -147,12 +147,33 @@
         var arrowSvg = document.createElementNS(_SVG_NS, 'svg');
         arrowSvg.setAttribute('viewBox', '0 0 100 10');
         arrowSvg.setAttribute('preserveAspectRatio', 'none');
-        arrowSvg.style.alignSelf = 'center';
-        arrowSvg.style.width     = '15%';
-        arrowSvg.style.height    = '0.77rem';
+        arrowSvg.style.alignSelf  = 'center';
+        arrowSvg.style.width      = '15%';
+        arrowSvg.style.height     = '0.77rem';
         arrowSvg.style.flexShrink = '0';
-        arrowSvg.style.overflow  = 'visible';
-        arrowSvg.style.filter    = 'drop-shadow(0 0 3px rgba(255,255,255,0.4))';
+        arrowSvg.style.overflow   = 'visible';
+
+        // SVG glow filter — applied per-polygon so only lit arrows glow
+        var _arrowGlowId = 'arrow-glow-' + Math.random().toString(36).slice(2, 8);
+        var _arrowDefs   = document.createElementNS(_SVG_NS, 'defs');
+        var _arrowFilter = document.createElementNS(_SVG_NS, 'filter');
+        _arrowFilter.setAttribute('id', _arrowGlowId);
+        _arrowFilter.setAttribute('x', '-80%'); _arrowFilter.setAttribute('y', '-80%');
+        _arrowFilter.setAttribute('width', '260%'); _arrowFilter.setAttribute('height', '260%');
+        var _fBlur = document.createElementNS(_SVG_NS, 'feGaussianBlur');
+        _fBlur.setAttribute('stdDeviation', '1.2'); _fBlur.setAttribute('result', 'blur');
+        var _fFlood = document.createElementNS(_SVG_NS, 'feFlood');
+        _fFlood.setAttribute('flood-color', 'white'); _fFlood.setAttribute('flood-opacity', '0.5'); _fFlood.setAttribute('result', 'col');
+        var _fComp = document.createElementNS(_SVG_NS, 'feComposite');
+        _fComp.setAttribute('in', 'col'); _fComp.setAttribute('in2', 'blur'); _fComp.setAttribute('operator', 'in'); _fComp.setAttribute('result', 'glow');
+        var _fMerge = document.createElementNS(_SVG_NS, 'feMerge');
+        [['glow'], ['SourceGraphic']].forEach(function (n) {
+            var mn = document.createElementNS(_SVG_NS, 'feMergeNode'); mn.setAttribute('in', n[0]); _fMerge.appendChild(mn);
+        });
+        _arrowFilter.appendChild(_fBlur); _arrowFilter.appendChild(_fFlood);
+        _arrowFilter.appendChild(_fComp); _arrowFilter.appendChild(_fMerge);
+        _arrowDefs.appendChild(_arrowFilter);
+        arrowSvg.appendChild(_arrowDefs);
 
         var arrowLPoly = document.createElementNS(_SVG_NS, 'polygon');
         arrowLPoly.setAttribute('points', '0,0 0,10 42.5,5');
@@ -167,9 +188,9 @@
         gaugeZone.appendChild(arrowSvg);
         panel.appendChild(gaugeZone);
 
-        // Keep refs for colour updates
         var arrowL = arrowLPoly;
         var arrowR = arrowRPoly;
+        var _arrowGlowUrl = 'url(#' + _arrowGlowId + ')';
 
         // ── Note name display ─────────────────────────────────────────
         // Horizontal: center of note letter at 12.5% from left.
@@ -333,14 +354,14 @@
                 arrowL.setAttribute('fill', _COL_ARROW_DIM);
                 arrowR.setAttribute('fill', _COL_ARROW_DIM);
             } else if (cents <= -_TUNER_ARROW_THR) {
-                arrowL.setAttribute('fill', _COL_ARROW_WH);
-                arrowR.setAttribute('fill', _COL_ARROW_DIM);
+                arrowL.setAttribute('fill', _COL_ARROW_WH);  arrowL.setAttribute('filter', _arrowGlowUrl);
+                arrowR.setAttribute('fill', _COL_ARROW_DIM); arrowR.removeAttribute('filter');
             } else if (cents >= _TUNER_ARROW_THR) {
-                arrowL.setAttribute('fill', _COL_ARROW_DIM);
-                arrowR.setAttribute('fill', _COL_ARROW_WH);
+                arrowL.setAttribute('fill', _COL_ARROW_DIM); arrowL.removeAttribute('filter');
+                arrowR.setAttribute('fill', _COL_ARROW_WH);  arrowR.setAttribute('filter', _arrowGlowUrl);
             } else {
-                arrowL.setAttribute('fill', _COL_ARROW_WH);     // in tune → both lit
-                arrowR.setAttribute('fill', _COL_ARROW_WH);
+                arrowL.setAttribute('fill', _COL_ARROW_WH);  arrowL.setAttribute('filter', _arrowGlowUrl);
+                arrowR.setAttribute('fill', _COL_ARROW_WH);  arrowR.setAttribute('filter', _arrowGlowUrl);
             }
 
             // Note display
