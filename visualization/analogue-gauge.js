@@ -97,6 +97,9 @@
         freqWindow.style.left = 'calc(50% - 52px)';
         freqWindow.style.top = '39px'; // half needle from pivot: 95 - 88/2 - 24/2 = 39
         freqWindow.style.zIndex = '1';
+        // Inset shadows top & bottom → suggests a curved drum surface receding at the edges.
+        // Top is shorter/lighter, bottom taller/darker — reads as a drum lit from above.
+        freqWindow.style.boxShadow = 'inset 0 4px 5px -4px rgba(0,0,0,0.35), inset 0 -7px 7px -4px rgba(0,0,0,0.55)';
 
         var freqStrip = document.createElement('div');
         freqStrip.style.position = 'absolute';
@@ -231,6 +234,9 @@
         noteWindow.style.border = '1px solid #999';
         noteWindow.style.width = '48px';
         noteWindow.style.height = (_TUNER_LABEL_H * 2) + 'px';
+        // Inset shadows top & bottom → suggests a curved drum surface receding at the edges.
+        // Top is shorter/lighter, bottom taller/darker — reads as a drum lit from above.
+        noteWindow.style.boxShadow = 'inset 0 4px 5px -4px rgba(0,0,0,0.35), inset 0 -7px 7px -4px rgba(0,0,0,0.55)';
 
         var noteStrip = document.createElement('div');
         noteStrip.style.position = 'absolute';
