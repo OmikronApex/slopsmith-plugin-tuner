@@ -117,6 +117,7 @@
             tick.style.backgroundColor = _COL_TICK;
             tick.style.borderRadius    = '1px';
             tick.style.flexShrink      = '0';
+            tick.style.filter          = 'drop-shadow(0 0 4px rgba(122,212,0,0.35))';
             gaugeWrap.appendChild(tick);
             _tickEls.push(tick);
         }
@@ -272,6 +273,28 @@
         strobeSvg.style.overflow = 'visible';
         strobeSvg.style.zIndex   = '4';
 
+        // SVG glow filter for arc — avoids CSS filter viewport clipping
+        var _strobeGlowId = 'strobe-glow-' + Math.random().toString(36).slice(2, 8);
+        var _strobeDefs   = document.createElementNS(_SVG_NS, 'defs');
+        var _strobeFilter = document.createElementNS(_SVG_NS, 'filter');
+        _strobeFilter.setAttribute('id', _strobeGlowId);
+        _strobeFilter.setAttribute('x', '-30%'); _strobeFilter.setAttribute('y', '-30%');
+        _strobeFilter.setAttribute('width', '160%'); _strobeFilter.setAttribute('height', '160%');
+        var _sfBlur = document.createElementNS(_SVG_NS, 'feGaussianBlur');
+        _sfBlur.setAttribute('stdDeviation', '2'); _sfBlur.setAttribute('result', 'blur');
+        var _sfFlood = document.createElementNS(_SVG_NS, 'feFlood');
+        _sfFlood.setAttribute('flood-color', _COL_STROBE); _sfFlood.setAttribute('flood-opacity', '0.45'); _sfFlood.setAttribute('result', 'col');
+        var _sfComp = document.createElementNS(_SVG_NS, 'feComposite');
+        _sfComp.setAttribute('in', 'col'); _sfComp.setAttribute('in2', 'blur'); _sfComp.setAttribute('operator', 'in'); _sfComp.setAttribute('result', 'glow');
+        var _sfMerge = document.createElementNS(_SVG_NS, 'feMerge');
+        [['glow'], ['SourceGraphic']].forEach(function (n) {
+            var mn = document.createElementNS(_SVG_NS, 'feMergeNode'); mn.setAttribute('in', n[0]); _sfMerge.appendChild(mn);
+        });
+        _strobeFilter.appendChild(_sfBlur); _strobeFilter.appendChild(_sfFlood);
+        _strobeFilter.appendChild(_sfComp); _strobeFilter.appendChild(_sfMerge);
+        _strobeDefs.appendChild(_strobeFilter);
+        strobeSvg.appendChild(_strobeDefs);
+
         // Dashed semicircle arc (∩ upward arch)
         var arcPath = document.createElementNS(_SVG_NS, 'path');
         arcPath.setAttribute('d', 'M ' + (_scx - _TUNER_STROBE_R) + ' ' + _scy +
@@ -282,6 +305,7 @@
         arcPath.setAttribute('stroke-width', String(_dashLen));
         arcPath.setAttribute('stroke-dasharray', _dashLen + ' ' + _gapLen);
         arcPath.setAttribute('stroke-linecap', 'butt');
+        arcPath.setAttribute('filter', 'url(#' + _strobeGlowId + ')');
         strobeSvg.appendChild(arcPath);
         panel.appendChild(strobeSvg);
 
