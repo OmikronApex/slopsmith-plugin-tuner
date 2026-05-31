@@ -19,7 +19,7 @@
     'use strict';
 
     // ── Constants ─────────────────────────────────────────────────────
-    var _TUNER_TICK_COUNT  = 35;
+    var _TUNER_TICK_COUNT  = 11;
     var _TUNER_STROBE_N    = 11;   // diamond segments in strobe arc
     var _TUNER_STROBE_R    = 42;   // arc radius in SVG units
     var _TUNER_IN_TUNE_THR = 2;    // cents threshold for in-tune state
@@ -31,7 +31,7 @@
     var _COL_BG         = '#04041a';   // dark navy background
     var _COL_TICK       = '#00c878';   // green/teal gauge ticks
     var _COL_MARKER     = '#ffffff';   // white pitch-position marker
-    var _COL_NOTE       = '#10d878';   // green note/octave text
+    var _COL_NOTE       = '#ffffff';   // white note/octave text
     var _COL_ARROW_TEAL = '#10b878';   // teal ▶ arrow
     var _COL_ARROW_WH   = '#e8e8e8';   // near-white ◀ arrow
     var _COL_ARROW_DIM  = '#1e3030';   // dimmed arrow colour
@@ -47,7 +47,7 @@
         var panel = document.createElement('div');
         panel.className = 'relative w-full overflow-hidden font-mono select-none';
         panel.style.backgroundColor = _COL_BG;
-        panel.style.aspectRatio = '16 / 7';
+        panel.style.aspectRatio = '16 / 9';
         panel.style.minHeight = '120px';
 
         // ── Mode tabs (top-right) ─────────────────────────────────────
@@ -67,47 +67,70 @@
         });
         panel.appendChild(tabsWrap);
 
-        // ── Chromatic gauge strip (upper area, matches image proportions) ──
-        var gaugeWrap = document.createElement('div');
-        gaugeWrap.className = 'absolute left-0 right-0 flex items-center px-2';
-        gaugeWrap.style.top = '14%';
-        gaugeWrap.style.height = '20%';
-        gaugeWrap.style.zIndex = '5';
+        // ── Chromatic gauge strip (upper area) ───────────────────────
+        // Outer wrapper: sets width and position, contains bg + ticks
+        var gaugeOuter = document.createElement('div');
+        gaugeOuter.className = 'absolute';
+        gaugeOuter.style.top       = '12%';
+        gaugeOuter.style.left      = '50%';
+        gaugeOuter.style.transform = 'translateX(-50%)';
+        gaugeOuter.style.width     = '55%';
+        gaugeOuter.style.zIndex    = '5';
 
-        // Tick marks
+        // Dark green background panel — height = regular tick height
+        var TICK_REG_H = 10;   // px in SVG-like units; we use em below
+        var gaugeBg = document.createElement('div');
+        gaugeBg.style.position        = 'absolute';
+        gaugeBg.style.top             = '50%';
+        gaugeBg.style.left            = '0';
+        gaugeBg.style.right           = '0';
+        gaugeBg.style.height          = '0.55em';
+        gaugeBg.style.transform       = 'translateY(-50%)';
+        gaugeBg.style.backgroundColor = 'rgba(0,60,20,0.7)';
+        gaugeBg.style.borderRadius    = '2px';
+        gaugeOuter.appendChild(gaugeBg);
+
+        // Tick container
+        var gaugeWrap = document.createElement('div');
+        gaugeWrap.className = 'relative flex items-center justify-between';
+        gaugeWrap.style.height = '1.4em';
+
         var _tickEls = [];
         for (var i = 0; i < _TUNER_TICK_COUNT; i++) {
-            var isCentre  = (i === Math.floor(_TUNER_TICK_COUNT / 2));
-            var isQuarter = (i === Math.floor(_TUNER_TICK_COUNT / 4) || i === Math.floor(3 * _TUNER_TICK_COUNT / 4));
+            var isCentre = (i === Math.floor(_TUNER_TICK_COUNT / 2));
             var tick = document.createElement('div');
-            tick.className = 'flex-1 mx-px';
-            tick.style.height = isCentre ? '100%' : isQuarter ? '80%' : '60%';
+            tick.style.width           = '2px';
+            tick.style.height          = isCentre ? '100%' : '55%';
             tick.style.backgroundColor = _COL_TICK;
-            tick.style.borderRadius = '1px';
+            tick.style.borderRadius    = '1px';
+            tick.style.flexShrink      = '0';
             gaugeWrap.appendChild(tick);
             _tickEls.push(tick);
         }
 
-        // White pitch-position marker (positioned absolutely over ticks)
+        // White pitch-position marker
         var marker = document.createElement('div');
-        marker.className = 'absolute top-0 bottom-0';
-        marker.style.width   = '3px';
+        marker.style.position        = 'absolute';
+        marker.style.top             = '0';
+        marker.style.bottom          = '0';
+        marker.style.width           = '3px';
         marker.style.backgroundColor = _COL_MARKER;
-        marker.style.left    = '50%';
-        marker.style.transform = 'translateX(-50%)';
-        marker.style.display = 'none';
-        marker.style.zIndex  = '6';
-        marker.style.boxShadow = '0 0 6px 1px rgba(255,255,255,0.6)';
+        marker.style.left            = '50%';
+        marker.style.transform       = 'translateX(-50%)';
+        marker.style.display         = 'none';
+        marker.style.zIndex          = '6';
+        marker.style.boxShadow       = '0 0 6px 1px rgba(255,255,255,0.6)';
         gaugeWrap.appendChild(marker);
 
-        panel.appendChild(gaugeWrap);
+        gaugeOuter.appendChild(gaugeWrap);
+        panel.appendChild(gaugeOuter);
 
         // ── Direction arrows ▶ ◀ (centre area, slightly left of mid) ──
         var arrowsWrap = document.createElement('div');
         arrowsWrap.className = 'absolute flex items-center';
         arrowsWrap.style.top       = '38%';
         arrowsWrap.style.left      = '50%';
-        arrowsWrap.style.transform = 'translateX(-60%)';
+        arrowsWrap.style.transform = 'translateX(-50%)';
         arrowsWrap.style.gap       = '4px';
         arrowsWrap.style.zIndex    = '5';
 
@@ -177,26 +200,22 @@
         strobeSvg.style.maxWidth  = '200px';
         strobeSvg.style.zIndex    = '4';
 
-        var strobeGroup = document.createElementNS(_SVG_NS, 'g');
-        var _scx = 60, _scy = 65; // arc pivot at bottom-centre of SVG viewBox
-
-        for (var j = 0; j < _TUNER_STROBE_N; j++) {
-            // angle from 180° (left) → 0° (right) through top — upward arch ∩
-            var ang = Math.PI - (j / (_TUNER_STROBE_N - 1)) * Math.PI;
-            var dx  = _scx + _TUNER_STROBE_R * Math.cos(ang);
-            var dy  = _scy - _TUNER_STROBE_R * Math.sin(ang); // SVG y-axis flipped
-            var dmnd = document.createElementNS(_SVG_NS, 'rect');
-            dmnd.setAttribute('x', dx - 5);
-            dmnd.setAttribute('y', dy - 5);
-            dmnd.setAttribute('width',  '10');
-            dmnd.setAttribute('height', '10');
-            dmnd.setAttribute('rx', '1');
-            dmnd.setAttribute('transform', 'rotate(45,' + dx + ',' + dy + ')');
-            dmnd.setAttribute('fill', _COL_STROBE);
-            strobeGroup.appendChild(dmnd);
-        }
-
-        strobeSvg.appendChild(strobeGroup);
+        // Dashed semicircle arc (∩ upward arch)
+        var _scx = 60, _scy = 65;
+        var arcPath = document.createElementNS(_SVG_NS, 'path');
+        // M left-point, arc to right-point, upward (sweep-flag=0, large-arc=1)
+        var lx = _scx - _TUNER_STROBE_R, ly = _scy;
+        var rx = _scx + _TUNER_STROBE_R, ry = _scy;
+        arcPath.setAttribute('d', 'M ' + lx + ' ' + ly + ' A ' + _TUNER_STROBE_R + ' ' + _TUNER_STROBE_R + ' 0 1 1 ' + rx + ' ' + ry);
+        arcPath.setAttribute('fill', 'none');
+        arcPath.setAttribute('stroke', _COL_STROBE);
+        arcPath.setAttribute('stroke-width', '4');
+        // 11 dashes with gaps — circumference ≈ π*R
+        var halfCirc = Math.PI * _TUNER_STROBE_R;
+        var dashLen  = halfCirc / (_TUNER_STROBE_N * 2 - 1);
+        arcPath.setAttribute('stroke-dasharray', dashLen + ' ' + dashLen);
+        arcPath.setAttribute('stroke-linecap', 'round');
+        strobeSvg.appendChild(arcPath);
         panel.appendChild(strobeSvg);
 
         container.appendChild(panel);
