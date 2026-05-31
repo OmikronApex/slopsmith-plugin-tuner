@@ -60,7 +60,7 @@
         var plungerEl = document.createElement('img');
         plungerEl.src = _TUNER_TT_ASSET_BASE + 'Plunger.svg';
         plungerEl.className = 'absolute pointer-events-none';
-        plungerEl.style.width     = '8%';   // ~198/1024 bowl width; plunger narrower
+        plungerEl.style.width     = '10%';
         plungerEl.style.left      = _TUNER_TT_CENTRE_PCT + '%';
         plungerEl.style.top       = _TUNER_TT_RAISED_TOP + '%';
         plungerEl.style.transform = 'translateX(-50%)';
@@ -75,9 +75,9 @@
         // Toiletbowl path102 same ellipse: centre at y=0 (top of viewBox), rx=35.4% of viewBox.
         // → width = 19.4% / 70.7% = 27.4%; left = 50% - 27.4%/2 = 36.3%; top = 65.8%.
         // Verified: Toiletbowl path124 at y=60.93% × height(25.2%) + 65.8% = 81.2% = Bathroom path124 ✓
-        bowlEl.style.left       = '38%';
-        bowlEl.style.top        = '66%';
-        bowlEl.style.width      = '27%';
+        bowlEl.style.left       = '36.3%';
+        bowlEl.style.top        = '65.8%';
+        bowlEl.style.width      = '27.4%';
         bowlEl.style.visibility = 'hidden';
         panel.appendChild(bowlEl);
 
