@@ -440,14 +440,8 @@
                 octaveEl.textContent = '-';
             }
 
-            // Strobe state
-            if (!hasNote) {
-                _strobeActive = false;
-                _currentCents = 0;
-            } else {
-                _strobeActive = true;
-                _currentCents = cents;
-            }
+            // Strobe state — smoothed animation decelerates naturally when _currentCents → 0
+            _currentCents = hasNote ? cents : 0;
         }
 
         // ── Public: destroy ───────────────────────────────────────────
