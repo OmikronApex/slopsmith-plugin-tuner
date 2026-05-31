@@ -273,9 +273,10 @@
         lcdGrid.style.zIndex          = '50';
         lcdGrid.style.pointerEvents   = 'none';
         lcdGrid.style.backgroundImage = [
-            'repeating-linear-gradient(0deg,  ' + _COL_BG + ' 0px, ' + _COL_BG + ' 1px, transparent 1px, transparent 3px)',
-            'repeating-linear-gradient(90deg, ' + _COL_BG + ' 0px, ' + _COL_BG + ' 1px, transparent 1px, transparent 3px)'
+            'repeating-linear-gradient(0deg,  rgba(4,4,26,0.33) 0px, rgba(4,4,26,0.33) 1px, transparent 1px, transparent 2px)',
+            'repeating-linear-gradient(90deg, rgba(4,4,26,0.33) 0px, rgba(4,4,26,0.33) 1px, transparent 1px, transparent 2px)'
         ].join(',');
+        lcdGrid.style.backgroundPosition = '12.5% 0';
         panel.appendChild(lcdGrid);
 
         container.appendChild(panel);
