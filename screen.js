@@ -618,7 +618,7 @@
         const cents = (window._tunerUtils.freqToMidi(freq) - window._tunerUtils.freqToMidi(targetFreq)) * 100;
         const note = window._tunerUtils.midiToNote(window._tunerUtils.freqToMidi(targetFreq));
 
-        if (activeViz) activeViz.update(note, cents, freq, vizMode);
+        if (activeViz) activeViz.update(note, cents, freq, vizMode, targetFreq);
         _syncActiveStringFromFreq(targetFreq, isManual);
     }
 

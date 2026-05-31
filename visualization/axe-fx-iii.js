@@ -387,7 +387,7 @@
         _updateTabs('free');
 
         // ── Public: update ────────────────────────────────────────────
-        function update(note, cents, freq, mode) {
+        function update(note, cents, freq, mode, targetFreq) {
             var hasNote = (note !== null && note !== undefined);
 
             // Mode tabs
@@ -429,8 +429,8 @@
 
             // Octave display — show target octave in auto/manual, detected octave in free
             if (hasNote) {
-                if (_currentMode === 'auto' || _currentMode === 'manual') {
-                    octaveEl.textContent = _freqToOctave(freq * Math.pow(2, -cents / 1200));
+                if ((_currentMode === 'auto' || _currentMode === 'manual') && targetFreq) {
+                    octaveEl.textContent = _freqToOctave(targetFreq);
                 } else {
                     octaveEl.textContent = _freqToOctave(freq);
                 }
