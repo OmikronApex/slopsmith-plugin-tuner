@@ -28,7 +28,7 @@
     var _TUNER_TT_RIGHT_PCT    = 85;   // x at cents=+50
     var _TUNER_TT_CENTRE_PCT   = 50;   // x at cents=0  (bowl centre)
 
-    var _TUNER_TT_RAISED_TOP   = 43;   // plunger top % when hovering above bowl
+    var _TUNER_TT_RAISED_TOP   = 41;   // plunger top % when hovering above bowl
     var _TUNER_TT_DIPPED_TOP   = 52;   // plunger top % when cup inside bowl
 
     window['_tunerViz_toilet-tuner'] = function (container) {
