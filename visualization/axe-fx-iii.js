@@ -87,12 +87,12 @@
         gaugeZone.style.justifyContent = 'center';
         gaugeZone.style.zIndex        = '5';
 
-        // Chromatic gauge — spans note-center to octave-center (7% inset each side)
+        // Chromatic gauge — ends at 12.5% from each edge
         var gaugeOuter = document.createElement('div');
-        gaugeOuter.style.position   = 'relative';
-        gaugeOuter.style.marginLeft = '7%';
-        gaugeOuter.style.marginRight = '7%';
-        gaugeOuter.style.flexShrink = '0';
+        gaugeOuter.style.position    = 'relative';
+        gaugeOuter.style.marginLeft  = '12.5%';
+        gaugeOuter.style.marginRight = '12.5%';
+        gaugeOuter.style.flexShrink  = '0';
 
         var gaugeBg = document.createElement('div');
         gaugeBg.style.position        = 'absolute';
@@ -149,7 +149,7 @@
         arrowSvg.setAttribute('viewBox', '0 0 100 10');
         arrowSvg.setAttribute('preserveAspectRatio', 'none');
         arrowSvg.style.alignSelf = 'center';
-        arrowSvg.style.width     = '17.2%';
+        arrowSvg.style.width     = '15%';
         arrowSvg.style.height    = '0.77rem';
         arrowSvg.style.flexShrink = '0';
         arrowSvg.style.overflow  = 'visible';
@@ -171,55 +171,60 @@
         var arrowL = arrowLPoly;
         var arrowR = arrowRPoly;
 
-        // ── Note name display (bottom-left) ──────────────────────────
-        // Vertical center at 33% from bottom (= 67% from top), height 25%.
+        // ── Note name display ─────────────────────────────────────────
+        // Horizontal: center of note letter at 12.5% from left.
+        // font-size set on wrapper so `ch` resolves to the note character width.
+        // noteLetter is width:1ch so the accidental never shifts the F position.
         var noteWrap = document.createElement('div');
-        noteWrap.style.position    = 'absolute';
-        noteWrap.style.left        = '0';
-        noteWrap.style.top         = '67%';
-        noteWrap.style.transform   = 'translateY(-50%)';
-        noteWrap.style.height      = '25%';
-        noteWrap.style.display     = 'flex';
-        noteWrap.style.alignItems  = 'center';
-        noteWrap.style.paddingLeft = '4%';
-        noteWrap.style.color       = _COL_NOTE;
-        noteWrap.style.zIndex      = '5';
+        noteWrap.style.position   = 'absolute';
+        noteWrap.style.left       = 'calc(12.5% - 0.5ch)';
+        noteWrap.style.top        = '67%';
+        noteWrap.style.transform  = 'translateY(-50%)';
+        noteWrap.style.height     = '25%';
+        noteWrap.style.display    = 'flex';
+        noteWrap.style.alignItems = 'center';
+        noteWrap.style.fontSize   = '3.2rem';
+        noteWrap.style.color      = _COL_NOTE;
+        noteWrap.style.zIndex     = '5';
+        noteWrap.style.overflow   = 'visible';
 
         var noteLetter = document.createElement('span');
-        noteLetter.style.fontSize   = '3.2rem';
+        noteLetter.style.display    = 'inline-block';
+        noteLetter.style.width      = '1ch';
+        noteLetter.style.flexShrink = '0';
         noteLetter.style.fontWeight = '700';
         noteLetter.style.lineHeight = '1';
         noteLetter.textContent      = '-';
 
         var noteAccidental = document.createElement('span');
-        noteAccidental.style.fontSize     = '1.7rem';
-        noteAccidental.style.fontWeight   = '700';
-        noteAccidental.style.lineHeight   = '1';
-        noteAccidental.style.marginLeft   = '1px';
-        noteAccidental.style.alignSelf    = 'flex-start';
-        noteAccidental.style.marginTop    = '0.3em';
-        noteAccidental.textContent        = '';
+        noteAccidental.style.fontSize   = '1.7rem';
+        noteAccidental.style.fontWeight = '700';
+        noteAccidental.style.lineHeight = '1';
+        noteAccidental.style.alignSelf  = 'flex-start';
+        noteAccidental.style.marginTop  = '0.15em';
+        noteAccidental.textContent      = '';
 
         noteWrap.appendChild(noteLetter);
         noteWrap.appendChild(noteAccidental);
         panel.appendChild(noteWrap);
 
-        // ── Octave display (bottom-right) ─────────────────────────────
+        // ── Octave display ────────────────────────────────────────────
+        // Center of digit at 12.5% from right; width:1ch pins the element size.
         var octaveEl = document.createElement('div');
-        octaveEl.style.position     = 'absolute';
-        octaveEl.style.right        = '0';
-        octaveEl.style.top          = '67%';
-        octaveEl.style.transform    = 'translateY(-50%)';
-        octaveEl.style.height       = '25%';
-        octaveEl.style.display      = 'flex';
-        octaveEl.style.alignItems   = 'center';
-        octaveEl.style.paddingRight = '4%';
-        octaveEl.style.fontSize     = '3.2rem';
-        octaveEl.style.fontWeight   = '700';
-        octaveEl.style.lineHeight   = '1';
-        octaveEl.style.color        = _COL_NOTE;
-        octaveEl.style.zIndex       = '5';
-        octaveEl.textContent        = '-';
+        octaveEl.style.position   = 'absolute';
+        octaveEl.style.right      = 'calc(12.5% - 0.5ch)';
+        octaveEl.style.top        = '67%';
+        octaveEl.style.transform  = 'translateY(-50%)';
+        octaveEl.style.height     = '25%';
+        octaveEl.style.width      = '1ch';
+        octaveEl.style.display    = 'flex';
+        octaveEl.style.alignItems = 'center';
+        octaveEl.style.fontSize   = '3.2rem';
+        octaveEl.style.fontWeight = '700';
+        octaveEl.style.lineHeight = '1';
+        octaveEl.style.color      = _COL_NOTE;
+        octaveEl.style.zIndex     = '5';
+        octaveEl.textContent      = '-';
         panel.appendChild(octaveEl);
 
         // ── Strobe semicircle SVG (bottom-centre) ─────────────────────
