@@ -1,5 +1,5 @@
 ---
-stepsCompleted: ['step-01', 'step-02', 'step-03', 'step-04', 'epic2-step-01', 'epic2-step-02', 'epic2-step-03', 'epic3-step-01', 'epic3-step-02', 'epic3-step-03']
+stepsCompleted: ['step-01', 'step-02', 'step-03', 'step-04', 'epic2-step-01', 'epic2-step-02', 'epic2-step-03', 'epic3-step-01', 'epic3-step-02', 'epic3-step-03', 'epic4-step-01', 'epic4-step-02', 'epic4-step-03']
 inputDocuments:
   - _bmad-output/planning-artifacts/prds/prd-slopsmith-plugin-tuner-2026-05-30/prd.md
   - _bmad-output/project-context.md
@@ -181,6 +181,7 @@ No UX Design document exists yet. Story 2.1 will produce `_bmad-output/planning-
 ### Epic 1: Architecture Documentation & Code Alignment
 ### Epic 2: UI/UX Audit & Improvements
 ### Epic 3: Analogue Gauge Visualization
+### Epic 4: Axe-Fx III Visualization
 
 Establish a formal architecture document for the slopsmith-plugin-tuner using the BMad workflow, providing AI agents and contributors with authoritative system design guidance; then implement code corrections surfaced during the architectural review.
 
@@ -407,3 +408,153 @@ So that I can tune confidently and know at a glance whether I've hit the target.
 **Given** needle RAF animation is running
 **When** `destroy()` is called
 **Then** all active RAF IDs (drum RAF from Story 3.2, needle RAF) are cancelled via `cancelAnimationFrame()`; all DOM nodes removed from container; no globals or timers leaked
+
+---
+
+### New Functional Requirements (Epic 4 — Axe-Fx III Visualization)
+
+- **FR-AFX-01:** The display shall use a dark navy-blue background with a pixelated/bitmap-font aesthetic throughout, emulating a physical LCD/LED screen (no rounded UI chrome).
+- **FR-AFX-02:** A horizontal chromatic gauge shall span the full width of the upper display area — a series of short vertical green/teal tick marks with a bright white position marker that moves left/right to indicate cents deviation from the target note (−50 = far left, 0 = centre, +50 = far right).
+- **FR-AFX-03:** Two inward-pointing triangular arrows (`▶ ◀`) shall be rendered beneath the chromatic gauge in the centre of the display. Both point toward the middle. When the pitch is flat, the right-facing teal `▶` is dimmed and the left-facing white `◀` is bright, indicating the pitch must come up; when sharp, the reverse. When in tune (±2 cents), both arrows are equally bright and meet at the centre.
+- **FR-AFX-04:** The detected note name (e.g., "Bb", "E") shall be displayed in large pixelated text in the lower-left of the display.
+- **FR-AFX-05:** The octave number (e.g., "6", "4") shall be derived from the `freq` parameter using A4 = 440 Hz as the reference and displayed in large pixelated text in the lower-right of the display.
+- **FR-AFX-06:** A strobe semicircle shall be rendered at the bottom centre — an arc of pink/magenta diamond-shaped segments. Segments rotate continuously when `|cents| > 2` (rotation speed proportional to `|cents|`) and stop when `|cents| ≤ 2` (in tune).
+- **FR-AFX-07:** Three mode tabs ("Free", "Auto", "Manual") shall be displayed in the top-right corner; the active mode tab is highlighted (blue/bright). The visualization shall expose `setMode(mode)` on its returned object; `screen.js` shall call `activeViz.setMode?.(mode)` whenever the tuning mode changes (optional chaining ensures backward compatibility with existing visualizations).
+- **FR-AFX-08:** When `note === null` (no signal): the chromatic gauge shows no position marker, both direction arrows are dim/hidden, note name shows "- -", octave shows "-", strobe arc pauses.
+- **FR-AFX-09:** The visualization conforms to the factory contract: `window._tunerViz_axeFxIII(container)` returning `{ update(note, cents, freq), setMode(mode), destroy() }`.
+- **FR-AFX-10:** An "Axe-Fx III" option with value `"axe-fx-iii"` shall be added to the viz selector in `settings.html`.
+
+### Applicable NFRs (Epic 4)
+
+- **NFR-03** — no external JS libs
+- **NFR-06** — viz factory contract
+- **NFR-07** — Tailwind-only styling; no inline `style=""`, no hardcoded colours
+
+### Additional Requirements (Epic 4)
+
+- IIFE pattern; exposed as `window._tunerViz_axeFxIII`
+- Constants prefixed `_TUNER_`
+- DOM via `document.createElement` / `classList` / `textContent` only
+- `destroy()` must cancel all active RAF IDs and remove all DOM nodes from container
+- `screen.js` requires a one-line patch to call `activeViz.setMode?.(mode)` on mode changes — included in Story 4.2
+
+---
+
+## Epic 4: Axe-Fx III Visualization
+
+Deliver a new built-in visualization styled after the Fractal Audio Axe-Fx III hardware tuner display. A dark pixelated LCD panel shows a horizontal chromatic gauge at the top, inward-pointing directional arrows beneath it indicating which way to adjust pitch, large pixelated note name and octave number in the lower corners, and a rotating pink/magenta strobe semicircle at the bottom centre. Three mode tabs (Free / Auto / Manual) in the top-right reflect the active tuning mode. Selectable via the settings panel.
+
+**FRs covered:** FR-AFX-01 through FR-AFX-10, FR-18
+**NFRs:** NFR-03, NFR-06, NFR-07
+
+---
+
+### Story 4.1: Scaffold, Static Layout & Settings Wiring
+
+As a developer implementing the Axe-Fx III visualization,
+I want a fully structured static panel with all DOM elements in place and the visualization registered in settings,
+So that subsequent stories can layer live data and animation onto a stable, correctly-laid-out foundation.
+
+**Acceptance Criteria:**
+
+**Given** the file `visualization/axe-fx-iii.js` is created
+**When** the IIFE executes
+**Then** `window._tunerViz_axeFxIII` is a factory function that accepts a `container` DOM element and returns `{ update(note, cents, freq), setMode(mode), destroy() }`
+
+**Given** the factory is called with a container
+**When** the static DOM is rendered
+**Then** the panel contains (top to bottom, left to right):
+- A full-width chromatic gauge strip in the upper area (tick marks rendered statically, no position marker yet)
+- Three mode tabs ("Free", "Auto", "Manual") in the top-right corner with "Free" highlighted by default
+- Two inward-pointing triangle arrows (`▶ ◀`) centred below the gauge, both in a dim/neutral state
+- A large note name display in the lower-left showing "- -"
+- A large octave number display in the lower-right showing "-"
+- A strobe semicircle arc at the bottom centre with diamond-shaped segments in a static, unrotated state
+
+**Given** the DOM is rendered
+**When** inspected
+**Then** the panel background is dark navy-blue; all text uses a pixelated/monospace Tailwind font class; all styling uses Tailwind utility classes only — no inline `style=""` attributes and no hardcoded colour values
+
+**Given** the `destroy()` method is called
+**When** executed
+**Then** all DOM nodes appended to the container are removed; no timers or RAF loops exist to cancel at this stage
+
+**Given** `settings.html` is updated
+**When** the viz selector is rendered
+**Then** an "Axe-Fx III" option with value `"axe-fx-iii"` is present in the visualization select element
+
+---
+
+### Story 4.2: Chromatic Gauge, Direction Arrows, Note/Octave Display & Mode Tabs
+
+As a guitar player using the Axe-Fx III visualization,
+I want the chromatic gauge, directional arrows, and note/octave readout to respond live to my detected pitch,
+So that I can immediately see what note I'm playing, which octave, and which direction I need to adjust.
+
+**Acceptance Criteria:**
+
+**Given** `update(note, cents, freq)` is called with a non-null `note` and `cents` = 0
+**When** rendered
+**Then** the chromatic gauge's white position marker is centred in the gauge strip; both direction arrows (`▶ ◀`) are equally bright
+
+**Given** `cents` is −25 (flat)
+**When** rendered
+**Then** the white position marker is displaced to the left of centre proportionally; the right-facing teal `▶` arrow is brighter/highlighted and the left-facing white `◀` arrow is dim, indicating the player must bring the pitch up
+
+**Given** `cents` is +25 (sharp)
+**When** rendered
+**Then** the white position marker is displaced to the right of centre proportionally; the left-facing white `◀` arrow is brighter/highlighted and the right-facing teal `▶` arrow is dim, indicating the player must bring the pitch down
+
+**Given** `cents` is any value between −50 and +50
+**When** rendered
+**Then** the position marker's horizontal offset is linearly proportional to the cent value; the gauge updates synchronously within `update()` (no RAF required for the gauge itself)
+
+**Given** `update(note, cents, freq)` is called with a non-null `note`
+**When** rendered
+**Then** the note name display shows the `note` string (e.g., "Bb", "E") in large pixelated text in the lower-left; the octave number is computed from `freq` using A4 = 440 Hz as reference (`octave = Math.round(12 * Math.log2(freq / 440) + 69) / 12 |0` — standard MIDI octave formula) and displayed in the lower-right
+
+**Given** `setMode("free")` is called
+**When** the tabs are rendered
+**Then** the "Free" tab is highlighted and "Auto" and "Manual" are dim
+
+**Given** `setMode("auto")` is called
+**When** the tabs are rendered
+**Then** the "Auto" tab is highlighted and the others are dim
+
+**Given** `setMode("manual")` is called
+**When** the tabs are rendered
+**Then** the "Manual" tab is highlighted and the others are dim
+
+**Given** `screen.js` is patched
+**When** the active tuning mode changes (free/auto/manual)
+**Then** `activeViz.setMode?.(mode)` is called with the appropriate mode string — the optional chaining ensures no error is thrown for existing visualizations that do not implement `setMode`
+
+**Given** `note === null`
+**When** `update(null, 0, 0)` is called
+**Then** the chromatic gauge position marker is hidden; both direction arrows are dim; note display shows "- -"; octave display shows "-"
+
+---
+
+### Story 4.3: Strobe Animation & No-Signal Polish
+
+As a guitar player using the Axe-Fx III visualization,
+I want the strobe arc to rotate when I'm out of tune and freeze when I hit the target, with a clean idle state when no signal is detected,
+So that I can use the strobe as a precision in-tune confirmation alongside the chromatic gauge.
+
+**Acceptance Criteria:**
+
+**Given** `update(note, cents, freq)` is called with `|cents| > 2`
+**When** the strobe is running
+**Then** the pink/magenta diamond segments rotate continuously around the semicircular arc; rotation speed is proportional to `|cents|` — at `|cents|` = 50 the rotation is at maximum speed, at `|cents|` = 3 it is near-still; rotation direction: clockwise when flat (cents < 0), counter-clockwise when sharp (cents > 0)
+
+**Given** `|cents| ≤ 2` (in tune)
+**When** the strobe is rendered
+**Then** the diamond segments stop rotating and remain stationary, indicating the pitch is locked on target
+
+**Given** `note === null` (no signal)
+**When** rendered
+**Then** the strobe arc pauses in its current rotational position; no RAF-driven rotation occurs while signal is absent
+
+**Given** the strobe RAF loop is running
+**When** `destroy()` is called
+**Then** `cancelAnimationFrame()` is called with all active RAF IDs (strobe RAF and any others from prior stories); all DOM nodes are removed from the container; no globals or timers are leaked after destroy

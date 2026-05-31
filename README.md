@@ -20,7 +20,7 @@ This plugin adds a floating "Tuner" button to the Slopsmith interface, providing
 - **Custom Tunings**: Add your own tunings via note names (e.g., E2, A2) or Hz frequencies in the settings.
 - **Audio Device Selection**: Choose specific input devices and channels (Mono, Left, Right) for professional interfaces.
 - **Themable UI**: Styled with Tailwind CSS to match your Slopsmith theme.
-- **Visualizations**: Pick from different visualizations to suit your needs (Currently: Default, Strobe, and Analogue Gauge)
+- **Visualizations**: Pick from different visualizations to suit your needs (Currently: Default, Strobe, Analogue Gauge, and Axe-Fx III)
 
 ## Installation
 
@@ -62,6 +62,12 @@ Access advanced settings via the Slopsmith Plugin Manager (Settings -> Plugins -
 
 
 ## Changelog
+
+### [1.2.7] - 2026-05-31
+- Added Axe-Fx III visualization: dark navy LCD-style panel with a chromatic tick gauge, inward directional arrows, large note/octave readout, a rotating pink strobe semicircle, and a pixelated grid overlay.
+- Improved tuner detection stability: median frequency filtering plus YIN octave correction (rejects both overtone and undertone errors) keeps low strings from jumping octaves as they decay.
+- Added pluck-attack warm-up so the noisy string-attack transient no longer shows a wrong pitch before settling.
+- Added frame-to-frame octave continuity tracking to eliminate residual octave flips.
 
 ### [1.2.6] - 2026-05-31
 - Added Analogue Gauge visualization: vintage mechanical instrument panel with rotating frequency and note name drums, semicircular needle gauge, and a physical-style in-tune lightbulb.

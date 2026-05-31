@@ -33,15 +33,38 @@ function _yinDetect(buffer, sampleRate) {
         yinBuffer[tau] = runningSum > 0 ? yinBuffer[tau] * tau / runningSum : 1;
     }
 
-    let tau = 2;
-    while (tau < halfLen) {
-        if (yinBuffer[tau] < threshold) {
-            while (tau + 1 < halfLen && yinBuffer[tau + 1] < yinBuffer[tau]) tau++;
+    // Collect every local minimum below the threshold.
+    const candidates = [];
+    let bestTau = -1, bestVal = 1;
+    let t = 2;
+    while (t < halfLen) {
+        if (yinBuffer[t] < threshold) {
+            while (t + 1 < halfLen && yinBuffer[t + 1] < yinBuffer[t]) t++;
+            candidates.push({ tau: t, val: yinBuffer[t] });
+            if (yinBuffer[t] < bestVal) { bestVal = yinBuffer[t]; bestTau = t; }
+        }
+        t++;
+    }
+    if (candidates.length === 0) return { freq: 0, confidence: 0, rms };
+
+    // Start from the global minimum (deepest dip = most reliable period).
+    // Then octave-correct in BOTH directions:
+    //  - undertone guard: if our pick is a multiple of a smaller-tau candidate
+    //    with a comparably deep dip, that smaller tau is the true fundamental.
+    //  - overtone guard handled implicitly: an octave-up overtone only wins the
+    //    global min when its dip is genuinely deeper, which the multiple check
+    //    below does not override.
+    let tau = bestTau;
+    for (let i = 0; i < candidates.length; i++) {
+        const c = candidates[i];
+        if (c.tau >= tau) break;                       // only consider smaller tau (higher freq)
+        const ratio = tau / c.tau;
+        const nearest = Math.round(ratio);
+        if (nearest >= 2 && Math.abs(ratio - nearest) < 0.05 && c.val < bestVal * 1.5) {
+            tau = c.tau;                               // pick is an undertone of c → use c
             break;
         }
-        tau++;
     }
-    if (tau === halfLen) return { freq: 0, confidence: 0, rms };
 
     const s0 = yinBuffer[tau - 1];
     const s1 = yinBuffer[tau];

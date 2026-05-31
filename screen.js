@@ -17,6 +17,29 @@
     let processingFrame = false;
     let yinWorker = null;
 
+    // ── Pitch stability state ─────────────────────────────────────────
+    let _freqHistory = [];
+    let _validFrameCount = 0;
+    let _lastFreq = 0;
+    const _FREQ_HISTORY_LEN = 3;
+    const _WARMUP_FRAMES = 2;   // skip pluck-attack transient before showing pitch
+
+    // Fold an octave-error reading toward the previous frequency. Octave errors
+    // land ~2x/0.5x off; this snaps them back so the note stays continuous.
+    function _octaveFold(freq, ref) {
+        if (!ref || freq <= 0) return freq;
+        while (freq > ref * 1.414) freq /= 2;
+        while (freq < ref / 1.414) freq *= 2;
+        return freq;
+    }
+
+    function _median(arr) {
+        if (!arr.length) return 0;
+        var s = arr.slice().sort(function(a, b) { return a - b; });
+        var mid = Math.floor(s.length / 2);
+        return s.length % 2 !== 0 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
+    }
+
     // ── Player sync state ─────────────────────────────────────────────
     let _onScreenChanged = null;
     let _onSongReady = null;
@@ -335,6 +358,7 @@
                 <option value="default" ${visualizationMode === 'default' ? 'selected' : ''}>Default</option>
                 <option value="strobe" ${visualizationMode === 'strobe' ? 'selected' : ''}>Strobe</option>
                 <option value="analogue-gauge" ${visualizationMode === 'analogue-gauge' ? 'selected' : ''}>Analogue Gauge</option>
+                <option value="axe-fx-iii" ${visualizationMode === 'axe-fx-iii' ? 'selected' : ''}>Axe-Fx III</option>
             </select>
         `;
 
@@ -459,6 +483,9 @@
         processingFrame = false;
         pendingBuffer = null;
         accumBuffer = new Float32Array(0);
+        _freqHistory = [];
+        _validFrameCount = 0;
+        _lastFreq = 0;
         if (processor) { processor.disconnect(); processor = null; }
         if (gainNode) { gainNode.disconnect(); gainNode = null; }
         if (sourceNode) { sourceNode.disconnect(); sourceNode = null; }
@@ -569,10 +596,14 @@
     // ── UI update (called from detection loop) ────────────────────────
     function updateUI(result) {
         const rms = result ? result.rms : 0;
-        const hasSignal = rms > 0.01;
         const vizMode = manualTargetFreq ? 'manual' : (selectedTuning && selectedTuning.length > 0 ? 'auto' : 'free');
 
+        const hasSignal = rms > 0.01;
+
         if (!result || (!hasSignal && result.confidence < 0.5) || (result.freq < _TUNER_MIN_DETECTABLE_HZ && result.freq !== 0)) {
+            _validFrameCount = 0;
+            _freqHistory = [];
+            _lastFreq = 0;
             if (activeViz) activeViz.update(null, 0, 0, vizMode);
             _syncStringHighlight(manualTargetFreq);
             return;
@@ -580,12 +611,29 @@
 
         if (result.confidence < 0.5 && hasSignal) {
             // dim signal — let viz handle its own timeout
+            _validFrameCount = 0;
+            _freqHistory = [];
+            _lastFreq = 0;
             if (activeViz) activeViz.update(null, 0, 0, vizMode);
             _syncStringHighlight(manualTargetFreq);
             return;
         }
 
-        const freq = result.freq;
+        // Valid signal: octave-fold toward the last pitch, then median-filter.
+        _freqHistory.push(_octaveFold(result.freq, _lastFreq));
+        if (_freqHistory.length > _FREQ_HISTORY_LEN) _freqHistory.shift();
+
+        // Skip the pluck-attack transient — keep filling history but hold the
+        // display until a few consecutive valid frames have settled the pitch.
+        _validFrameCount++;
+        if (_validFrameCount <= _WARMUP_FRAMES) {
+            if (activeViz) activeViz.update(null, 0, 0, vizMode);
+            _syncStringHighlight(manualTargetFreq);
+            return;
+        }
+
+        const freq = _median(_freqHistory);
+        _lastFreq = freq;
 
         let targetFreq;
         let isManual = false;
@@ -601,7 +649,7 @@
         const cents = (window._tunerUtils.freqToMidi(freq) - window._tunerUtils.freqToMidi(targetFreq)) * 100;
         const note = window._tunerUtils.midiToNote(window._tunerUtils.freqToMidi(targetFreq));
 
-        if (activeViz) activeViz.update(note, cents, freq, vizMode);
+        if (activeViz) activeViz.update(note, cents, freq, vizMode, targetFreq);
         _syncActiveStringFromFreq(targetFreq, isManual);
     }
 
