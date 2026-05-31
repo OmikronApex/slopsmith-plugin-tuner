@@ -26,54 +26,65 @@
         ' ': [ false, false, false, false, false, false, false, false ],
     };
 
+    // Instance counter for unique SVG gradient IDs
+    var _ppTinyCount = 0;
+
     window['_tunerViz_pp-tiny'] = function (container) {
         'use strict';
 
-        // ── Chrome bezel ──────────────────────────────────────────────
-        // 4:3 panel. After uniform 4% padding:
-        //   face_width  = 0.92 × W,  face_height = 0.67 × W  (W = panel width)
-        //   face_aspect = 0.92 / 0.67 ≈ 1.373
-        // Border-radius ry for a true visual semicircle top:
-        //   ry_panel = (W/2) / (0.75W) = 66.7 %
-        //   ry_face  = (0.46W) / (0.67W) ≈ 68.7 % → 69 %
-        // Rectangle height below the semicircle, as a fraction of panel width.
-        var _RECT_RATIO = 0.28;
+        // ── SVG frame ─────────────────────────────────────────────────
+        // Shape: semi-circle (r = W/2) + rectangle (h = W/4)
+        // Total height = W/2 + W/4 = 3W/4  →  aspect-ratio 4:3
+        // viewBox "0 0 100 75" (75 = 3/4 × 100).
+        //   Semi-circle arc: centre (50,50), r=50, from (0,50) to (100,50)
+        //   Rectangle:       y 50→75, full width, small rounded bottom corners
+        // Face inset 4 units on all sides:
+        //   Semi-circle arc: centre (50,50), r=46, from (4,50) to (96,50)
+        //   Rectangle:       y 50→71  (75−4=71)
+        var _gradId = 'ppTinyFrameGrad' + (++_ppTinyCount);
 
         var panel = document.createElement('div');
-        panel.style.position   = 'relative';
-        panel.style.width      = '100%';
-        panel.style.background = 'linear-gradient(160deg, #e0e0e0 0%, #a8a8a8 30%, #c8c8c8 55%, #888 100%)';
-        panel.style.padding    = '4%';
-        panel.style.boxSizing  = 'border-box';
-        panel.style.userSelect = 'none';
-        panel.style.overflow   = 'hidden';
+        panel.style.cssText = 'position:relative;width:100%;aspect-ratio:4/3;user-select:none;';
 
-        // ── Black panel face ──────────────────────────────────────────
+        // SVG draws the gray frame + dark face shape
+        var frameSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        frameSvg.setAttribute('viewBox', '0 0 100 75');
+        frameSvg.setAttribute('preserveAspectRatio', 'none');
+        frameSvg.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:100%;display:block;';
+
+        var defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+        var grad = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+        grad.setAttribute('id', _gradId);
+        grad.setAttribute('x1', '0'); grad.setAttribute('y1', '0');
+        grad.setAttribute('x2', '1'); grad.setAttribute('y2', '1');
+        [['0%','#e0e0e0'],['30%','#a8a8a8'],['55%','#c8c8c8'],['100%','#888888']].forEach(function(s) {
+            var stop = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+            stop.setAttribute('offset', s[0]);
+            stop.setAttribute('stop-color', s[1]);
+            grad.appendChild(stop);
+        });
+        defs.appendChild(grad);
+        frameSvg.appendChild(defs);
+
+        var framePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        framePath.setAttribute('d', 'M 0,50 A 50,50 0 0 1 100,50 L 100,73 Q 100,75 98,75 L 2,75 Q 0,75 0,73 Z');
+        framePath.setAttribute('fill', 'url(#' + _gradId + ')');
+        frameSvg.appendChild(framePath);
+
+        var faceBgPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        faceBgPath.setAttribute('d', 'M 4,50 A 46,46 0 0 1 96,50 L 96,70 Q 96,71 95,71 L 5,71 Q 4,71 4,70 Z');
+        faceBgPath.setAttribute('fill', '#080808');
+        frameSvg.appendChild(faceBgPath);
+
+        panel.appendChild(frameSvg);
+
+        // ── Black panel face (content host) ───────────────────────────
+        // Face occupies inset 4 units in viewBox coords:
+        //   left: 4/100 = 4%,  top: 4/75 = 5.333%
+        //   width: 92/100 = 92%,  height: 67/75 = 89.333%
         var face = document.createElement('div');
-        face.style.position   = 'relative';
-        face.style.width      = '100%';
-        face.style.height     = '100%';
-        face.style.background = '#080808';
-        face.style.overflow   = 'hidden';
+        face.style.cssText = 'position:absolute;left:4%;top:5.333%;width:92%;height:89.333%;overflow:hidden;';
         panel.appendChild(face);
-
-        // Compute and apply the semicircle+rectangle shape.
-        // panel height  = radius + rectH  = w/2 + w*_RECT_RATIO
-        // border-radius = radius px on top corners, fixed px on bottom corners.
-        function _reshape() {
-            var w = panel.offsetWidth;
-            if (!w) return;
-            var r    = w / 2;
-            var pad  = w * 0.04;
-            var rectH = w * _RECT_RATIO;
-            panel.style.height       = (r + rectH) + 'px';
-            panel.style.borderRadius = r + 'px ' + r + 'px 10px 10px';
-            var fr = r - pad;
-            face.style.borderRadius  = fr + 'px ' + fr + 'px 8px 8px';
-        }
-
-        var _ro = new ResizeObserver(_reshape);
-        _ro.observe(panel);
 
         // ── Arc geometry ──────────────────────────────────────────────
         // Face aspect = face_width / face_height = 0.92 / 0.67 ≈ 1.373.
@@ -283,7 +294,6 @@
         face.appendChild(brandLabel);
 
         container.appendChild(panel);
-        _reshape();
 
         // ── Helpers ───────────────────────────────────────────────────
 
@@ -378,7 +388,6 @@
         }
 
         function destroy() {
-            _ro.disconnect();
             panel.remove();
         }
 
