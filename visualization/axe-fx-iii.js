@@ -134,16 +134,18 @@
         arrowsWrap.style.left            = '50%';
         arrowsWrap.style.transform       = 'translateX(-50%)';
         arrowsWrap.style.width           = '17.2%';
-        arrowsWrap.style.justifyContent  = 'space-between';
+        arrowsWrap.style.gap             = '15%';   // 3¢ gap = 15% of ±10¢ wrap width
         arrowsWrap.style.zIndex          = '5';
 
         var arrowL = document.createElement('div');
+        arrowL.style.flex       = '1';
         arrowL.style.fontSize   = '0.77rem';
         arrowL.style.lineHeight = '1';
         arrowL.style.color      = _COL_ARROW_DIM;
         arrowL.textContent      = '▶';
 
         var arrowR = document.createElement('div');
+        arrowR.style.flex       = '1';
         arrowR.style.fontSize   = '0.77rem';
         arrowR.style.lineHeight = '1';
         arrowR.style.color      = _COL_ARROW_DIM;
@@ -193,11 +195,12 @@
         // Arc is a ∩ shape (upward arch) positioned at the bottom of the panel.
         // Diamonds arranged from left through top to right around the arc.
         // Strobe SVG: viewBox 120×72, R=60 fills full width.
-        // dashLen = halfCirc / (N dashes + N-1 gaps) = πR / (2N-1); stroke-width = dashLen.
+        // gap = (2/3)*dash; 5 dashes + 4 gaps → (5 + 4*2/3)*dash = halfCirc → dash = 3*halfCirc/23
         var _sVB_W = 120, _sVB_H = 72;
         var _scx = 60, _scy = _sVB_H;
         var _halfCirc  = Math.PI * _TUNER_STROBE_R;
-        var _dashLen   = _halfCirc / (2 * _TUNER_STROBE_N - 1);   // dash = gap
+        var _dashLen   = 3 * _halfCirc / 23;
+        var _gapLen    = (2 / 3) * _dashLen;
 
         var strobeSvg = document.createElementNS(_SVG_NS, 'svg');
         strobeSvg.setAttribute('viewBox', '0 0 ' + _sVB_W + ' ' + _sVB_H);
@@ -206,8 +209,9 @@
         strobeSvg.style.bottom    = '0';
         strobeSvg.style.left      = '50%';
         strobeSvg.style.transform = 'translateX(-50%)';
-        strobeSvg.style.width     = '25%';
-        strobeSvg.style.zIndex    = '4';
+        strobeSvg.style.width    = '25%';
+        strobeSvg.style.overflow = 'visible';
+        strobeSvg.style.zIndex   = '4';
 
         // Dashed semicircle arc (∩ upward arch)
         var arcPath = document.createElementNS(_SVG_NS, 'path');
@@ -217,8 +221,8 @@
         arcPath.setAttribute('fill', 'none');
         arcPath.setAttribute('stroke', _COL_STROBE);
         arcPath.setAttribute('stroke-width', String(_dashLen));
-        arcPath.setAttribute('stroke-dasharray', _dashLen + ' ' + _dashLen);
-        arcPath.setAttribute('stroke-linecap', 'round');
+        arcPath.setAttribute('stroke-dasharray', _dashLen + ' ' + _gapLen);
+        arcPath.setAttribute('stroke-linecap', 'butt');
         strobeSvg.appendChild(arcPath);
         panel.appendChild(strobeSvg);
 
