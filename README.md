@@ -1,9 +1,9 @@
 # Slopsmith Tuner Plugin
 
 A real-time guitar and bass tuner plugin for [Slopsmith](https://github.com/byrongamatos/slopsmith).
-
-<img width="315" height="444" alt="grafik" src="https://github.com/user-attachments/assets/1cde859e-d978-416a-b68b-5f4fda218309" /> <img width="309" height="406" alt="grafik" src="https://github.com/user-attachments/assets/ccecb441-d3eb-4e48-a290-0dd15abf2205" /> <img width="317" height="457" alt="grafik" src="https://github.com/user-attachments/assets/0dfffdb0-8d44-4ce2-9255-0a5658d3c71c" />
-
+<p float="left">
+<img width="32%" alt="grafik" src="https://github.com/user-attachments/assets/1cde859e-d978-416a-b68b-5f4fda218309" /> <img width="32%" alt="grafik" src="https://github.com/user-attachments/assets/ccecb441-d3eb-4e48-a290-0dd15abf2205" /> <img width="32%" alt="grafik" src="https://github.com/user-attachments/assets/0dfffdb0-8d44-4ce2-9255-0a5658d3c71c" />
+</p>
 
 
 
