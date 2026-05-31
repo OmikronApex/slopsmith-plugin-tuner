@@ -75,7 +75,7 @@
         // Toiletbowl path102 same ellipse: centre at y=0 (top of viewBox), rx=35.4% of viewBox.
         // → width = 19.4% / 70.7% = 27.4%; left = 50% - 27.4%/2 = 36.3%; top = 65.8%.
         // Verified: Toiletbowl path124 at y=60.93% × height(25.2%) + 65.8% = 81.2% = Bathroom path124 ✓
-        bowlEl.style.left       = '36%';
+        bowlEl.style.left       = '38%';
         bowlEl.style.top        = '66%';
         bowlEl.style.width      = '27%';
         bowlEl.style.visibility = 'hidden';
