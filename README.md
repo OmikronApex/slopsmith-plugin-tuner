@@ -16,7 +16,7 @@ This plugin adds a floating "Tuner" button to the Slopsmith interface, providing
 - **Custom Tunings**: Add your own tunings via note names (e.g., E2, A2) or Hz frequencies in the settings.
 - **Audio Device Selection**: Choose specific input devices and channels (Mono, Left, Right) for professional interfaces.
 - **Themable UI**: Styled with Tailwind CSS to match your Slopsmith theme.
-- **Visualizations**: Pick from different visualizations to suit your needs (Currently: Default, Strobe, Analogue Gauge, and Axe-Fx III)
+- **Visualizations**: Pick from different visualizations to suit your needs (Currently: Default, Strobe, Analogue Gauge, Axe-Fx III, and Toilet Tuner)
 
 ## Available Visualizations
 
@@ -26,6 +26,7 @@ This plugin adds a floating "Tuner" button to the Slopsmith interface, providing
 | Strobe | <img width="443" height="227" alt="grafik" src="https://github.com/user-attachments/assets/d73f9434-dd2b-4d36-a21b-ceff4cd278a2" /> |
 | Analogue Gauge | <img width="441" height="271" alt="grafik" src="https://github.com/user-attachments/assets/44918f20-fc56-4219-9081-8c46bf473e20" /> |
 | Axe-Fx III | <img width="437" height="247" alt="grafik" src="https://github.com/user-attachments/assets/94a039c6-26e4-4d1c-8e4c-6b8edac9c12d" /> |
+| Toilet Tuner | Bathroom scene with a plunger that slides left/right showing pitch deviation; dips into the bowl when in tune. |
 
 ## Installation
 
@@ -67,6 +68,9 @@ Access advanced settings via the Slopsmith Plugin Manager (Settings -> Plugins -
 
 
 ## Changelog
+
+### [1.2.8] - 2026-05-31
+- Added Toilet Tuner visualization: bathroom scene background with a plunger that slides left/right proportional to cents deviation; dips into the toilet bowl when in tune (±2 cents) and shows a 💩 emoji on the wall calendar.
 
 ### [1.2.7] - 2026-05-31
 - Added Axe-Fx III visualization: dark navy LCD-style panel with a chromatic tick gauge, inward directional arrows, large note/octave readout, a rotating pink strobe semicircle, and a pixelated grid overlay.
