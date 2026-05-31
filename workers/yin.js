@@ -33,15 +33,29 @@ function _yinDetect(buffer, sampleRate) {
         yinBuffer[tau] = runningSum > 0 ? yinBuffer[tau] * tau / runningSum : 1;
     }
 
-    let tau = 2;
-    while (tau < halfLen) {
-        if (yinBuffer[tau] < threshold) {
-            while (tau + 1 < halfLen && yinBuffer[tau + 1] < yinBuffer[tau]) tau++;
-            break;
+    // Collect every local minimum below the threshold rather than stopping at
+    // the first (smallest-tau, highest-frequency) one. As a low string decays,
+    // its 2nd harmonic can dip below the threshold too — taking the first
+    // minimum then locks onto the octave-up overtone (E1 → E2/D2 drift).
+    const candidates = [];
+    let bestVal = 1;
+    let t = 2;
+    while (t < halfLen) {
+        if (yinBuffer[t] < threshold) {
+            while (t + 1 < halfLen && yinBuffer[t + 1] < yinBuffer[t]) t++;
+            candidates.push({ tau: t, val: yinBuffer[t] });
+            if (yinBuffer[t] < bestVal) bestVal = yinBuffer[t];
         }
-        tau++;
+        t++;
     }
-    if (tau === halfLen) return { freq: 0, confidence: 0, rms };
+    if (candidates.length === 0) return { freq: 0, confidence: 0, rms };
+
+    // Prefer the lowest frequency (largest tau) whose CMNDF is still within 2× of
+    // the best candidate — i.e. a credible fundamental, not a faint sub-octave.
+    let tau = candidates[0].tau;
+    for (let i = candidates.length - 1; i >= 0; i--) {
+        if (candidates[i].val < bestVal * 2) { tau = candidates[i].tau; break; }
+    }
 
     const s0 = yinBuffer[tau - 1];
     const s1 = yinBuffer[tau];
