@@ -24,7 +24,7 @@ This plugin adds a floating "Tuner" button to the Slopsmith interface, providing
 |------|-------|
 | Default | <img width="450" height="261" alt="grafik" src="https://github.com/user-attachments/assets/7b63cac5-07c8-4fea-88ba-60e051a3cbb4" /> |
 | Strobe | <img width="446" height="229" alt="grafik" src="https://github.com/user-attachments/assets/e6a1fa2f-d17c-4d7e-9c43-602a81373e79" /> |
-| Analogue Gauge | <img width="443" height="273" alt="grafik" src="https://github.com/user-attachments/assets/d1fb1d3a-a186-4813-bd9c-fd604b90d3a0" /> |
+| Analogue Gauge | <img width="441" height="271" alt="grafik" src="https://github.com/user-attachments/assets/44918f20-fc56-4219-9081-8c46bf473e20" /> |
 | Axe-Fx III | <img width="437" height="247" alt="grafik" src="https://github.com/user-attachments/assets/94a039c6-26e4-4d1c-8e4c-6b8edac9c12d" /> |
 
 ## Installation
