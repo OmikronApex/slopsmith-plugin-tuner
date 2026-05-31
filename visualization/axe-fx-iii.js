@@ -20,8 +20,8 @@
 
     // ── Constants ─────────────────────────────────────────────────────
     var _TUNER_TICK_COUNT  = 11;
-    var _TUNER_STROBE_N    = 11;   // diamond segments in strobe arc
-    var _TUNER_STROBE_R    = 42;   // arc radius in SVG units
+    var _TUNER_STROBE_N    = 5;    // max visible segments on arc
+    var _TUNER_STROBE_R    = 60;   // arc radius in SVG units (fills 120-wide viewBox)
     var _TUNER_IN_TUNE_THR = 2;    // cents threshold for in-tune state
     var _TUNER_ARROW_THR   = 3;    // cents threshold for arrow direction
 
@@ -68,14 +68,13 @@
         panel.appendChild(tabsWrap);
 
         // ── Chromatic gauge strip (upper area) ───────────────────────
-        // Outer wrapper: sets width and position, contains bg + ticks
+        // Outer wrapper spans from center of note name to center of octave (~7% each side)
         var gaugeOuter = document.createElement('div');
         gaugeOuter.className = 'absolute';
-        gaugeOuter.style.top       = '12%';
-        gaugeOuter.style.left      = '50%';
-        gaugeOuter.style.transform = 'translateX(-50%)';
-        gaugeOuter.style.width     = '55%';
-        gaugeOuter.style.zIndex    = '5';
+        gaugeOuter.style.top   = '12%';
+        gaugeOuter.style.left  = '7%';
+        gaugeOuter.style.right = '7%';
+        gaugeOuter.style.zIndex = '5';
 
         // Dark green background panel — height = regular tick height
         var TICK_REG_H = 10;   // px in SVG-like units; we use em below
@@ -125,23 +124,27 @@
         gaugeOuter.appendChild(gaugeWrap);
         panel.appendChild(gaugeOuter);
 
-        // ── Direction arrows ▶ ◀ (centre area, slightly left of mid) ──
+        // ── Direction arrows ▶ ◀ ─────────────────────────────────────
+        // Width spans the ±10¢ zone (20% of 86% gauge = ~17.2% of panel).
+        // Height matches the regular (short) gauge tick height: 55% of 1.4em ≈ 0.77rem.
+        // justify-between places outer arrow edges at ±10¢ tick positions.
         var arrowsWrap = document.createElement('div');
         arrowsWrap.className = 'absolute flex items-center';
-        arrowsWrap.style.top       = '38%';
-        arrowsWrap.style.left      = '50%';
-        arrowsWrap.style.transform = 'translateX(-50%)';
-        arrowsWrap.style.gap       = '4px';
-        arrowsWrap.style.zIndex    = '5';
+        arrowsWrap.style.top             = '38%';
+        arrowsWrap.style.left            = '50%';
+        arrowsWrap.style.transform       = 'translateX(-50%)';
+        arrowsWrap.style.width           = '17.2%';
+        arrowsWrap.style.justifyContent  = 'space-between';
+        arrowsWrap.style.zIndex          = '5';
 
-        var arrowL = document.createElement('div');   // teal ▶ (player must raise pitch)
-        arrowL.style.fontSize   = '1.6rem';
+        var arrowL = document.createElement('div');
+        arrowL.style.fontSize   = '0.77rem';
         arrowL.style.lineHeight = '1';
         arrowL.style.color      = _COL_ARROW_DIM;
         arrowL.textContent      = '▶';
 
-        var arrowR = document.createElement('div');   // white ◀ (player must lower pitch)
-        arrowR.style.fontSize   = '1.6rem';
+        var arrowR = document.createElement('div');
+        arrowR.style.fontSize   = '0.77rem';
         arrowR.style.lineHeight = '1';
         arrowR.style.color      = _COL_ARROW_DIM;
         arrowR.textContent      = '◀';
@@ -189,31 +192,32 @@
         // ── Strobe semicircle SVG (bottom-centre) ─────────────────────
         // Arc is a ∩ shape (upward arch) positioned at the bottom of the panel.
         // Diamonds arranged from left through top to right around the arc.
+        // Strobe SVG: viewBox 120×72, R=60 fills full width.
+        // dashLen = halfCirc / (N dashes + N-1 gaps) = πR / (2N-1); stroke-width = dashLen.
+        var _sVB_W = 120, _sVB_H = 72;
+        var _scx = 60, _scy = _sVB_H;
+        var _halfCirc  = Math.PI * _TUNER_STROBE_R;
+        var _dashLen   = _halfCirc / (2 * _TUNER_STROBE_N - 1);   // dash = gap
+
         var strobeSvg = document.createElementNS(_SVG_NS, 'svg');
-        strobeSvg.setAttribute('viewBox', '0 0 120 65');
+        strobeSvg.setAttribute('viewBox', '0 0 ' + _sVB_W + ' ' + _sVB_H);
         strobeSvg.setAttribute('preserveAspectRatio', 'xMidYMax meet');
         strobeSvg.setAttribute('class', 'absolute');
         strobeSvg.style.bottom    = '0';
         strobeSvg.style.left      = '50%';
         strobeSvg.style.transform = 'translateX(-50%)';
-        strobeSvg.style.width     = '36%';
-        strobeSvg.style.maxWidth  = '200px';
+        strobeSvg.style.width     = '25%';
         strobeSvg.style.zIndex    = '4';
 
         // Dashed semicircle arc (∩ upward arch)
-        var _scx = 60, _scy = 65;
         var arcPath = document.createElementNS(_SVG_NS, 'path');
-        // M left-point, arc to right-point, upward (sweep-flag=0, large-arc=1)
-        var lx = _scx - _TUNER_STROBE_R, ly = _scy;
-        var rx = _scx + _TUNER_STROBE_R, ry = _scy;
-        arcPath.setAttribute('d', 'M ' + lx + ' ' + ly + ' A ' + _TUNER_STROBE_R + ' ' + _TUNER_STROBE_R + ' 0 1 1 ' + rx + ' ' + ry);
+        arcPath.setAttribute('d', 'M ' + (_scx - _TUNER_STROBE_R) + ' ' + _scy +
+            ' A ' + _TUNER_STROBE_R + ' ' + _TUNER_STROBE_R + ' 0 1 1 ' +
+            (_scx + _TUNER_STROBE_R) + ' ' + _scy);
         arcPath.setAttribute('fill', 'none');
         arcPath.setAttribute('stroke', _COL_STROBE);
-        arcPath.setAttribute('stroke-width', '4');
-        // 11 dashes with gaps — circumference ≈ π*R
-        var halfCirc = Math.PI * _TUNER_STROBE_R;
-        var dashLen  = halfCirc / (_TUNER_STROBE_N * 2 - 1);
-        arcPath.setAttribute('stroke-dasharray', dashLen + ' ' + dashLen);
+        arcPath.setAttribute('stroke-width', String(_dashLen));
+        arcPath.setAttribute('stroke-dasharray', _dashLen + ' ' + _dashLen);
         arcPath.setAttribute('stroke-linecap', 'round');
         strobeSvg.appendChild(arcPath);
         panel.appendChild(strobeSvg);
