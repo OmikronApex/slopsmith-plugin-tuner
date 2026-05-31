@@ -57,7 +57,7 @@
         autoLamp.style.flexShrink = '0';
 
         var autoLabel = document.createElement('span');
-        autoLabel.style.fontSize = '8px';
+        autoLabel.style.fontSize = '9px';
         autoLabel.style.fontFamily = 'monospace';
         autoLabel.style.fontWeight = 'bold';
         autoLabel.style.color = '#888';
@@ -73,7 +73,7 @@
         refLabel.style.top = '8px';
         refLabel.style.right = '10px';
         refLabel.style.zIndex = '20';
-        refLabel.style.fontSize = '8px';
+        refLabel.style.fontSize = '9px';
         refLabel.style.fontFamily = 'monospace';
         refLabel.style.fontWeight = 'bold';
         refLabel.style.color = '#888';
