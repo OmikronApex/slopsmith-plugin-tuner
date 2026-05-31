@@ -36,26 +36,44 @@
         // Border-radius ry for a true visual semicircle top:
         //   ry_panel = (W/2) / (0.75W) = 66.7 %
         //   ry_face  = (0.46W) / (0.67W) ≈ 68.7 % → 69 %
+        // Rectangle height below the semicircle, as a fraction of panel width.
+        var _RECT_RATIO = 0.28;
+
         var panel = document.createElement('div');
-        panel.style.position     = 'relative';
-        panel.style.width        = '100%';
-        panel.style.aspectRatio  = '4 / 3';
-        panel.style.background   = 'linear-gradient(160deg, #e0e0e0 0%, #a8a8a8 30%, #c8c8c8 55%, #888 100%)';
-        panel.style.borderRadius = '50% 50% 10px 10px / 66.7% 66.7% 10px 10px';
-        panel.style.padding      = '4%';
-        panel.style.boxSizing    = 'border-box';
-        panel.style.userSelect   = 'none';
-        panel.style.overflow     = 'hidden';
+        panel.style.position   = 'relative';
+        panel.style.width      = '100%';
+        panel.style.background = 'linear-gradient(160deg, #e0e0e0 0%, #a8a8a8 30%, #c8c8c8 55%, #888 100%)';
+        panel.style.padding    = '4%';
+        panel.style.boxSizing  = 'border-box';
+        panel.style.userSelect = 'none';
+        panel.style.overflow   = 'hidden';
 
         // ── Black panel face ──────────────────────────────────────────
         var face = document.createElement('div');
-        face.style.position     = 'relative';
-        face.style.width        = '100%';
-        face.style.height       = '100%';
-        face.style.background   = '#080808';
-        face.style.borderRadius = '50% 50% 8px 8px / 69% 69% 8px 8px';
-        face.style.overflow     = 'hidden';
+        face.style.position   = 'relative';
+        face.style.width      = '100%';
+        face.style.height     = '100%';
+        face.style.background = '#080808';
+        face.style.overflow   = 'hidden';
         panel.appendChild(face);
+
+        // Compute and apply the semicircle+rectangle shape.
+        // panel height  = radius + rectH  = w/2 + w*_RECT_RATIO
+        // border-radius = radius px on top corners, fixed px on bottom corners.
+        function _reshape() {
+            var w = panel.offsetWidth;
+            if (!w) return;
+            var r    = w / 2;
+            var pad  = w * 0.04;
+            var rectH = w * _RECT_RATIO;
+            panel.style.height       = (r + rectH) + 'px';
+            panel.style.borderRadius = r + 'px ' + r + 'px 10px 10px';
+            var fr = r - pad;
+            face.style.borderRadius  = fr + 'px ' + fr + 'px 8px 8px';
+        }
+
+        var _ro = new ResizeObserver(_reshape);
+        _ro.observe(panel);
 
         // ── Arc geometry ──────────────────────────────────────────────
         // Face aspect = face_width / face_height = 0.92 / 0.67 ≈ 1.373.
@@ -265,6 +283,7 @@
         face.appendChild(brandLabel);
 
         container.appendChild(panel);
+        _reshape();
 
         // ── Helpers ───────────────────────────────────────────────────
 
@@ -359,6 +378,7 @@
         }
 
         function destroy() {
+            _ro.disconnect();
             panel.remove();
         }
 
