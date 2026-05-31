@@ -145,6 +145,7 @@
             defaultTunings = config.defaultTunings || {};
             showFloatingButton = config.showFloatingButton !== false;
             visualizationMode = config.visualizationMode || 'default';
+            if (visualizationMode === 'pt-100') visualizationMode = 'pp-tiny';
 
             tunings = {};
             Object.values(defaultTunings).forEach(group => {
