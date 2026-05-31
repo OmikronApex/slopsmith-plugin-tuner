@@ -24,8 +24,8 @@
     // Raised: cup bottom at ~62% (above bowl top) → top = 62 - 18.6 = 43%.
     // Dipped: cup inside bowl → top = 52%.
 
-    var _TUNER_TT_LEFT_PCT     = 36;   // x at cents=-50 (bowl left edge ≈ 40%)
-    var _TUNER_TT_RIGHT_PCT    = 64;   // x at cents=+50 (bowl right edge ≈ 60%)
+    var _TUNER_TT_LEFT_PCT     = 15;   // x at cents=-50
+    var _TUNER_TT_RIGHT_PCT    = 85;   // x at cents=+50
     var _TUNER_TT_CENTRE_PCT   = 50;   // x at cents=0  (bowl centre)
 
     var _TUNER_TT_RAISED_TOP   = 43;   // plunger top % when hovering above bowl
