@@ -131,7 +131,8 @@
         function update(note, cents) {
             _currentNote  = note;
             _currentCents = note === null ? 0 : cents;
-            noteEl.textContent = note || '–';
+            var inTune = note !== null && Math.abs(_currentCents) <= _TUNER_TT_IN_TUNE_THR;
+            noteEl.textContent = inTune ? '💩' : (note || '–');
         }
 
         function destroy() {
