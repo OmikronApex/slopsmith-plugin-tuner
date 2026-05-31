@@ -104,15 +104,10 @@
                 : _TUNER_TT_CENTRE_PCT + (_currentCents / 50) * (_TUNER_TT_RIGHT_PCT - _TUNER_TT_CENTRE_PCT);
 
             if (inTune && !_plungerDipped) {
-                // Glide to centre first, then dip
-                _leftPct += (targetLeft - _leftPct) * 8 * dt;
-                if (Math.abs(_leftPct - _TUNER_TT_CENTRE_PCT) < 0.5) {
-                    _topPct = _TUNER_TT_DIPPED_TOP;
-                    _plungerDipped = true;
-                    noteEl.textContent = '💩';
-                }
+                _topPct = _TUNER_TT_DIPPED_TOP;
+                _plungerDipped = true;
+                noteEl.textContent = '💩';
             } else if (!inTune && _plungerDipped) {
-                // Rise immediately, then re-enable horizontal tracking
                 _topPct = _TUNER_TT_RAISED_TOP;
                 _plungerDipped = false;
                 noteEl.textContent = _currentNote || '–';
@@ -120,7 +115,6 @@
 
             if (!_plungerDipped) {
                 _leftPct += (targetLeft - _leftPct) * 8 * dt;
-                _topPct  += (_TUNER_TT_RAISED_TOP - _topPct) * 6 * dt;
             }
 
             plungerEl.style.left = _leftPct.toFixed(2) + '%';
