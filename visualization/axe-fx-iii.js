@@ -331,26 +331,29 @@
         // ── Internal state ────────────────────────────────────────────
         var _rafId         = null;
         var _currentMode   = 'free';
-        var _strobeOffset  = 0;      // stroke-dashoffset accumulator (SVG length units)
-        var _currentCents  = 0;
-        var _strobeActive  = false;
-        var _lastTime      = null;
-        var _totalDash     = _dashLen + _gapLen;  // one dash-cycle period
+        var _strobeOffset   = 0;      // stroke-dashoffset accumulator (SVG length units)
+        var _currentCents   = 0;      // target cents (0 when no signal)
+        var _smoothedCents  = 0;      // lerped cents — drives speed, decays to 0 on stop
+        var _lastTime       = null;
+        var _totalDash      = _dashLen + _gapLen;  // one dash-cycle period
 
         // ── Strobe RAF animation loop ─────────────────────────────────
-        // Uses stroke-dashoffset to slide the pattern along the fixed arc path —
-        // equivalent to rotating a diamond group but correct for a dashed stroke.
-        // Speed formula mirrors strobe.js exponential curve; max = halfCirc units/s.
+        // _smoothedCents lerps toward _currentCents every frame (mirrors strobe.js).
+        // When signal stops, _currentCents = 0 → _smoothedCents decays → speed → 0.
+        // The strobe always decelerates smoothly rather than snapping to a freeze.
         function _animateStrobe(now) {
             if (_lastTime === null) { _lastTime = now; }
             var dt = Math.min((now - _lastTime) / 1000, 0.1);
             _lastTime = now;
 
-            if (_strobeActive && Math.abs(_currentCents) > _TUNER_IN_TUNE_THR) {
-                var absCents  = Math.min(50, Math.abs(_currentCents));
+            var lerpFactor = 1 - Math.exp(-10 * dt);
+            _smoothedCents += (_currentCents - _smoothedCents) * lerpFactor;
+
+            if (Math.abs(_smoothedCents) > 0.1) {
+                var absCents   = Math.min(50, Math.abs(_smoothedCents));
                 var normalized = Math.max(0, absCents - _TUNER_IN_TUNE_THR) / (50 - _TUNER_IN_TUNE_THR);
                 var speed      = _halfCirc * Math.pow(normalized, 0.9);
-                if (_currentCents > 0) { speed = -speed; }  // sharp → counter-clockwise
+                if (_smoothedCents > 0) { speed = -speed; }
                 _strobeOffset = ((_strobeOffset + speed * dt) % _totalDash + _totalDash) % _totalDash;
                 arcPath.setAttribute('stroke-dashoffset', String(_strobeOffset));
             }
