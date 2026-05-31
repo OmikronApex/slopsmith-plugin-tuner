@@ -193,15 +193,15 @@
         });
 
         // ── 4. LCD display (letter + # inside one box) ────────────────
-        // top=30%, height=40% → bottom=70%, centre=50%.
+        // top=33%, height=52% → bottom=85%, centre=59%.
         var displayWrap = document.createElement('div');
         displayWrap.style.cssText = [
             'position:absolute',
             'left:50%',
-            'top:30%',
+            'top:33%',
             'transform:translateX(-50%)',
-            'width:38%',
-            'height:40%',
+            'width:32%',
+            'height:52%',
             'background:' + _TUNER_PT_BG,
             'border-radius:3px',
             'border:1px solid #2a0000',
@@ -263,7 +263,7 @@
         // Anchored to the display's right edge (≈69%) at the display's
         // vertical midpoint (54% + 20% = 74%).
         var autoWrap = document.createElement('div');
-        autoWrap.style.cssText = 'position:absolute;left:72%;top:67%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:4%;pointer-events:none';
+        autoWrap.style.cssText = 'position:absolute;left:72%;top:76%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:4%;pointer-events:none';
 
         var autoLed = document.createElement('div');
         autoLed.style.cssText = [
