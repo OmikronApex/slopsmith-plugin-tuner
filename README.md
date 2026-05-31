@@ -26,7 +26,8 @@ This plugin adds a floating "Tuner" button to the Slopsmith interface, providing
 | Strobe | <img width="443" height="227" alt="grafik" src="https://github.com/user-attachments/assets/d73f9434-dd2b-4d36-a21b-ceff4cd278a2" /> |
 | Analogue Gauge | <img width="441" height="271" alt="grafik" src="https://github.com/user-attachments/assets/44918f20-fc56-4219-9081-8c46bf473e20" /> |
 | Axe-Fx III | <img width="437" height="247" alt="grafik" src="https://github.com/user-attachments/assets/94a039c6-26e4-4d1c-8e4c-6b8edac9c12d" /> |
-| Toilet Tuner | Bathroom scene with a plunger that slides left/right showing pitch deviation; dips into the bowl when in tune. |
+| Toilet Tuner | <img width="436" height="434" alt="grafik" src="https://github.com/user-attachments/assets/07925cd6-386d-4089-8278-a3e6eb499685" />
+ |
 
 ## Installation
 
