@@ -51,57 +51,69 @@
         face.style.overflow     = 'hidden';
         panel.appendChild(face);
 
-        // ── Layout (top → bottom) ─────────────────────────────────────
-        // 1. Range labels          ~5 %
-        // 2. Curved white line     ~10–15 %  (SVG arc matching LED curve)
-        // 3. LED bulbs             ~18–25 %  (parabolic arc)
-        // 4. LCD display           ~34–76 %
-        // 5. BATT. / brand         ~82–88 %
+        // ── Arc geometry ──────────────────────────────────────────────
+        // All three rows (labels, white line, LEDs) follow the same parabolic
+        // family: y = yCenter + k * ((x - 50) / 38)²
+        // x runs 12 %–88 % so edge elements stay inside the rounded corners.
+        //
+        // Row centres (at x = 50 %) and edge drop (at x = 12 % / 88 %):
+        //   labels :  yCenter = 6 %,  k = 14  →  edges at 20 %
+        //   line   :  yCenter = 18 %, k = 10  →  edges at 28 %
+        //   LEDs   :  yCenter = 28 %, k = 8   →  edges at 36 %
+        //
+        // Gaps at edges: labels=20 %, line=28 %, LEDs=36 % → 8 % each
+        // Gaps at centre: labels=6 %, line=18 %, LEDs=28 %  → 10–12 % each
+
+        function _arcY(xPct, yCenter, k) {
+            var dx = (xPct - 50) / 38;
+            return yCenter + k * dx * dx;
+        }
 
         // ── 1. Range labels ───────────────────────────────────────────
-        function _makeLabel(text, leftPct) {
+        var labelDefs = [
+            { text: '-40', x: 12 },
+            { text:  '0',  x: 50 },
+            { text: '+40', x: 88 },
+        ];
+        labelDefs.forEach(function (d) {
             var el = document.createElement('div');
             el.style.position   = 'absolute';
-            el.style.left       = leftPct + '%';
-            el.style.top        = '4%';
-            el.style.transform  = 'translateX(-50%)';
+            el.style.left       = d.x + '%';
+            el.style.top        = _arcY(d.x, 6, 14).toFixed(2) + '%';
+            el.style.transform  = 'translate(-50%, -50%)';
             el.style.color      = '#cccccc';
             el.style.fontSize   = '50%';
             el.style.fontWeight = 'bold';
             el.style.fontFamily = 'sans-serif';
             el.style.lineHeight = '1';
-            el.textContent      = text;
+            el.textContent      = d.text;
             face.appendChild(el);
-        }
-
-        _makeLabel('-40', 10);
-        _makeLabel('0',   50);
-        _makeLabel('+40', 90);
+        });
 
         // ── 2. Curved white line (SVG) ────────────────────────────────
-        // SVG covers the top 32 % of the face height; viewBox 0 0 100 32.
-        // The quadratic bezier arc sits below the labels and above the LEDs:
-        //   endpoints at (3, 26), control point at (50, 15) → gentle upward bow.
+        // Quadratic bezier matching the line-row parabola (yCenter=18, k=10).
+        // Endpoints at (12, 28), control point chosen so bezier midpoint = 18:
+        //   bezier_mid = 0.25 * 28 + 0.5 * ctrl + 0.25 * 28 = 18  →  ctrl_y = 8
+        // SVG height covers 0–40 % of face; viewBox "0 0 100 40".
         var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        svg.setAttribute('viewBox', '0 0 100 32');
+        svg.setAttribute('viewBox', '0 0 100 40');
         svg.setAttribute('preserveAspectRatio', 'none');
-        svg.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:32%;pointer-events:none;overflow:visible';
+        svg.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:40%;pointer-events:none;overflow:visible';
 
         var arcPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        arcPath.setAttribute('d', 'M 3,26 Q 50,14 97,26');
+        arcPath.setAttribute('d', 'M 12,28 Q 50,8 88,28');
         arcPath.setAttribute('stroke', 'rgba(255,255,255,0.65)');
-        arcPath.setAttribute('stroke-width', '0.8');
+        arcPath.setAttribute('stroke-width', '0.9');
         arcPath.setAttribute('fill', 'none');
         svg.appendChild(arcPath);
         face.appendChild(svg);
 
         // ── 3. LED arc ────────────────────────────────────────────────
-        // Parabolic arc: x 10 %–90 %, centre at y=20 %, edges at y=26 %.
+        // Parabola: yCenter = 28 %, k = 8 → centre at 28 %, edges at 36 %.
         var leds = [];
         for (var i = 0; i < _TUNER_PT_LED_COUNT; i++) {
-            var xPct = 10 + i * (80 / 8);
-            var dx   = (xPct - 50) / 40;   // −1 at edges, 0 at centre
-            var yPct = 20 + 6 * dx * dx;   // 20 % centre → 26 % edges
+            var xPct = 12 + i * (76 / 8);          // 12 % → 88 %
+            var yPct = _arcY(xPct, 28, 8);
 
             var led = document.createElement('div');
             led.style.position     = 'absolute';
@@ -128,10 +140,10 @@
         displayWrap.style.cssText = [
             'position:absolute',
             'left:50%',
-            'top:34%',
+            'top:42%',
             'transform:translateX(-50%)',
             'width:38%',
-            'height:44%',
+            'height:40%',
             'background:' + _TUNER_PT_BG,
             'border-radius:3px',
             'border:1px solid #2a0000',
