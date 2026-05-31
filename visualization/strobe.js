@@ -22,9 +22,14 @@ window._tunerViz_strobe = function (container) {
         ' ': [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
     };
 
+    // Subtle glow for lit LCD elements; currentColor matches each element's own color
+    const _LIT_GLOW = 'drop-shadow(0 0 4px currentColor)';
+
     function _createLCDDigit() {
         const digit = document.createElement('div');
         digit.className = 'segment-digit relative w-12 h-16 flex-shrink-0';
+        // Glow rides on the rendered segments; unlit ones (opacity 0.05) stay dark
+        digit.style.filter = _LIT_GLOW;
         const seg = 'absolute bg-current transition-opacity duration-150 rounded-sm';
         digit.innerHTML = `
             <div class="${seg} top-0 left-0.5 w-[calc(50%-1px)] h-2 rounded-tl-md" data-seg="0"></div>
@@ -91,7 +96,10 @@ window._tunerViz_strobe = function (container) {
     const stripeGrad = 'linear-gradient(90deg,currentColor 0%,currentColor 45%,transparent 45%,transparent 100%)';
     const strobeEl = document.createElement('div');
     strobeEl.className = 'absolute top-0 left-0 w-full h-full text-accent';
-    strobeEl.style.cssText = `transition:opacity 0.3s ease;background-image:${stripeGrad},${stripeGrad};background-size:40px 15%,80px 15%;background-position:0 5%,0 21%;background-repeat:repeat-x;opacity:0`;
+    strobeEl.style.cssText = `transition:opacity 0.3s ease,filter 0.3s ease;background-image:${stripeGrad},${stripeGrad};background-size:40px 15%,80px 15%;background-position:0 5%,0 21%;background-repeat:repeat-x;opacity:0`;
+    // Strobe glow scales with its brightness state (set in update); none while hidden
+    const _STROBE_GLOW_IN_TUNE = 'drop-shadow(0 0 3px currentColor)';
+    const _STROBE_GLOW_OUT     = 'drop-shadow(0 0 1px currentColor)';
     wrap.appendChild(strobeEl);
 
     container.appendChild(wrap);
@@ -140,7 +148,9 @@ window._tunerViz_strobe = function (container) {
             strobeActive = false;
             strobeEl.style.opacity = '0';
             _updateSegmentDigit(digit, '-');
-            sharp.querySelector('.sharp-segments').style.opacity = '0.05';
+            const sharpSegs = sharp.querySelector('.sharp-segments');
+            sharpSegs.style.opacity = '0.05';
+            sharpSegs.style.filter = 'none';
             currentCents = 0;
             return;
         }
@@ -150,12 +160,17 @@ window._tunerViz_strobe = function (container) {
         currentCents = cents;
 
         _updateSegmentDigit(digit, note[0]);
-        sharp.querySelector('.sharp-segments').style.opacity = note.includes('#') ? '1' : '0.05';
+        const isSharp = note.includes('#');
+        const sharpSegs = sharp.querySelector('.sharp-segments');
+        sharpSegs.style.opacity = isSharp ? '1' : '0.05';
+        sharpSegs.style.filter = isSharp ? _LIT_GLOW : 'none';
 
         strobeEl.style.backgroundImage = `${stripeGrad},${stripeGrad}`;
         strobeEl.style.backgroundSize = '40px 15%,80px 15%';
         strobeEl.style.backgroundPosition = `${strobePhase}px 5%,${strobePhase}px 21%`;
-        strobeEl.style.opacity = Math.abs(cents) < 5 ? '1' : '0.6';
+        const inTune = Math.abs(cents) < 5;
+        strobeEl.style.opacity = inTune ? '1' : '0.6';
+        strobeEl.style.filter = inTune ? _STROBE_GLOW_IN_TUNE : _STROBE_GLOW_OUT;
     }
 
     function destroy() {
