@@ -149,14 +149,18 @@
     }
 
     function _tuningAlreadyKnown(freqs) {
-        for (var group in defaultTunings) {
-            for (var name in defaultTunings[group]) {
-                if (_freqsEqual(freqs, defaultTunings[group][name])) return true;
+        if (!freqs || !freqs.length) return false;
+        const groupName = _TUNER_INSTRUMENT_GROUPS[selectedInstrument];
+        if (groupName && defaultTunings[groupName]) {
+            for (var name in defaultTunings[groupName]) {
+                if (_freqsEqual(freqs, defaultTunings[groupName][name])) return true;
             }
         }
         if (_serverConfig) {
             for (var cname in (_serverConfig.customTunings || {})) {
                 var val = _serverConfig.customTunings[cname];
+                var inst = Array.isArray(val) ? 'guitar-6' : (val.instrument || 'guitar-6');
+                if (inst !== selectedInstrument) continue;
                 var strings = Array.isArray(val) ? val : (val.strings || []);
                 if (_freqsEqual(freqs, strings)) return true;
             }

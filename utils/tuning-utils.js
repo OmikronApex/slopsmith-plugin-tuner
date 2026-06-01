@@ -5,8 +5,6 @@
     const _NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
     function midiToNote(m) { return _NOTE_NAMES[Math.round(m) % 12]; }
 
-    // Per-string-count lowest-string MIDI note (for drop tuning detection)
-    const _STRING_BASE_MIDI = { 4: 33, 5: 35, 6: 40, 7: 35, 8: 30 };
 
     // Per-string-count standard open-string MIDI arrays
     const _BASE_MIDI = {
@@ -36,20 +34,20 @@
         const len = offsets.length;
         if (len < 4 || len > 8) return offsets.join(' ');
 
-        const standard = {
-            0: 'E Standard', '-1': 'Eb Standard', '-2': 'D Standard',
-            '-3': 'C# Standard', '-4': 'C Standard', '-5': 'B Standard',
-            '-6': 'Bb Standard', '-7': 'A Standard',
-            '1': 'F Standard', '2': 'F# Standard',
-        };
-        if (offsets.every(o => o === offsets[0])) return standard[String(offsets[0])] || offsets.join(' ');
+        // First-string open MIDI for this length (same table as _BASE_MIDI column 0).
+        const firstStringMidi = (_BASE_MIDI[len] || _BASE_MIDI[6])[0];
+        const noteNames = ['C','C#','D','Eb','E','F','F#','G','Ab','A','A#','B'];
 
-        // Drop tuning detection: first string is 2 semitones below the rest (which are all equal)
+        // All-equal: name by the note the lowest string becomes at this offset.
+        if (offsets.every(o => o === offsets[0])) {
+            const noteIdx = ((firstStringMidi + offsets[0]) % 12 + 12) % 12;
+            return noteNames[noteIdx] + ' Standard';
+        }
+
+        // Drop tuning: first string is exactly 2 semitones below the rest (all equal).
         if (offsets[0] === offsets[1] - 2 && offsets.slice(1).every(o => o === offsets[1])) {
-            const names = ['C','C#','D','D#','E','F','F#','G','Ab','A','Bb','B'];
-            const baseMidi = _STRING_BASE_MIDI[len] !== undefined ? _STRING_BASE_MIDI[len] : 40;
-            let noteIdx = ((baseMidi + offsets[0]) % 12 + 12) % 12;
-            return 'Drop ' + names[noteIdx];
+            const noteIdx = ((firstStringMidi + offsets[0]) % 12 + 12) % 12;
+            return 'Drop ' + noteNames[noteIdx];
         }
 
         // Named lookup table for specific patterns
