@@ -468,7 +468,7 @@
         function _setSegment(el, lit) {
             var brt = _MT3_BRIGHTNESS[_mt3BrightnessIdx];
             el.setAttribute('fill', lit ? brt.litFill : _MT3_COL_SEG_UNLIT);
-            el.style.filter = lit ? brt.glow : 'none';
+            el.style.filter = lit ? brt.glow : 'drop-shadow(0 0 0px transparent)';
         }
         function _renderNote(letter) {
             var map = _TUNER_MT3_SEGMENTS[letter] || _TUNER_MT3_SEGMENTS[' '];
