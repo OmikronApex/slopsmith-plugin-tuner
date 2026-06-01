@@ -138,41 +138,16 @@
         _sfMerge.appendChild(_sfMn1); _sfMerge.appendChild(_sfMn2);
         _svgFilter.appendChild(_sfBlur); _svgFilter.appendChild(_sfFlood);
         _svgFilter.appendChild(_sfComp); _svgFilter.appendChild(_sfMerge);
-        // Horizontal gradient for specular highlight: transparent at both arc ends, white at apex
-        var _hlGradId = 'mt3-hl-' + Math.random().toString(36).slice(2, 7);
-        var _hlGrad   = document.createElementNS(_SVG_NS, 'linearGradient');
-        _hlGrad.setAttribute('id', _hlGradId);
-        _hlGrad.setAttribute('gradientUnits', 'userSpaceOnUse');
-        _hlGrad.setAttribute('x1', _MT3_ARC_SX.toFixed(2));
-        _hlGrad.setAttribute('y1', '0');
-        _hlGrad.setAttribute('x2', _MT3_ARC_EX.toFixed(2));
-        _hlGrad.setAttribute('y2', '0');
-        [['0%','rgba(255,255,255,0)'], ['50%','rgba(255,255,255,0.48)'], ['100%','rgba(255,255,255,0)']]
-        .forEach(function (s) {
-            var stop = document.createElementNS(_SVG_NS, 'stop');
-            stop.setAttribute('offset', s[0]);
-            stop.setAttribute('stop-color', s[1]);
-            _hlGrad.appendChild(stop);
-        });
-        _svgDefs.appendChild(_hlGrad);
-
-        // Horizontal gradient for outer shadow: transparent at ends, dark at centre
-        var _shGradId = 'mt3-sh-' + Math.random().toString(36).slice(2, 7);
-        var _shGrad   = document.createElementNS(_SVG_NS, 'linearGradient');
-        _shGrad.setAttribute('id', _shGradId);
-        _shGrad.setAttribute('gradientUnits', 'userSpaceOnUse');
-        _shGrad.setAttribute('x1', _MT3_ARC_SX.toFixed(2));
-        _shGrad.setAttribute('y1', '0');
-        _shGrad.setAttribute('x2', _MT3_ARC_EX.toFixed(2));
-        _shGrad.setAttribute('y2', '0');
-        [['0%','rgba(0,0,0,0)'], ['50%','rgba(0,0,0,0.28)'], ['100%','rgba(0,0,0,0)']]
-        .forEach(function (s) {
-            var stop = document.createElementNS(_SVG_NS, 'stop');
-            stop.setAttribute('offset', s[0]);
-            stop.setAttribute('stop-color', s[1]);
-            _shGrad.appendChild(stop);
-        });
-        _svgDefs.appendChild(_shGrad);
+        // Shared blur filter for highlight and shadow arcs
+        var _glassBlurId = 'mt3-gb-' + Math.random().toString(36).slice(2, 7);
+        var _glassBlur   = document.createElementNS(_SVG_NS, 'filter');
+        _glassBlur.setAttribute('id', _glassBlurId);
+        _glassBlur.setAttribute('x', '-30%'); _glassBlur.setAttribute('y', '-30%');
+        _glassBlur.setAttribute('width', '160%'); _glassBlur.setAttribute('height', '160%');
+        var _gbFe = document.createElementNS(_SVG_NS, 'feGaussianBlur');
+        _gbFe.setAttribute('stdDeviation', '1.8');
+        _glassBlur.appendChild(_gbFe);
+        _svgDefs.appendChild(_glassBlur);
         _svgDefs.appendChild(_svgFilter);
         gaugeSvg.appendChild(_svgDefs);
 
@@ -199,9 +174,10 @@
                    (_MT3_cx + _shadowR * Math.cos(_MT3_ARC_START + _MT3_ARC_SPAN)).toFixed(2) + ' ' +
                    (_MT3_cy + _shadowR * Math.sin(_MT3_ARC_START + _MT3_ARC_SPAN)).toFixed(2));
         arcShadow.setAttribute('fill', 'none');
-        arcShadow.setAttribute('stroke', 'url(#' + _shGradId + ')');
+        arcShadow.setAttribute('stroke', 'rgba(0,0,0,0.28)');
         arcShadow.setAttribute('stroke-width', '3.5');
         arcShadow.setAttribute('stroke-linecap', 'round');
+        arcShadow.setAttribute('filter', 'url(#' + _glassBlurId + ')');
         gaugeSvg.appendChild(arcShadow);
 
         // Specular highlight — bright white arc on inner-upper edge fading to transparent at ends
@@ -214,9 +190,10 @@
                    (_MT3_cx + _hlR * Math.cos(_MT3_ARC_START + _MT3_ARC_SPAN)).toFixed(2) + ' ' +
                    (_MT3_cy + _hlR * Math.sin(_MT3_ARC_START + _MT3_ARC_SPAN)).toFixed(2));
         arcHighlight.setAttribute('fill', 'none');
-        arcHighlight.setAttribute('stroke', 'url(#' + _hlGradId + ')');
+        arcHighlight.setAttribute('stroke', 'rgba(255,255,255,0.48)');
         arcHighlight.setAttribute('stroke-width', '2.5');
         arcHighlight.setAttribute('stroke-linecap', 'round');
+        arcHighlight.setAttribute('filter', 'url(#' + _glassBlurId + ')');
         gaugeSvg.appendChild(arcHighlight);
 
         // dimGroup: base tick lines always shown at dim colour — constructed once, never updated
