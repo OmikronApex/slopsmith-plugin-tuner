@@ -156,7 +156,7 @@
         _hlGrad.setAttribute('gradientUnits', 'userSpaceOnUse');
         _hlGrad.setAttribute('x1', _MT3_ARC_SX.toFixed(2)); _hlGrad.setAttribute('y1', '0');
         _hlGrad.setAttribute('x2', _MT3_ARC_EX.toFixed(2)); _hlGrad.setAttribute('y2', '0');
-        [['0%','rgba(255,255,255,0)'],['20%','rgba(255,255,255,0)'],['35%','rgba(255,255,255,0.68)'],['65%','rgba(255,255,255,0.68)'],['80%','rgba(255,255,255,0)'],['100%','rgba(255,255,255,0)']]
+        [['0%','rgba(255,255,255,0.28)'],['7%','rgba(255,255,255,0)'],['20%','rgba(255,255,255,0)'],['35%','rgba(255,255,255,0.68)'],['65%','rgba(255,255,255,0.68)'],['80%','rgba(255,255,255,0)'],['93%','rgba(255,255,255,0)'],['100%','rgba(255,255,255,0.28)']]
         .forEach(function(s){var st=document.createElementNS(_SVG_NS,'stop');st.setAttribute('offset',s[0]);st.setAttribute('stop-color',s[1]);_hlGrad.appendChild(st);});
         _svgDefs.appendChild(_hlGrad);
 
@@ -167,7 +167,7 @@
         _shGrad.setAttribute('gradientUnits', 'userSpaceOnUse');
         _shGrad.setAttribute('x1', _MT3_ARC_SX.toFixed(2)); _shGrad.setAttribute('y1', '0');
         _shGrad.setAttribute('x2', _MT3_ARC_EX.toFixed(2)); _shGrad.setAttribute('y2', '0');
-        [['0%','rgba(0,0,0,0)'],['50%','rgba(0,0,0,0.68)'],['100%','rgba(0,0,0,0)']]
+        [['0%','rgba(0,0,0,0)'],['20%','rgba(0,0,0,0.68)'],['80%','rgba(0,0,0,0.68)'],['100%','rgba(0,0,0,0)']]
         .forEach(function(s){var st=document.createElementNS(_SVG_NS,'stop');st.setAttribute('offset',s[0]);st.setAttribute('stop-color',s[1]);_shGrad.appendChild(st);});
         _svgDefs.appendChild(_shGrad);
 
