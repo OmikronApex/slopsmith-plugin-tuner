@@ -804,3 +804,77 @@ So that I can tune by reading the PP-Tiny interface.
 **Given** the RAF animation loop is running
 **When** `destroy()` is called
 **Then** `cancelAnimationFrame()` is called with all active RAF IDs; all DOM nodes appended to the container are removed; no globals, timers, or orphaned animation frames remain
+
+---
+
+### Story 6.3: Mace Fx III — Legal Differentiation
+
+As a plugin distributor shipping the Mace Fx III visualization,
+I want the Axe-Fx III visualization renamed, recolored, and its strobe circle made fully visible,
+so that the visualization is legally distinct from Fractal Audio's Axe-Fx III product and looks polished.
+
+**Acceptance Criteria:**
+
+**Given** the file `visualization/axe-fx-iii.js` is renamed
+**When** the plugin loads
+**Then** `visualization/mace-fx-iii.js` exists; `visualization/axe-fx-iii.js` does not; the window global is `window['_tunerViz_mace-fx-iii']`; the viz selector in `screen.js` shows "Mace Fx III" with `value="mace-fx-iii"`
+
+**Given** the color constants are updated
+**When** the visualization renders
+**Then** mode tabs use slate-gray (`#505868`) not blue; the strobe arc uses orange (`#e87020`) not pink/magenta
+
+**Given** the strobe SVG is updated
+**When** rendered
+**Then** the strobe is a full dashed circle fully contained within the panel bounds (no clipping); animation behavior (speed, direction, deceleration) is unchanged
+
+---
+
+### Story 6.4: CHEF MT-3 — Scaffold, Static Panel Layout & Settings Wiring
+
+As a developer implementing the CHEF MT-3 visualization,
+I want a fully structured static panel with all DOM elements in place and the visualization registered in settings,
+so that the subsequent story can layer live gauge animation and note display onto a stable foundation.
+
+**Acceptance Criteria:**
+
+**Given** the file `visualization/chef-mt3.js` is created
+**When** the IIFE executes
+**Then** `window['_tunerViz_chef-mt3']` is a factory function that accepts a `container` DOM element and returns `{ update(note, cents, freq, mode), destroy() }`
+
+**Given** the factory is called with a container
+**When** the static DOM is rendered
+**Then** the panel contains: shiny-black chamfered rectangular face with chrome border; four corner screw heads; a curved glass gauge arc (∩ upward arch) with tick lines and −50/0/+50 labels; a 7-segment display (dark-red background, all segments unlit) with a "#" symbol; two rubber-style buttons labelled "MODE" (left) and "BRGHT." (right); "CHEF MT-3" brand label
+
+**Given** `screen.js` is updated
+**When** the viz selector is rendered
+**Then** a "CHEF MT-3" option with `value="chef-mt3"` is present
+
+---
+
+### Story 6.5: CHEF MT-3 — Gauge Animation, Note Display & Strobe Mode
+
+As a guitar player using the CHEF MT-3 visualization,
+I want the gauge to show my tuning deviation and the display to show my note name, with a MODE button that switches between standard pointer mode and strobe mode,
+so that I can tune accurately using a familiar pedal-style interface.
+
+**Acceptance Criteria:**
+
+**Given** standard mode is active and `note` is non-null
+**When** `update(note, cents, freq)` is called
+**Then** 3 orange glowing marker lights are positioned on the gauge arc proportional to the cents deviation (−50 = far left, 0 = top centre, +50 = far right); the 7-segment display shows the note letter; the "#" symbol glows when note is sharp
+
+**Given** `update(null, 0, 0)` is called (no signal)
+**When** rendered
+**Then** all markers are hidden; the 7-segment display shows nothing; the "#" symbol is dim
+
+**Given** the MODE button is pressed
+**When** in standard mode
+**Then** the visualization switches to strobe mode: 5 groups of 2 marker dots are distributed along the arc and drift continuously left (flat) or right (sharp) proportional to deviation; dots decelerate smoothly when signal stops
+
+**Given** the MODE button is pressed again
+**When** in strobe mode
+**Then** the visualization returns to standard mode
+
+**Given** the RAF animation loop is running
+**When** `destroy()` is called
+**Then** all RAF IDs are cancelled; all DOM nodes removed from container

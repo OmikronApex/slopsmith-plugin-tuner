@@ -1,15 +1,15 @@
 /**
- * Axe-Fx III style tuner visualization for the Slopsmith tuner plugin.
+ * Mace Fx III style tuner visualization for the Slopsmith tuner plugin.
  *
- * Emulates the Fractal Audio Axe-Fx III hardware tuner display:
+ * Inspired by hardware rack tuner displays:
  *   - Dark navy LCD background
  *   - Horizontal chromatic tick-mark gauge (top)
  *   - Inward-pointing directional arrows (▶ ◀) below gauge
  *   - Large note name (lower-left) and octave number (lower-right)
- *   - Pink/magenta diamond strobe semicircle (bottom centre)
+ *   - Orange dashed strobe circle (bottom centre)
  *   - Mode tabs Free / Auto / Manual (top-right)
  *
- * Contract: window['_tunerViz_axe-fx-iii'](container) → { update(note, cents, freq, mode), destroy() }
+ * Contract: window['_tunerViz_mace-fx-iii'](container) → { update(note, cents, freq, mode), destroy() }
  *   - note: string | null  (null = no signal)
  *   - cents: number        (deviation from target, −50…+50)
  *   - freq:  number        (detected frequency in Hz)
@@ -21,7 +21,7 @@
     // ── Constants ─────────────────────────────────────────────────────
     var _TUNER_TICK_COUNT  = 11;
     var _TUNER_STROBE_N    = 4;    // segments fitting in 180° (plus one trailing gap)
-    var _TUNER_STROBE_R    = 60;   // arc radius in SVG units (fills 120-wide viewBox)
+    var _TUNER_STROBE_R    = 38;   // radius in SVG units (full circle, fits in 120×120 viewBox)
     var _TUNER_IN_TUNE_THR = 2;    // cents threshold for in-tune state
     var _TUNER_ARROW_THR   = 3;    // cents threshold for arrow direction
 
@@ -34,12 +34,12 @@
     var _COL_NOTE       = '#ffffff';   // white note/octave text
     var _COL_ARROW_WH   = '#e8e8e8';   // lit arrow colour
     var _COL_ARROW_DIM  = '#1e3030';   // dimmed arrow colour
-    var _COL_STROBE     = '#e83060';   // pink/magenta diamond fill
-    var _COL_TAB_ACT_BG = '#2060d8';   // active tab background (blue)
+    var _COL_STROBE     = '#e87020';   // orange strobe circle
+    var _COL_TAB_ACT_BG = '#505868';   // active tab background (slate-gray)
     var _COL_TAB_ACT_FG = '#ffffff';   // active tab text
     var _COL_TAB_DIM    = '#506080';   // inactive tab text
 
-    window['_tunerViz_axe-fx-iii'] = function (container) {
+    window['_tunerViz_mace-fx-iii'] = function (container) {
         'use strict';
 
         // ── Root panel ────────────────────────────────────────────────
@@ -250,25 +250,23 @@
         octaveEl.textContent      = '-';
         panel.appendChild(octaveEl);
 
-        // ── Strobe semicircle SVG (bottom-centre) ─────────────────────
-        // Arc is a ∩ shape (upward arch) positioned at the bottom of the panel.
-        // Diamonds arranged from left through top to right around the arc.
-        // Strobe SVG: viewBox 120×72, R=60 fills full width.
-        // gap = (2/3)*dash; 4 dashes + 4 gaps = halfCirc → (4 + 4*2/3)*dash = halfCirc → dash = 3*halfCirc/20
-        var _sVB_W = 120, _sVB_H = 72;
-        var _scx = 60, _scy = _sVB_H;
-        var _halfCirc  = Math.PI * _TUNER_STROBE_R;
+        // ── Strobe circle SVG (bottom-centre) ────────────────────────
+        // Full dashed circle, centered in the SVG viewBox so no part is clipped.
+        // gap = (2/3)*dash; using full circumference for dash calculation.
+        var _sVB_W = 120, _sVB_H = 120;
+        var _scx = 60, _scy = 60;
+        var _halfCirc  = 2 * Math.PI * _TUNER_STROBE_R;   // full circumference
         var _dashLen   = 3 * _halfCirc / 20;
         var _gapLen    = (2 / 3) * _dashLen;
 
         var strobeSvg = document.createElementNS(_SVG_NS, 'svg');
         strobeSvg.setAttribute('viewBox', '0 0 ' + _sVB_W + ' ' + _sVB_H);
-        strobeSvg.setAttribute('preserveAspectRatio', 'xMidYMax meet');
+        strobeSvg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
         strobeSvg.setAttribute('class', 'absolute');
-        strobeSvg.style.bottom    = '0';
+        strobeSvg.style.bottom    = '4%';
         strobeSvg.style.left      = '50%';
         strobeSvg.style.transform = 'translateX(-50%)';
-        strobeSvg.style.width    = '30.94%';
+        strobeSvg.style.width    = '22%';
         strobeSvg.style.overflow = 'visible';
         strobeSvg.style.zIndex   = '4';
 
@@ -294,11 +292,11 @@
         _strobeDefs.appendChild(_strobeFilter);
         strobeSvg.appendChild(_strobeDefs);
 
-        // Dashed semicircle arc (∩ upward arch)
-        var arcPath = document.createElementNS(_SVG_NS, 'path');
-        arcPath.setAttribute('d', 'M ' + (_scx - _TUNER_STROBE_R) + ' ' + _scy +
-            ' A ' + _TUNER_STROBE_R + ' ' + _TUNER_STROBE_R + ' 0 1 1 ' +
-            (_scx + _TUNER_STROBE_R) + ' ' + _scy);
+        // Full dashed circle — <circle> supports stroke-dashoffset identically to <path>
+        var arcPath = document.createElementNS(_SVG_NS, 'circle');
+        arcPath.setAttribute('cx', String(_scx));
+        arcPath.setAttribute('cy', String(_scy));
+        arcPath.setAttribute('r',  String(_TUNER_STROBE_R));
         arcPath.setAttribute('fill', 'none');
         arcPath.setAttribute('stroke', _COL_STROBE);
         arcPath.setAttribute('stroke-width', String(_dashLen));

@@ -362,7 +362,7 @@
                 <option value="default" ${visualizationMode === 'default' ? 'selected' : ''}>Default</option>
                 <option value="strobe" ${visualizationMode === 'strobe' ? 'selected' : ''}>Strobe</option>
                 <option value="analogue-gauge" ${visualizationMode === 'analogue-gauge' ? 'selected' : ''}>Analogue Gauge</option>
-                <option value="axe-fx-iii" ${visualizationMode === 'axe-fx-iii' ? 'selected' : ''}>Axe-Fx III</option>
+                <option value="mace-fx-iii" ${visualizationMode === 'mace-fx-iii' ? 'selected' : ''}>Mace Fx III</option>
                 <option value="toilet-tuner" ${visualizationMode === 'toilet-tuner' ? 'selected' : ''}>Toilet Tuner</option>
                 <option value="pp-tiny" ${visualizationMode === 'pp-tiny' ? 'selected' : ''}>PP-Tiny</option>
             </select>
