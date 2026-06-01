@@ -314,12 +314,12 @@
         .forEach(function (lbl) {
             var el = document.createElement('div');
             el.style.position      = 'absolute';
-            el.style.bottom        = '18%';
+            el.style.bottom        = '14%';
             el.style.left          = lbl.left;
             el.style.width         = '10%';
             el.style.textAlign     = 'center';
             el.style.color         = _MT3_COL_LABEL;
-            el.style.fontSize      = '0.48em';
+            el.style.fontSize      = '0.75em';
             el.style.letterSpacing = '0.05em';
             el.style.pointerEvents = 'none';
             el.textContent         = lbl.text;
@@ -328,10 +328,10 @@
 
         var brandLbl = document.createElement('div');
         brandLbl.style.position      = 'absolute';
-        brandLbl.style.top           = '4%';
-        brandLbl.style.right         = '3%';
+        brandLbl.style.top           = '2%';
+        brandLbl.style.right         = '8%';
         brandLbl.style.color         = _MT3_COL_LABEL;
-        brandLbl.style.fontSize      = '0.55em';
+        brandLbl.style.fontSize      = '0.75em';
         brandLbl.style.fontWeight    = '600';
         brandLbl.style.letterSpacing = '0.06em';
         brandLbl.textContent         = 'CHEF MT-3';
