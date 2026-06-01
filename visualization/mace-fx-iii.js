@@ -28,7 +28,7 @@
     var _SVG_NS = 'http://www.w3.org/2000/svg';
 
     // ── Colours (custom palette; no Tailwind token equivalents) ──────
-    var _COL_BG         = '#04041a';   // dark navy background
+    var _COL_BG         = '#0e0e0e';   // dark gray background
     var _COL_TICK       = '#7ad400';   // yellow-green gauge ticks
     var _COL_MARKER     = '#ffffff';   // white pitch-position marker
     var _COL_NOTE       = '#ffffff';   // white note/octave text
@@ -135,13 +135,11 @@
         gaugeWrap.appendChild(marker);
 
         gaugeOuter.appendChild(gaugeWrap);
-        gaugeZone.appendChild(gaugeOuter);
 
         // Spacer: 1/3 of regular tick height (1/3 * 55% * 1.4em ≈ 0.257em)
         var gaugeArrowGap = document.createElement('div');
         gaugeArrowGap.style.height     = '0.257em';
         gaugeArrowGap.style.flexShrink = '0';
-        gaugeZone.appendChild(gaugeArrowGap);
 
         // Direction arrows SVG — outer edges at ±10¢, gap 15% (~3¢)
         var arrowSvg = document.createElementNS(_SVG_NS, 'svg');
@@ -185,7 +183,10 @@
 
         arrowSvg.appendChild(arrowLPoly);
         arrowSvg.appendChild(arrowRPoly);
+        // Order: arrows → spacer → gauge (arrows on top, gauge underneath)
         gaugeZone.appendChild(arrowSvg);
+        gaugeZone.appendChild(gaugeArrowGap);
+        gaugeZone.appendChild(gaugeOuter);
         panel.appendChild(gaugeZone);
 
         var arrowL = arrowLPoly;
