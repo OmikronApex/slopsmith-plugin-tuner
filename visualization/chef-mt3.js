@@ -189,21 +189,21 @@
             _mt3GlowTickEls.push(glowTick);
         }
 
-        // Arc-following labels — all at same radial offset so they curve with the arc
-        // R+8 outward: ends land near y=44, apex label near y=8 → forms an arch shape
+        // Arc-following labels — inside the arc at R−18 (below the tube's inner edge with a gap)
+        // Tube inner edge at R−8; labels at R−18 give ~10 SVG-unit gap at apex, ~7 at ends
         [
-            { t: 0.0, text: '-50', anchor: 'start'  },
-            { t: 0.5, text:  '0',  anchor: 'middle' },
-            { t: 1.0, text: '+50', anchor: 'end'    },
+            { t: 0.0, text: '-50' },
+            { t: 0.5, text:  '0'  },
+            { t: 1.0, text: '+50' },
         ].forEach(function (lbl) {
             var ang = _MT3_ARC_START + lbl.t * _MT3_ARC_SPAN;
-            var r   = _MT3_ARC_R + 8;
+            var r   = _MT3_ARC_R - 18;
             var lx  = _MT3_cx + r * Math.cos(ang);
             var ly  = _MT3_cy + r * Math.sin(ang);
             var el  = document.createElementNS(_SVG_NS, 'text');
             el.setAttribute('x', String(lx));
             el.setAttribute('y', String(ly));
-            el.setAttribute('text-anchor', lbl.anchor);
+            el.setAttribute('text-anchor', 'middle');
             el.setAttribute('dominant-baseline', 'middle');
             el.setAttribute('font-size', '7');
             el.setAttribute('fill', 'rgba(255,255,255,0.50)');
@@ -235,7 +235,7 @@
         var segSvg = document.createElementNS(_SVG_NS, 'svg');
         segSvg.setAttribute('viewBox', '0 0 100 200');
         segSvg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-        segSvg.style.width       = '55%';
+        segSvg.style.width       = '90%';
         segSvg.style.aspectRatio = '1 / 2';
         segSvg.style.flexShrink  = '0';
         segSvg.style.overflow    = 'visible';
@@ -262,9 +262,9 @@
         sharpSvg.setAttribute('viewBox', '0 0 90 90');
         sharpSvg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
         sharpSvg.style.position      = 'absolute';
-        sharpSvg.style.top           = '54%';
-        sharpSvg.style.right         = '6%';
-        sharpSvg.style.width         = '22%';
+        sharpSvg.style.top           = '57%';
+        sharpSvg.style.right         = '3%';
+        sharpSvg.style.width         = '23%';
         sharpSvg.style.aspectRatio   = '1 / 1';
         sharpSvg.style.overflow      = 'visible';
         sharpSvg.style.pointerEvents = 'none';
@@ -370,6 +370,7 @@
             for (var p = 0; p < _mt3SharpParts.length; p++) {
                 _mt3SharpParts[p].setAttribute('fill', lit ? _MT3_COL_SEG_LIT : _MT3_COL_SEG_UNLIT);
             }
+            sharpSvg.style.filter = lit ? 'drop-shadow(0 0 5px #ff2200)' : 'none';
         }
 
         // ── Tick state helpers ────────────────────────────────────────
