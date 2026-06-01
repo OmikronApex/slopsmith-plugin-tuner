@@ -31,7 +31,7 @@
 
     // Brightness levels: [brightScale for tick glow, SVG filter flood-opacity, lit segment fill, segment drop-shadow]
     var _MT3_BRIGHTNESS = [
-        { brightScale: 0.35, floodOpacity: '0.30', litFill: '#cc1500', glow: 'drop-shadow(0 0 2px #bb1100)' },  // low
+        { brightScale: 0.66, floodOpacity: '0.45', litFill: '#cc1500', glow: 'drop-shadow(0 0 2px #bb1100)' },  // low
         { brightScale: 1.0,  floodOpacity: '0.65', litFill: '#ff2200', glow: 'drop-shadow(0 0 5px #ff2200)' },  // medium
         { brightScale: 1.0,  floodOpacity: '1.0',  litFill: '#ff5533', glow: 'drop-shadow(0 0 9px #ff4400)' },  // high
     ];
@@ -329,7 +329,7 @@
         brightBtn.style.borderRadius    = '3px';
         brightBtn.style.border          = '1px solid #333';
         brightBtn.style.boxShadow       = 'inset 0 1px 2px rgba(255,255,255,0.08), 0 2px 3px rgba(0,0,0,0.7)';
-        brightBtn.style.cursor          = 'default';
+        brightBtn.style.cursor          = 'pointer';
         panel.appendChild(brightBtn);
 
         [{text: 'MODE', left: 'calc(50% - 22%)'}, {text: 'BRGHT', left: 'calc(50% + 12%)'}]
