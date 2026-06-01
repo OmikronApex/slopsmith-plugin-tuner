@@ -23,12 +23,12 @@ This plugin adds a floating "Tuner" button to the Slopsmith interface, providing
 | Name | Image |
 |------|-------|
 | Default | <img width="450" height="261" alt="grafik" src="https://github.com/user-attachments/assets/7b63cac5-07c8-4fea-88ba-60e051a3cbb4" /> |
-| Strobe | <img width="443" height="227" alt="grafik" src="https://github.com/user-attachments/assets/d73f9434-dd2b-4d36-a21b-ceff4cd278a2" /> |
-| Analogue Gauge | <img width="441" height="271" alt="grafik" src="https://github.com/user-attachments/assets/44918f20-fc56-4219-9081-8c46bf473e20" /> |
-| Mace Fx III | <img width="437" height="247" alt="grafik" src="https://github.com/user-attachments/assets/94a039c6-26e4-4d1c-8e4c-6b8edac9c12d" /> |
-| PP-Tiny | *(screenshot pending)* |
-| CHEF MT-3 | *(screenshot pending)* |
-| Toilet Tuner | <img width="436" height="434" alt="grafik" src="https://github.com/user-attachments/assets/07925cd6-386d-4089-8278-a3e6eb499685" /> |
+| Strobe | <img width="450" alt="grafik" src="https://github.com/user-attachments/assets/d73f9434-dd2b-4d36-a21b-ceff4cd278a2" /> |
+| Analogue Gauge | <img width="450" alt="grafik" src="https://github.com/user-attachments/assets/44918f20-fc56-4219-9081-8c46bf473e20" /> |
+| Mace-Fx III | <img width="450" alt="grafik" src="https://github.com/user-attachments/assets/bd80a850-668e-4217-861b-50a6015f4f2d" /> |
+| Bender PP-Tiny | <img width="450" alt="grafik" src="https://github.com/user-attachments/assets/7e6fe983-240d-4cf7-9622-ea5203bdafc7" /> |
+| CHEF MT-3 | <img width="450" alt="grafik" src="https://github.com/user-attachments/assets/7f812395-0cd6-4091-9fb3-c4c16a8f2afe" /> |
+| Toilet Tuner | <img width="450" alt="grafik" src="https://github.com/user-attachments/assets/07925cd6-386d-4089-8278-a3e6eb499685" /> |
 
 ## Installation
 
