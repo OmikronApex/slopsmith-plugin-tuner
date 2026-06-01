@@ -216,35 +216,34 @@
         ].join(';');
         face.appendChild(displayWrap);
 
-        // Letter digit (8-segment)
-        var segContainer = document.createElement('div');
-        segContainer.style.cssText = 'position:relative;flex:0 0 42%;aspect-ratio:1/2;align-self:center;';
-        displayWrap.appendChild(segContainer);
+        // Letter digit (8-segment SVG, viewBox 100×200)
+        // T=13, G=2.5, CH=5, mid-gap=2 — hexagonal segment shapes
+        var segSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        segSvg.setAttribute('viewBox', '0 0 100 200');
+        segSvg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+        segSvg.style.cssText = 'width:42%;aspect-ratio:1/2;align-self:center;flex-shrink:0;overflow:visible;';
+        displayWrap.appendChild(segSvg);
 
         var segmentEls = {};
 
-        function _makeSeg(key, cssText) {
-            var el = document.createElement('div');
-            el.style.cssText = cssText + ';position:absolute;background:' + _TUNER_PT_UNLIT + ';transition:background 0.05s,box-shadow 0.05s;';
-            segContainer.appendChild(el);
+        function _makeSeg(key, points) {
+            var el = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+            el.setAttribute('points', points);
+            el.setAttribute('fill', _TUNER_PT_UNLIT);
+            segSvg.appendChild(el);
             segmentEls[key] = el;
         }
 
-        // 1:2 container (W × 2W). Gap=3%W=1.5%·2W, bar=12%W=6%·2W.
-        // clip-path gives hexagonal ends; inner g1/g2 edges are straight.
-        // Horizontal cut ≈ 6.4% of element, vertical cut ≈ 6.3%, g1/g2 cut ≈ 13.2%.
-        var _CP_H  = 'polygon(6.4% 0%,93.6% 0%,100% 50%,93.6% 100%,6.4% 100%,0% 50%)';
-        var _CP_V  = 'polygon(0% 6.3%,50% 0%,100% 6.3%,100% 93.7%,50% 100%,0% 93.7%)';
-        var _CP_G1 = 'polygon(13.2% 0%,100% 0%,100% 100%,13.2% 100%,0% 50%)';
-        var _CP_G2 = 'polygon(0% 0%,86.8% 0%,100% 50%,86.8% 100%,0% 100%)';
-        _makeSeg('a',  'top:0;left:3%;width:94%;height:6%;clip-path:' + _CP_H);
-        _makeSeg('b',  'top:1.5%;right:0;width:12%;height:47.75%;clip-path:' + _CP_V);
-        _makeSeg('c',  'bottom:1.5%;right:0;width:12%;height:47.75%;clip-path:' + _CP_V);
-        _makeSeg('d',  'bottom:0;left:3%;width:94%;height:6%;clip-path:' + _CP_H);
-        _makeSeg('e',  'bottom:1.5%;left:0;width:12%;height:47.75%;clip-path:' + _CP_V);
-        _makeSeg('f',  'top:1.5%;left:0;width:12%;height:47.75%;clip-path:' + _CP_V);
-        _makeSeg('g1', 'top:50%;left:3%;width:45.5%;height:6%;transform:translateY(-50%);clip-path:' + _CP_G1);
-        _makeSeg('g2', 'top:50%;right:3%;width:45.5%;height:6%;transform:translateY(-50%);clip-path:' + _CP_G2);
+        // horiz: (x+CH,y0),(x+W-CH,y0),(x+W,y0+T/2),(x+W-CH,y1),(x+CH,y1),(x,y0+T/2)
+        // vert:  (x+T/2,y0),(x+T,y0+CH),(x+T,y1-CH),(x+T/2,y1),(x,y1-CH),(x,y0+CH)
+        _makeSeg('a',  '7.5,2.5   92.5,2.5   97.5,9     92.5,15.5  7.5,15.5   2.5,9');
+        _makeSeg('b',  '91,18     97.5,23    97.5,86    91,91      84.5,86    84.5,23');
+        _makeSeg('c',  '91,109    97.5,114   97.5,177   91,182     84.5,177   84.5,114');
+        _makeSeg('d',  '7.5,184.5 92.5,184.5 97.5,191   92.5,197.5 7.5,197.5  2.5,191');
+        _makeSeg('e',  '9,109     15.5,114   15.5,177   9,182      2.5,177    2.5,114');
+        _makeSeg('f',  '9,18      15.5,23    15.5,86    9,91       2.5,86     2.5,23');
+        _makeSeg('g1', '7.5,93.5  44,93.5    49,100     44,106.5   7.5,106.5  2.5,100');
+        _makeSeg('g2', '56,93.5   92.5,93.5  97.5,100   92.5,106.5 56,106.5   51,100');
 
         // "#" symbol inside the display box
         var sharpEl = document.createElement('div');
@@ -360,9 +359,8 @@
         var _segKeys = ['a', 'b', 'c', 'd', 'e', 'f', 'g1', 'g2'];
 
         function _setSegment(segEl, lit) {
-            segEl.style.background = lit ? _TUNER_PT_LIT  : _TUNER_PT_UNLIT;
-            segEl.style.boxShadow  = lit ? _TUNER_PT_GLOW : 'none';
-            segEl.style.zIndex     = lit ? '1' : '0';
+            segEl.setAttribute('fill', lit ? _TUNER_PT_LIT : _TUNER_PT_UNLIT);
+            segEl.style.filter = lit ? 'drop-shadow(0 0 2px #ff4400) drop-shadow(0 0 5px #cc1100)' : 'none';
         }
 
         function _renderNote(letter) {
