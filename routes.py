@@ -6,32 +6,57 @@ from typing import List, Dict, Optional
 from fastapi import FastAPI, Request
 from fastapi.responses import Response
 
-DEFAULT_TUNING = "Guitar Standard"
+DEFAULT_TUNING = "Standard"
+DEFAULT_INSTRUMENT = "guitar-6"
 
 DEFAULT_TUNINGS = {
-    "General": {
-        "Free Tune": []
+    "guitar-6": {
+        "Standard":  [82.41, 110.00, 146.83, 196.00, 246.94, 329.63],
+        "Drop D":    [73.42, 110.00, 146.83, 196.00, 246.94, 329.63],
+        "Open G":    [73.42, 98.00, 146.83, 196.00, 246.94, 293.66],
+        "DADGAD":    [73.42, 110.00, 146.83, 196.00, 220.00, 293.66],
+        "Open E":    [82.41, 123.47, 164.81, 207.65, 246.94, 329.63],
     },
-    "Guitar": {
-        "Guitar Standard": [82.41, 110.00, 146.83, 196.00, 246.94, 329.63],
-        "Guitar Drop D": [73.42, 110.00, 146.83, 196.00, 246.94, 329.63],
-        "Guitar Open G": [73.42, 98.00, 146.83, 196.00, 246.94, 293.66],
-        "Guitar DADGAD": [73.42, 110.00, 146.83, 196.00, 220.00, 293.66],
-        "Guitar Open E": [82.41, 123.47, 164.81, 207.65, 246.94, 329.63]
+    "guitar-7": {
+        "Standard":    [61.74, 82.41, 110.00, 146.83, 196.00, 246.94, 329.63],
+        "Drop A":      [55.00, 82.41, 110.00, 146.83, 196.00, 246.94, 329.63],
+        "A Standard":  [55.00, 73.42, 98.00, 130.81, 174.61, 220.00, 293.66],
+        "Drop G":      [49.00, 73.42, 110.00, 146.83, 196.00, 246.94, 329.63],
+        "Bb Standard": [58.27, 77.78, 103.83, 138.59, 185.00, 233.08, 311.13],
     },
-    "Bass 4-string": {
-        "Bass 4-string Standard": [41.20, 55.00, 73.42, 98.00],
-        "Bass 4-string Drop D": [36.71, 55.00, 73.42, 98.00],
-        "Bass 4-string D-Standard": [36.71, 48.99, 65.41, 87.31],
-        "Bass 4-string Drop C": [32.70, 48.99, 65.41, 87.31],
+    "guitar-8": {
+        "Standard":    [46.25, 61.74, 82.41, 110.00, 146.83, 196.00, 246.94, 329.63],
+        "Drop E":      [41.20, 61.74, 82.41, 110.00, 146.83, 196.00, 246.94, 329.63],
+        "E Standard":  [41.20, 55.00, 73.42, 98.00, 130.81, 174.61, 220.00, 293.66],
+        "Drop D":      [36.71, 55.00, 73.42, 98.00, 130.81, 174.61, 220.00, 293.66],
+        "Eb Standard": [38.89, 51.91, 69.30, 92.50, 123.47, 164.81, 207.65, 277.18],
     },
-    "Bass 5-string": {
-        "Bass 5-string Standard": [30.87, 41.20, 55.00, 73.42, 98.00],
-        "Bass 5-string Drop D": [30.87, 36.71, 55.00, 73.42, 98.00],
-        "Bass 5-string D-Standard": [27.50, 36.71, 48.99, 65.41, 87.31],
-        "Bass 5-string Drop C": [27.50, 32.70, 48.99, 65.41, 87.31],
-    }
+    "bass-4": {
+        "Standard":   [41.20, 55.00, 73.42, 98.00],
+        "Drop D":     [36.71, 55.00, 73.42, 98.00],
+        "D Standard": [36.71, 48.99, 65.41, 87.31],
+        "Drop C":     [32.70, 48.99, 65.41, 87.31],
+    },
+    "bass-5": {
+        "Standard":   [30.87, 41.20, 55.00, 73.42, 98.00],
+        "Drop D":     [30.87, 36.71, 55.00, 73.42, 98.00],
+        "D Standard": [27.50, 36.71, 48.99, 65.41, 87.31],
+        "Drop C":     [27.50, 32.70, 48.99, 65.41, 87.31],
+    },
 }
+
+_INSTRUMENT_BY_STRING_COUNT = {4: "bass-4", 5: "bass-5", 7: "guitar-7", 8: "guitar-8"}
+
+
+def _migrate_custom_tuning(name: str, value) -> dict:
+    """Return {instrument, strings} for both old flat-list and new dict formats."""
+    if isinstance(value, list):
+        instrument = _INSTRUMENT_BY_STRING_COUNT.get(len(value), "guitar-6")
+        return {"instrument": instrument, "strings": value}
+    if isinstance(value, dict) and "strings" in value:
+        return value
+    return {"instrument": "guitar-6", "strings": []}
+
 
 def setup(app: FastAPI, context: dict):
     config_dir = Path(context["config_dir"])
@@ -40,6 +65,7 @@ def setup(app: FastAPI, context: dict):
     def _read() -> dict:
         defaults = {
             "lastTuning": DEFAULT_TUNING,
+            "lastInstrument": DEFAULT_INSTRUMENT,
             "customTunings": {},
             "disabledTunings": [],
             "showFloatingButton": True,
@@ -51,29 +77,39 @@ def setup(app: FastAPI, context: dict):
             data = json.loads(config_file.read_text(encoding="utf-8"))
             if not isinstance(data, dict):
                 return defaults
-            
+
             res = {}
             res["lastTuning"] = str(data.get("lastTuning", DEFAULT_TUNING))
+            res["lastInstrument"] = str(data.get("lastInstrument", DEFAULT_INSTRUMENT))
             res["customTunings"] = data.get("customTunings", {})
             res["disabledTunings"] = data.get("disabledTunings", [])
             res["showFloatingButton"] = bool(data.get("showFloatingButton", True))
             res["visualizationMode"] = str(data.get("visualizationMode", "default"))
-            
+
             if not isinstance(res["customTunings"], dict):
                 res["customTunings"] = {}
             if not isinstance(res["disabledTunings"], list):
                 res["disabledTunings"] = []
-                
+
+            # Migrate custom tunings from old flat-list format
+            res["customTunings"] = {
+                name: _migrate_custom_tuning(name, val)
+                for name, val in res["customTunings"].items()
+            }
+
+            # Strip legacy disabledTunings entries that lack compound "instrument:name" format
+            res["disabledTunings"] = [
+                e for e in res["disabledTunings"]
+                if isinstance(e, str) and ":" in e
+            ]
+
             return res
         except Exception:
             return defaults
 
     def _write(data: dict) -> None:
         config_dir.mkdir(parents=True, exist_ok=True)
-        # Merge with existing to be safe, or just overwrite if we have full object
         current = _read()
-        # Remove defaultTunings from data before writing to file if it's there
-        # as it is a computed property from the backend
         if "defaultTunings" in data:
             data = data.copy()
             del data["defaultTunings"]
@@ -83,7 +119,6 @@ def setup(app: FastAPI, context: dict):
     _viz_dir = Path(__file__).parent / "visualization"
     _workers_dir = Path(__file__).parent / "workers"
     _utils_dir = Path(__file__).parent / "utils"
-    _assets_dir = Path(__file__).parent / "visualization" / "assets"
 
     def _serve_js_from(base_dir: Path, filename: str) -> Response:
         target = (base_dir / filename).resolve()
@@ -94,22 +129,6 @@ def setup(app: FastAPI, context: dict):
         if target.suffix == ".js" and target.is_file():
             return Response(target.read_text(encoding="utf-8"), media_type="application/javascript")
         return Response("", status_code=404)
-
-    def _serve_svg_from(base_dir: Path, filename: str) -> Response:
-        if '\\' in filename or '/' in filename:
-            return Response("", status_code=404)
-        target = (base_dir / filename).resolve()
-        try:
-            target.relative_to(base_dir.resolve())
-        except ValueError:
-            return Response("", status_code=404)
-        if target.suffix == ".svg" and target.is_file():
-            return Response(target.read_text(encoding="utf-8"), media_type="image/svg+xml")
-        return Response("", status_code=404)
-
-    @app.get("/api/plugins/tuner/assets/{filename}")
-    def get_asset_file(filename: str):
-        return _serve_svg_from(_assets_dir, filename)
 
     @app.get("/api/plugins/tuner/visualization/{filename}")
     def get_viz_file(filename: str):
@@ -132,6 +151,5 @@ def setup(app: FastAPI, context: dict):
     @app.post("/api/plugins/tuner/config")
     async def set_config(req: Request):
         body = await req.json()
-        # Allows partial updates
         _write(body)
         return {"ok": True}

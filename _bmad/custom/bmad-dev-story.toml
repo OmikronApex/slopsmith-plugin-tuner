@@ -11,7 +11,8 @@ activation_steps_prepend = [
    Store this as EPIC_ISSUE_NUMBER.
 
 3. Find the full epic branch name — it follows the pattern `epic/<N>-<slug>` where <N> is the
-   epic's sequential number (e.g. epic/1-architecture-..., epic/2-ui-ux-...):
+   epic's SEQUENTIAL NUMBER (1, 2, 3… as numbered in epics.md), NOT the GitHub issue number.
+   Example: "Epic 6: PP-Tiny Visualization" → branch is epic/6-pp-tiny-visualization
    git branch -a | grep "epic/<N>-"
    Also check remote: git ls-remote --heads origin "epic/<N>-*"
 
@@ -20,8 +21,9 @@ activation_steps_prepend = [
    - If the branch exists locally or remotely but we are not on it → git checkout epic/<N>-<slug>
    - If the branch does not exist at all:
      a. Slug the epic title: lowercase, spaces→hyphens, strip special chars.
-     b. git checkout -b epic/<N>-<slug>
-     c. git push -u origin epic/<N>-<slug>
+     b. IMPORTANT: use the epic sequential number (from epics.md), NOT the GitHub issue number.
+     c. git checkout -b epic/<N>-<slug>
+     d. git push -u origin epic/<N>-<slug>
 
 5. Report the branch name we are now on before continuing.
 """,

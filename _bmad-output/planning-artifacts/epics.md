@@ -1,5 +1,5 @@
 ---
-stepsCompleted: ['step-01', 'step-02', 'step-03', 'step-04', 'epic2-step-01', 'epic2-step-02', 'epic2-step-03', 'epic3-step-01', 'epic3-step-02', 'epic3-step-03', 'epic4-step-01', 'epic4-step-02', 'epic4-step-03', 'epic5-step-01', 'epic5-step-02']
+stepsCompleted: ['step-01', 'step-02', 'step-03', 'step-04', 'epic2-step-01', 'epic2-step-02', 'epic2-step-03', 'epic3-step-01', 'epic3-step-02', 'epic3-step-03', 'epic4-step-01', 'epic4-step-02', 'epic4-step-03', 'epic5-step-01', 'epic5-step-02', 'epic6-step-01', 'epic6-step-02']
 inputDocuments:
   - _bmad-output/planning-artifacts/prds/prd-slopsmith-plugin-tuner-2026-05-30/prd.md
   - _bmad-output/project-context.md
@@ -183,6 +183,7 @@ No UX Design document exists yet. Story 2.1 will produce `_bmad-output/planning-
 ### Epic 3: Analogue Gauge Visualization
 ### Epic 4: Axe-Fx III Visualization
 ### Epic 5: Toilet Tuner Visualization
+### Epic 6: PP-Tiny Visualization
 
 Establish a formal architecture document for the slopsmith-plugin-tuner using the BMad workflow, providing AI agents and contributors with authoritative system design guidance; then implement code corrections surfaced during the architectural review.
 
@@ -683,3 +684,197 @@ So that I can tune by watching the plunger's position and get a satisfying visua
 **Given** the RAF animation loop is running
 **When** `destroy()` is called
 **Then** `cancelAnimationFrame()` is called with all active RAF IDs; all DOM nodes appended to the container are removed; no globals, timers, or orphaned animation frames remain
+
+---
+
+### New Functional Requirements (Epic 6 — PP-Tiny Visualization)
+
+- **FR-PT-01:** The panel shall use an oval/trapezoid chrome-bordered face rendered in black, with white text labels.
+- **FR-PT-02:** Nine small LED lightbulbs shall be arranged in a curved arc across the upper panel area, spanning the deviation range. The centremost bulb glows red (in-tune), the remaining 8 glow yellow/amber.
+- **FR-PT-03:** The LED arc shall span −40 to +40 cents, with the centremost bulb at 0. The lit LED pattern is bar-graph style: all LEDs from the centre (0, red) up to and including the LED closest to the current deviation are lit. E.g., at −30 cents, the red centre LED plus all yellow LEDs between 0 and −30 are lit; at +20 cents, the red centre plus all yellow LEDs between 0 and +20 are lit. LEDs beyond the current deviation position are unlit.
+- **FR-PT-04:** An 8-segment display shall be positioned at the centre of the panel, showing the detected note name. The display background shall be a very dark red (near-black) to simulate an unlit LCD panel. Lit segments glow bright red with a light-glow effect; unlit segments are rendered in a very dark red, making them faintly visible as inactive segments — consistent with the appearance of a real 7/8-segment LED display. The centre horizontal bar is split into two independent half-segments (left and right), enabling accurate rendering of note name letters. A "#" symbol is rendered adjacent to the display; it is lit bright red when the note is sharp and shown in dim dark red otherwise.
+- **FR-PT-05:** A red LED-bulb element to the right of the display, labelled "AUTO.", shall be lit/glowing when the tuning mode is "free" or "auto", and unlit when the mode is "manual".
+- **FR-PT-06:** When `note === null` (no signal), the 8-segment display shows nothing (all segments unlit — rendered in dark red against the dark red background); no arc LED is lit; the "#" symbol is in its dim/unlit state.
+- **FR-PT-07:** The visualization conforms to the factory contract: `window['_tunerViz_pp-tiny'](container)` returning `{ update(note, cents, freq, mode), destroy() }`.
+- **FR-PT-08:** A "PP-Tiny" option with value `"pp-tiny"` shall be added to the viz selector in `settings.html`.
+
+### Applicable NFRs (Epic 6)
+
+- **NFR-03** — no external JS libs
+- **NFR-06** — viz factory contract
+- **NFR-07** — exempt; inline styles required for hardware-accurate rendering of the panel
+
+### Additional Requirements (Epic 6)
+
+- IIFE pattern; exposed as `window['_tunerViz_pp-tiny']`
+- Constants prefixed `_TUNER_`
+- DOM via `document.createElement` / `classList` / `textContent` only
+- `destroy()` must cancel all active RAF IDs and remove all DOM nodes from container
+
+### FR Coverage Map (Epic 6)
+
+- **FR-PT-01:** Epic 6 (Story 6.1) — Panel shape and chrome border
+- **FR-PT-02:** Epic 6 (Story 6.1) — 9-LED curved arc layout
+- **FR-PT-03:** Epic 6 (Story 6.2) — Bar-graph LED illumination from centre to deviation
+- **FR-PT-04:** Epic 6 (Story 6.1 + 6.2) — 8-segment display with dark-red background, split centre bar, glow effect
+- **FR-PT-05:** Epic 6 (Story 6.1) — AUTO LED right of display, mode-driven
+- **FR-PT-06:** Epic 6 (Story 6.2) — No-signal idle state
+- **FR-PT-07:** Epic 6 (Story 6.1) — Factory contract: window['_tunerViz_pp-tiny']
+- **FR-PT-08:** Epic 6 (Story 6.1) — settings.html "PP-Tiny" option
+
+---
+
+## Epic 6: PP-Tiny Visualization
+
+Deliver a new built-in visualization: the PP-Tiny chromatic tuner panel. A curved arc of 9 LEDs (red at centre, yellow/amber on each side) lights bar-graph style from centre out to show cents deviation; an 8-segment display with split centre bar shows the note name in glowing red against a near-black dark-red background; an AUTO LED to the right of the display reflects the current tuning mode. Selectable via the settings panel.
+
+**FRs covered:** FR-PT-01 through FR-PT-08, FR-18
+**NFRs:** NFR-03, NFR-06 *(NFR-07 exempt — inline styles required for hardware-accurate rendering)*
+
+---
+
+### Story 6.1: Scaffold, Static Panel Layout & Settings Wiring
+
+As a developer implementing the PP-Tiny visualization,
+I want a fully structured static panel with all DOM elements in place and the visualization registered in settings,
+So that the subsequent story can layer live data and animation onto a stable, correctly-laid-out foundation.
+
+**Acceptance Criteria:**
+
+**Given** the file `visualization/pp-tiny.js` is created
+**When** the IIFE executes
+**Then** `window['_tunerViz_pp-tiny']` is a factory function that accepts a `container` DOM element and returns `{ update(note, cents, freq, mode), destroy() }`
+
+**Given** the factory is called with a container
+**When** the static DOM is rendered
+**Then** the panel contains:
+- An outer chrome-bordered oval/trapezoid panel face with a black background and white text labels
+- A curved arc of 9 LED elements across the upper panel area; the centremost LED is styled red, the 4 on each side are styled yellow/amber; all LEDs are in their unlit/dark state at this stage
+- Range labels "−40" on the far left and "+40" on the far right of the arc, with "0" above the centre LED — all in white
+- An 8-segment display element at the centre of the panel; the display background is very dark red (near-black); all 8 segments (including the split centre bar rendered as two half-segments) are visible in their unlit dark-red state; a "#" symbol element is positioned to the right of the display in its dim/unlit state
+- A red LED-bulb element to the right of the display with an "AUTO" label — unlit by default, driven by tuning mode
+- The "PP-Tiny" brand label on the panel face in white
+
+**Given** `settings.html` is updated
+**When** the viz selector is rendered
+**Then** a "PP-Tiny" option with value `"pp-tiny"` is present in the visualization select element
+
+**Given** the `destroy()` method is called at this stage (no RAF loops yet)
+**When** executed
+**Then** all DOM nodes appended to the container are removed; no timers or RAF loops exist to cancel at this stage
+
+---
+
+### Story 6.2: LED Arc Animation, 8-Segment Display & No-Signal State
+
+As a guitar player using the PP-Tiny visualization,
+I want the LED arc to show my deviation bar-graph style and the display to show my note name, with a clean idle state when no signal is detected,
+So that I can tune by reading the PP-Tiny interface.
+
+**Acceptance Criteria:**
+
+**Given** `update(note, cents, freq)` is called with a non-null `note` and `cents` = 0
+**When** rendered
+**Then** only the centre red LED is lit; all yellow LEDs are unlit; the 8-segment display shows the note name in bright red with a glow effect
+
+**Given** `cents` is −30
+**When** rendered
+**Then** the centre red LED and all yellow LEDs from the centre toward the −40 position up to and including the LED nearest to −30 are lit; yellow LEDs beyond −30 (toward −40) are unlit; yellow LEDs on the +40 side are all unlit
+
+**Given** `cents` is +20
+**When** rendered
+**Then** the centre red LED and all yellow LEDs from the centre toward +40 up to and including the LED nearest to +20 are lit; yellow LEDs beyond +20 and all LEDs on the −40 side are unlit
+
+**Given** `cents` is any value between −40 and +40
+**When** rendered
+**Then** the lit LEDs form a contiguous bar from the centre to the closest LED to the current deviation; LED position mapping is linear across the 9-bulb arc (centre = 0, outermost = ±40)
+
+**Given** the detected note is sharp (contains "#", e.g., "A#")
+**When** rendered
+**Then** the "#" symbol adjacent to the display is lit bright red; only the note letter(s) before the "#" are shown on the 8-segment display (e.g., "A" on the display, "#" symbol lit)
+
+**Given** the detected note is natural (no "#", e.g., "E", "A")
+**When** rendered
+**Then** the note letter is shown on the 8-segment display; the "#" symbol is in its dim dark-red unlit state
+
+**Given** `update(null, 0, 0)` is called (no pitch signal)
+**When** rendered
+**Then** all arc LEDs are unlit (centre red LED and all yellow LEDs dark); the 8-segment display shows nothing (all segments in their unlit dark-red state against the dark-red background); the "#" symbol is unlit
+
+**Given** the RAF animation loop is running
+**When** `destroy()` is called
+**Then** `cancelAnimationFrame()` is called with all active RAF IDs; all DOM nodes appended to the container are removed; no globals, timers, or orphaned animation frames remain
+
+---
+
+### Story 6.3: Mace Fx III — Legal Differentiation
+
+As a plugin distributor shipping the Mace Fx III visualization,
+I want the Axe-Fx III visualization renamed, recolored, and its strobe circle made fully visible,
+so that the visualization is legally distinct from Fractal Audio's Axe-Fx III product and looks polished.
+
+**Acceptance Criteria:**
+
+**Given** the file `visualization/axe-fx-iii.js` is renamed
+**When** the plugin loads
+**Then** `visualization/mace-fx-iii.js` exists; `visualization/axe-fx-iii.js` does not; the window global is `window['_tunerViz_mace-fx-iii']`; the viz selector in `screen.js` shows "Mace Fx III" with `value="mace-fx-iii"`
+
+**Given** the color constants are updated
+**When** the visualization renders
+**Then** mode tabs use slate-gray (`#505868`) not blue; the strobe arc uses orange (`#e87020`) not pink/magenta
+
+**Given** the strobe SVG is updated
+**When** rendered
+**Then** the strobe is a full dashed circle fully contained within the panel bounds (no clipping); animation behavior (speed, direction, deceleration) is unchanged
+
+---
+
+### Story 6.4: CHEF MT-3 — Scaffold, Static Panel Layout & Settings Wiring
+
+As a developer implementing the CHEF MT-3 visualization,
+I want a fully structured static panel with all DOM elements in place and the visualization registered in settings,
+so that the subsequent story can layer live gauge animation and note display onto a stable foundation.
+
+**Acceptance Criteria:**
+
+**Given** the file `visualization/chef-mt3.js` is created
+**When** the IIFE executes
+**Then** `window['_tunerViz_chef-mt3']` is a factory function that accepts a `container` DOM element and returns `{ update(note, cents, freq, mode), destroy() }`
+
+**Given** the factory is called with a container
+**When** the static DOM is rendered
+**Then** the panel contains: shiny-black chamfered rectangular face with chrome border; four corner screw heads; a curved glass gauge arc (∩ upward arch) with tick lines and −50/0/+50 labels; a 7-segment display (dark-red background, all segments unlit) with a "#" symbol; two rubber-style buttons labelled "MODE" (left) and "BRGHT." (right); "CHEF MT-3" brand label
+
+**Given** `screen.js` is updated
+**When** the viz selector is rendered
+**Then** a "CHEF MT-3" option with `value="chef-mt3"` is present
+
+---
+
+### Story 6.5: CHEF MT-3 — Gauge Animation, Note Display & Strobe Mode
+
+As a guitar player using the CHEF MT-3 visualization,
+I want the gauge to show my tuning deviation and the display to show my note name, with a MODE button that switches between standard pointer mode and strobe mode,
+so that I can tune accurately using a familiar pedal-style interface.
+
+**Acceptance Criteria:**
+
+**Given** standard mode is active and `note` is non-null
+**When** `update(note, cents, freq)` is called
+**Then** 3 orange glowing marker lights are positioned on the gauge arc proportional to the cents deviation (−50 = far left, 0 = top centre, +50 = far right); the 7-segment display shows the note letter; the "#" symbol glows when note is sharp
+
+**Given** `update(null, 0, 0)` is called (no signal)
+**When** rendered
+**Then** all markers are hidden; the 7-segment display shows nothing; the "#" symbol is dim
+
+**Given** the MODE button is pressed
+**When** in standard mode
+**Then** the visualization switches to strobe mode: 5 groups of 2 marker dots are distributed along the arc and drift continuously left (flat) or right (sharp) proportional to deviation; dots decelerate smoothly when signal stops
+
+**Given** the MODE button is pressed again
+**When** in strobe mode
+**Then** the visualization returns to standard mode
+
+**Given** the RAF animation loop is running
+**When** `destroy()` is called
+**Then** all RAF IDs are cancelled; all DOM nodes removed from container
