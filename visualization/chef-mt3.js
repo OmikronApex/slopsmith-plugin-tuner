@@ -189,20 +189,22 @@
             _mt3GlowTickEls.push(glowTick);
         }
 
-        // Arc-following labels
+        // Arc-following labels — all at same radial offset so they curve with the arc
+        // R+8 outward: ends land near y=44, apex label near y=8 → forms an arch shape
         [
-            { t: 0.0, text: '-50', rOffset: +15, anchor: 'start'  },
-            { t: 0.5, text:  '0',  rOffset: -26, anchor: 'middle' },
-            { t: 1.0, text: '+50', rOffset: +15, anchor: 'end'    },
+            { t: 0.0, text: '-50', anchor: 'start'  },
+            { t: 0.5, text:  '0',  anchor: 'middle' },
+            { t: 1.0, text: '+50', anchor: 'end'    },
         ].forEach(function (lbl) {
             var ang = _MT3_ARC_START + lbl.t * _MT3_ARC_SPAN;
-            var r   = _MT3_ARC_R + lbl.rOffset;
+            var r   = _MT3_ARC_R + 8;
             var lx  = _MT3_cx + r * Math.cos(ang);
             var ly  = _MT3_cy + r * Math.sin(ang);
             var el  = document.createElementNS(_SVG_NS, 'text');
             el.setAttribute('x', String(lx));
-            el.setAttribute('y', String(ly + 3));
+            el.setAttribute('y', String(ly));
             el.setAttribute('text-anchor', lbl.anchor);
+            el.setAttribute('dominant-baseline', 'middle');
             el.setAttribute('font-size', '7');
             el.setAttribute('fill', 'rgba(255,255,255,0.50)');
             el.textContent = lbl.text;
@@ -218,7 +220,7 @@
         displayWrap.style.left           = '50%';
         displayWrap.style.transform      = 'translateX(-50%)';
         displayWrap.style.width          = '18%';
-        displayWrap.style.height         = '22%';
+        displayWrap.style.height         = '45%';
         displayWrap.style.background     = '#0d0000';
         displayWrap.style.borderRadius   = '3px';
         displayWrap.style.border         = '1px solid #2a0000';
@@ -284,10 +286,10 @@
         // ── Buttons ───────────────────────────────────────────────────
         var _mt3ModeBtn = document.createElement('div');
         _mt3ModeBtn.style.position        = 'absolute';
-        _mt3ModeBtn.style.bottom          = '9%';
+        _mt3ModeBtn.style.bottom          = '24%';
         _mt3ModeBtn.style.left            = 'calc(50% - 22%)';
         _mt3ModeBtn.style.width           = '10%';
-        _mt3ModeBtn.style.height          = '14%';
+        _mt3ModeBtn.style.height          = '8%';
         _mt3ModeBtn.style.backgroundColor = _MT3_COL_BUTTON;
         _mt3ModeBtn.style.borderRadius    = '3px';
         _mt3ModeBtn.style.border          = '1px solid #333';
@@ -297,10 +299,10 @@
 
         var brightBtn = document.createElement('div');
         brightBtn.style.position        = 'absolute';
-        brightBtn.style.bottom          = '9%';
+        brightBtn.style.bottom          = '24%';
         brightBtn.style.left            = 'calc(50% + 12%)';
         brightBtn.style.width           = '10%';
-        brightBtn.style.height          = '14%';
+        brightBtn.style.height          = '8%';
         brightBtn.style.backgroundColor = _MT3_COL_BUTTON;
         brightBtn.style.borderRadius    = '3px';
         brightBtn.style.border          = '1px solid #333';
@@ -312,12 +314,12 @@
         .forEach(function (lbl) {
             var el = document.createElement('div');
             el.style.position      = 'absolute';
-            el.style.bottom        = '4%';
+            el.style.bottom        = '18%';
             el.style.left          = lbl.left;
             el.style.width         = '10%';
             el.style.textAlign     = 'center';
             el.style.color         = _MT3_COL_LABEL;
-            el.style.fontSize      = '0.38em';
+            el.style.fontSize      = '0.48em';
             el.style.letterSpacing = '0.05em';
             el.style.pointerEvents = 'none';
             el.textContent         = lbl.text;
