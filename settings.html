@@ -64,13 +64,12 @@
             let config = { customTunings: {}, disabledTunings: [], defaultTunings: {}, showFloatingButton: true };
             let expandedGroups = [];
 
-            // Maps DEFAULT_TUNINGS group names to instrument select values
-            var _groupToInstrument = {
-                "Guitar": "guitar-6",
-                "Guitar 7-string": "guitar-7",
-                "Guitar 8-string": "guitar-8",
-                "Bass 4-string": "bass-4",
-                "Bass 5-string": "bass-5"
+            var _INSTRUMENT_CAPTIONS = {
+                "guitar-6": "Guitar",
+                "guitar-7": "Guitar 7-string",
+                "guitar-8": "Guitar 8-string",
+                "bass-4": "Bass 4-string",
+                "bass-5": "Bass 5-string"
             };
 
             var _instrumentLabels = {
@@ -118,7 +117,7 @@
                 Object.keys(defaultTunings).forEach(groupName => {
                     const group = defaultTunings[groupName];
                     const groupTunings = Object.keys(group);
-                    const instrument = _groupToInstrument[groupName] || 'guitar-6';
+                    const instrument = groupName;
                     // Compound keys for all tunings in this group
                     const compoundKeys = groupTunings.map(n => instrument + ':' + n);
 
@@ -137,7 +136,7 @@
 
                     const groupLabel = document.createElement('span');
                     groupLabel.className = 'text-[11px] font-bold text-gray-400 uppercase tracking-wider';
-                    groupLabel.textContent = groupName;
+                    groupLabel.textContent = _INSTRUMENT_CAPTIONS[groupName] || groupName;
 
                     left.appendChild(chevron);
                     left.appendChild(groupLabel);
