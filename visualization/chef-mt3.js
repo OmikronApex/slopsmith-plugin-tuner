@@ -4,23 +4,21 @@
  * Inspired by classic chromatic pedal tuners:
  *   - Shiny black rectangular panel with chamfered edges and corner screws
  *   - 90° curved glass gauge arc spanning between the screw inner edges
- *   - 51 tick marks glow orange to indicate deviation (2-cent resolution)
+ *   - 51 tick marks centered on the glass arc, glow orange to indicate deviation
  *   - Red 7-segment display (bottom centre) with "#" symbol
  *   - Two rubber buttons flanked by panel labels: MODE (left), BRGHT. (right)
  *   - Standard mode: nearest tick cluster glows for current deviation
  *   - Strobe mode: tick clusters drift left/right proportional to deviation
  *
  * Contract: window['_tunerViz_chef-mt3'](container) → { update(note, cents, freq, mode), destroy() }
- *   - note: string | null  (null = no signal)
- *   - cents: number        (deviation from target, −50…+50)
  */
 (function () {
     'use strict';
 
     // ── Module-level constants ─────────────────────────────────────────
-    var _TUNER_MT3_IN_TUNE_THR        = 2;   // cents threshold for in-tune
-    var _TUNER_MT3_GAUGE_CENTS        = 50;  // ±50 range
-    var _TUNER_MT3_TICK_COUNT         = 51;  // 0¢ + 25 ticks × 2¢ per side
+    var _TUNER_MT3_IN_TUNE_THR        = 2;
+    var _TUNER_MT3_GAUGE_CENTS        = 50;
+    var _TUNER_MT3_TICK_COUNT         = 51;   // 0¢ centre + 25 × 2¢ per side
     var _TUNER_MT3_STROBE_GROUP_COUNT = 5;
 
     // ── Colours ────────────────────────────────────────────────────────
@@ -34,12 +32,15 @@
     var _MT3_COL_LABEL     = '#c8c8c8';
 
     // ── Gauge SVG geometry ─────────────────────────────────────────────
-    // 90° arc: 225° (−50¢) → 270° (0¢, apex) → 315° (+50¢)
-    // R=124 so arc endpoints align with screw inner edges (6% from each side of 200-wide viewBox)
-    // cy=138 so apex (cy−R=14) sits just below the SVG top
-    var _MT3_cx      = 100;
-    var _MT3_cy      = 138;
-    var _MT3_ARC_R   = 124;
+    // SVG element: width:100%, height:auto, panel aspect 5:3
+    // → element ratio ≈ 100/(55%×60%) = 3.03  → viewBox "0 0 200 66"
+    //
+    // 90° arc: 225° (−50¢) → 270° (apex) → 315° (+50¢)
+    // R=124 → endpoints at x≈12/188, aligning with screw inner edges (6% from sides)
+    // cy=138 → apex at y = 138−124 = 14  (within viewBox)
+    var _MT3_cx        = 100;
+    var _MT3_cy        = 138;
+    var _MT3_ARC_R     = 124;
     var _MT3_ARC_START = 5 * Math.PI / 4;    // 225°
     var _MT3_ARC_SPAN  = Math.PI / 2;         // 90°
 
@@ -104,22 +105,23 @@
         });
 
         // ── Gauge SVG ─────────────────────────────────────────────────
+        // viewBox "0 0 200 66": ratio 3.03 matches SVG element (100% × auto on 5:3 panel at 55% height)
+        // height:auto lets the viewBox aspect ratio set the rendered height → fills full panel width
         var gaugeSvg = document.createElementNS(_SVG_NS, 'svg');
-        gaugeSvg.setAttribute('viewBox', '0 0 200 110');
+        gaugeSvg.setAttribute('viewBox', '0 0 200 66');
         gaugeSvg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
         gaugeSvg.style.position = 'absolute';
         gaugeSvg.style.top      = '5%';
         gaugeSvg.style.left     = '0';
-        gaugeSvg.style.right    = '0';
         gaugeSvg.style.width    = '100%';
-        gaugeSvg.style.height   = '55%';
+        gaugeSvg.style.height   = 'auto';
         gaugeSvg.style.overflow = 'visible';
 
         var _arcD = 'M ' + _MT3_ARC_SX.toFixed(2) + ' ' + _MT3_ARC_SY.toFixed(2) +
             ' A ' + _MT3_ARC_R + ' ' + _MT3_ARC_R + ' 0 0 1 ' +
             _MT3_ARC_EX.toFixed(2) + ' ' + _MT3_ARC_EY.toFixed(2);
 
-        // Glass arc body
+        // Glass arc body (stroke-width 16 → spans R-8 to R+8)
         var arcBody = document.createElementNS(_SVG_NS, 'path');
         arcBody.setAttribute('d', _arcD);
         arcBody.setAttribute('fill', 'none');
@@ -128,7 +130,7 @@
         arcBody.setAttribute('stroke-linecap', 'round');
         gaugeSvg.appendChild(arcBody);
 
-        // Glass sheen
+        // Glass sheen — dashed highlight
         var arcSheen = document.createElementNS(_SVG_NS, 'path');
         arcSheen.setAttribute('d', _arcD);
         arcSheen.setAttribute('fill', 'none');
@@ -138,17 +140,18 @@
         arcSheen.setAttribute('stroke-linecap', 'round');
         gaugeSvg.appendChild(arcSheen);
 
-        // Tick lines — 51 ticks, 2-cent resolution
-        // Every 5th tick (10-cent marks) is longer; stored for live glow updates
+        // Tick lines — centered on the arc (symmetric ±halfLen around R)
+        // Minor ticks: ±3 (length 6); major (every 5th = 10¢ marks): ±5 (length 10)
         var _mt3TickEls = [];
         for (var i = 0; i < _TUNER_MT3_TICK_COUNT; i++) {
-            var isMajor = (i % 5 === 0);
-            var a       = _MT3_ARC_START + (_MT3_ARC_SPAN / (_TUNER_MT3_TICK_COUNT - 1)) * i;
-            var innerR  = _MT3_ARC_R - (isMajor ? 9 : 5);
-            var x1 = _MT3_cx + innerR * Math.cos(a);
-            var y1 = _MT3_cy + innerR * Math.sin(a);
-            var x2 = _MT3_cx + _MT3_ARC_R * Math.cos(a);
-            var y2 = _MT3_cy + _MT3_ARC_R * Math.sin(a);
+            var isMajor  = (i % 5 === 0);
+            var halfLen  = isMajor ? 5 : 3;
+            var a        = _MT3_ARC_START + (_MT3_ARC_SPAN / (_TUNER_MT3_TICK_COUNT - 1)) * i;
+            var cosA     = Math.cos(a), sinA = Math.sin(a);
+            var x1 = _MT3_cx + (_MT3_ARC_R - halfLen) * cosA;
+            var y1 = _MT3_cy + (_MT3_ARC_R - halfLen) * sinA;
+            var x2 = _MT3_cx + (_MT3_ARC_R + halfLen) * cosA;
+            var y2 = _MT3_cy + (_MT3_ARC_R + halfLen) * sinA;
             var tick = document.createElementNS(_SVG_NS, 'line');
             tick.setAttribute('x1', String(x1));
             tick.setAttribute('y1', String(y1));
@@ -161,16 +164,24 @@
             _mt3TickEls.push(tick);
         }
 
-        // Arc labels — on a horizontal baseline below the arc ends
-        var _lblY = _MT3_ARC_SY + 13;
-        [{x: _MT3_ARC_SX, text: '-50'}, {x: _MT3_cx, text: '0'}, {x: _MT3_ARC_EX, text: '+50'}]
-        .forEach(function (lbl) {
-            var el = document.createElementNS(_SVG_NS, 'text');
-            el.setAttribute('x', String(lbl.x));
-            el.setAttribute('y', String(_lblY));
-            el.setAttribute('text-anchor', 'middle');
-            el.setAttribute('font-size', '8');
-            el.setAttribute('fill', 'rgba(255,255,255,0.45)');
+        // Arc-following labels: -50 and +50 outside the arc, 0 inside (below apex)
+        // Outside labels at R+15 in the outward radial direction from arc center
+        // 0 label at a slightly inward position so it sits below the apex visibly
+        [
+            { t: 0.0,  text: '-50', rOffset: +15, anchor: 'start'  },
+            { t: 0.5,  text:  '0',  rOffset: -26, anchor: 'middle' },
+            { t: 1.0,  text: '+50', rOffset: +15, anchor: 'end'    },
+        ].forEach(function (lbl) {
+            var ang = _MT3_ARC_START + lbl.t * _MT3_ARC_SPAN;
+            var r   = _MT3_ARC_R + lbl.rOffset;
+            var lx  = _MT3_cx + r * Math.cos(ang);
+            var ly  = _MT3_cy + r * Math.sin(ang);
+            var el  = document.createElementNS(_SVG_NS, 'text');
+            el.setAttribute('x', String(lx));
+            el.setAttribute('y', String(ly + 3));   // +3 for optical baseline alignment
+            el.setAttribute('text-anchor', lbl.anchor);
+            el.setAttribute('font-size', '7');
+            el.setAttribute('fill', 'rgba(255,255,255,0.50)');
             el.textContent = lbl.text;
             gaugeSvg.appendChild(el);
         });
@@ -247,9 +258,7 @@
         _makeSharpPoly('4,23.3   86,23.3  90,28.3  86,33.3  4,33.3   0,28.3');
         _makeSharpPoly('4,56.7   86,56.7  90,61.7  86,66.7  4,66.7   0,61.7');
 
-        // ── Buttons (vertical centre aligns with display) ─────────────
-        // Display: bottom:5%, height:22% → centre at bottom 16%
-        // Buttons: height:14% → bottom = 16% - 7% = 9%
+        // ── Buttons — vertical centre aligns with display ─────────────
         var _mt3ModeBtn = document.createElement('div');
         _mt3ModeBtn.style.position        = 'absolute';
         _mt3ModeBtn.style.bottom          = '9%';
@@ -340,48 +349,42 @@
             }
         }
 
-        // Light up a tick at index with given intensity (0=center, 1=adjacent, 2=outer)
-        function _litTick(idx, intensity) {
+        function _litTick(idx, bright) {
             if (idx < 0 || idx >= _TUNER_MT3_TICK_COUNT) { return; }
-            if (intensity === 0) {
+            // Never downgrade an already-bright centre tick
+            if (!bright && _mt3TickEls[idx].getAttribute('stroke') === _MT3_COL_TICK_LIT) { return; }
+            if (bright) {
                 _mt3TickEls[idx].setAttribute('stroke', _MT3_COL_TICK_LIT);
                 _mt3TickEls[idx].setAttribute('stroke-width', '3');
                 _mt3TickEls[idx].style.filter = 'drop-shadow(0 0 4px #ff8800)';
             } else {
-                // Only upgrade, never downgrade an already-brighter tick
-                var curStroke = _mt3TickEls[idx].getAttribute('stroke');
-                if (curStroke === _MT3_COL_TICK_LIT) { return; }
                 _mt3TickEls[idx].setAttribute('stroke', 'rgba(255,136,0,0.55)');
                 _mt3TickEls[idx].setAttribute('stroke-width', '2');
                 _mt3TickEls[idx].style.filter = 'drop-shadow(0 0 2px #ff8800)';
             }
         }
 
-        // Standard mode: light ticks near the current deviation
         function _highlightTicks(cents, hasSignal) {
             _dimAllTicks();
             if (!hasSignal) { return; }
             var clamped   = Math.max(-_TUNER_MT3_GAUGE_CENTS, Math.min(_TUNER_MT3_GAUGE_CENTS, cents));
-            // Tick index 0 = −50¢, 25 = 0¢, 50 = +50¢  (2¢ per step)
             var targetIdx = Math.round((clamped + _TUNER_MT3_GAUGE_CENTS) / (2 * _TUNER_MT3_GAUGE_CENTS / (_TUNER_MT3_TICK_COUNT - 1)));
             targetIdx     = Math.max(0, Math.min(_TUNER_MT3_TICK_COUNT - 1, targetIdx));
-            _litTick(targetIdx,     0);
-            _litTick(targetIdx - 1, 1);
-            _litTick(targetIdx + 1, 1);
+            _litTick(targetIdx,     true);
+            _litTick(targetIdx - 1, false);
+            _litTick(targetIdx + 1, false);
         }
 
-        // Strobe mode: 5 tick clusters drift across the arc
         function _updateStrobeTicks() {
             _dimAllTicks();
             for (var g = 0; g < _TUNER_MT3_STROBE_GROUP_COUNT; g++) {
                 var baseAngle = _MT3_ARC_START + (g / _TUNER_MT3_STROBE_GROUP_COUNT) * _MT3_ARC_SPAN + _mt3StrobeOffset;
-                // Wrap angle within arc span
                 var relAngle  = ((baseAngle - _MT3_ARC_START) % _MT3_ARC_SPAN + _MT3_ARC_SPAN) % _MT3_ARC_SPAN;
-                var floatIdx  = relAngle / _MT3_ARC_SPAN * (_TUNER_MT3_TICK_COUNT - 1);
-                var nearIdx   = Math.max(0, Math.min(_TUNER_MT3_TICK_COUNT - 1, Math.round(floatIdx)));
-                _litTick(nearIdx,     0);
-                _litTick(nearIdx - 1, 1);
-                _litTick(nearIdx + 1, 1);
+                var nearIdx   = Math.max(0, Math.min(_TUNER_MT3_TICK_COUNT - 1,
+                    Math.round(relAngle / _MT3_ARC_SPAN * (_TUNER_MT3_TICK_COUNT - 1))));
+                _litTick(nearIdx,     true);
+                _litTick(nearIdx - 1, false);
+                _litTick(nearIdx + 1, false);
             }
         }
 
