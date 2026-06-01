@@ -4,6 +4,15 @@
     const _TUNER_FRAME_SIZE = 2048;
     const _TUNER_MIN_DETECTABLE_HZ = 20;
 
+    // Maps instrument select values to DEFAULT_TUNINGS group names
+    const _TUNER_INSTRUMENT_GROUPS = {
+        'guitar-6': 'Guitar',
+        'guitar-7': 'Guitar 7-string',
+        'guitar-8': 'Guitar 8-string',
+        'bass-4':   'Bass 4-string',
+        'bass-5':   'Bass 5-string',
+    };
+
     // ── Audio pipeline state ──────────────────────────────────────────
     let enabled = false;
     let audioCtx = null;
@@ -47,8 +56,10 @@
     // ── UI handles ────────────────────────────────────────────────────
     let uiContainer = null;
     let vizContainer = null;
+    let instrumentSelect = null;
     let tuningSelect = null;
     let stringNoteContainer = null;
+    let saveAsCustomContainer = null;
 
     // ── Viz state ─────────────────────────────────────────────────────
     let activeViz = null;
@@ -56,9 +67,17 @@
     // ── Tuning state ──────────────────────────────────────────────────
     let defaultTunings = {};
     let tunings = {};
+    let selectedInstrument = 'guitar-6';
     let selectedTuning = null;
-    let selectedTuningName = 'Guitar Standard';
+    let selectedTuningName = 'Standard';
     let manualTargetFreq = null;
+
+    // ── Song state (for Save as Custom) ──────────────────────────────
+    let currentSongOffsets = null;
+    let currentSongIsBass = false;
+
+    // ── Server config state (for Save as Custom duplicate check) ─────
+    let _serverConfig = null;
 
     // ── Settings ──────────────────────────────────────────────────────
     let showFloatingButton = true;
@@ -81,9 +100,6 @@
     }
 
     // ── Viz loader ────────────────────────────────────────────────────
-    // Dynamically loads visualization/<name>.js on first use, then
-    // instantiates it. New viz = drop a file in visualization/ and add
-    // an option to the settings select. No other changes needed.
     function _loadVizScript(name) {
         return _loadScript(`/api/plugins/tuner/visualization/${name}.js`);
     }
@@ -104,24 +120,75 @@
         }
     }
 
+    // ── Tuning helpers ────────────────────────────────────────────────
+    function _isTuningEnabled(instrument, name) {
+        return !((_serverConfig ? _serverConfig.disabledTunings : null) || []).includes(instrument + ':' + name);
+    }
+
+    function _instrumentForTuning(name) {
+        for (var key in _TUNER_INSTRUMENT_GROUPS) {
+            var groupName = _TUNER_INSTRUMENT_GROUPS[key];
+            if (defaultTunings[groupName] && defaultTunings[groupName][name]) return key;
+        }
+        return 'guitar-6';
+    }
+
+    function _instrumentFromStringCount(count) {
+        if (count === 4) return 'bass-4';
+        if (count === 5) return 'bass-5';
+        if (count === 7) return 'guitar-7';
+        if (count === 8) return 'guitar-8';
+        return 'guitar-6';
+    }
+
+    function _freqsEqual(a, b) {
+        if (!a || !b || a.length !== b.length) return false;
+        return a.every(function(f, i) {
+            return Math.round(f * 100) === Math.round(b[i] * 100);
+        });
+    }
+
+    function _tuningAlreadyKnown(freqs) {
+        for (var group in defaultTunings) {
+            for (var name in defaultTunings[group]) {
+                if (_freqsEqual(freqs, defaultTunings[group][name])) return true;
+            }
+        }
+        if (_serverConfig) {
+            for (var cname in (_serverConfig.customTunings || {})) {
+                var val = _serverConfig.customTunings[cname];
+                var strings = Array.isArray(val) ? val : (val.strings || []);
+                if (_freqsEqual(freqs, strings)) return true;
+            }
+        }
+        return false;
+    }
+
     // ── Player sync helpers ───────────────────────────────────────────
     function _syncCurrentTuning() {
         const songInfo = window.highway?.getSongInfo();
         if (songInfo && songInfo.tuning && tuningSelect?.querySelector('option[value="_current"]')) {
             const sc = songInfo.stringCount || songInfo.tuning.length;
-            selectedTuning = window._tunerUtils.offsetsToFreqs(
-                songInfo.tuning.slice(0, sc),
-                (songInfo.arrangement || '').toLowerCase().includes('bass'),
-            );
+            const isBass = (songInfo.arrangement || '').toLowerCase().includes('bass');
+            currentSongOffsets = songInfo.tuning.slice(0, sc);
+            currentSongIsBass = isBass;
+            selectedTuning = window._tunerUtils.offsetsToFreqs(currentSongOffsets, isBass);
         } else {
             const first = Object.keys(tunings)[0];
             if (first) {
                 selectedTuningName = first;
                 selectedTuning = tunings[first];
                 if (tuningSelect) tuningSelect.value = first;
+                // Derive instrument from tuning name and update selector
+                const derivedInstrument = _instrumentForTuning(first);
+                if (derivedInstrument && derivedInstrument !== selectedInstrument) {
+                    selectedInstrument = derivedInstrument;
+                    if (instrumentSelect) instrumentSelect.value = derivedInstrument;
+                }
             }
         }
         renderStringNotes();
+        _updateSaveAsCustomVisibility();
     }
 
     // ── Persistence ───────────────────────────────────────────────────
@@ -145,30 +212,50 @@
     async function loadConfig() {
         try {
             const config = await fetch('/api/plugins/tuner/config').then(r => r.json());
+            _serverConfig = config;
 
             defaultTunings = config.defaultTunings || {};
             showFloatingButton = config.showFloatingButton !== false;
             visualizationMode = config.visualizationMode || 'default';
 
+            // Restore lastInstrument
+            if (config.lastInstrument && _TUNER_INSTRUMENT_GROUPS[config.lastInstrument]) {
+                selectedInstrument = config.lastInstrument;
+            }
+            if (instrumentSelect) instrumentSelect.value = selectedInstrument;
+
+            // Build tunings map for selected instrument, handling compound disabledTunings keys
             tunings = {};
-            Object.values(defaultTunings).forEach(group => {
-                Object.entries(group).forEach(([name, val]) => {
-                    if (!config.disabledTunings?.includes(name)) tunings[name] = val;
+            const groupName = _TUNER_INSTRUMENT_GROUPS[selectedInstrument];
+            if (groupName && defaultTunings[groupName]) {
+                Object.entries(defaultTunings[groupName]).forEach(([name, val]) => {
+                    if (_isTuningEnabled(selectedInstrument, name)) tunings[name] = val;
                 });
+            }
+
+            // Custom tunings: support both old flat-list and new {instrument, strings} shapes
+            Object.entries(config.customTunings || {}).forEach(function([name, val]) {
+                var strings = Array.isArray(val) ? val : (val.strings || []);
+                var inst = Array.isArray(val) ? 'guitar-6' : (val.instrument || 'guitar-6');
+                if (inst === selectedInstrument) tunings[name] = strings;
             });
-            if (config.customTunings) Object.assign(tunings, config.customTunings);
 
             const lastName = config.lastTuning;
             if (lastName && tunings[lastName]) {
                 selectedTuningName = lastName;
                 selectedTuning = tunings[lastName];
+            } else if (lastName === 'free-tune') {
+                selectedTuningName = 'free-tune';
+                selectedTuning = [];
             } else {
                 const first = Object.keys(tunings)[0];
                 if (first) { selectedTuningName = first; selectedTuning = tunings[first]; }
             }
 
+            if (instrumentSelect) instrumentSelect.value = selectedInstrument;
             if (tuningSelect) renderTuningOptions();
             if (uiContainer && !uiContainer.classList.contains('hidden')) renderStringNotes();
+            _updateSaveAsCustomVisibility();
             updateFloatingButtonVisibility();
         } catch (e) {
             console.error('Tuner: Failed to load config', e);
@@ -178,18 +265,142 @@
     window._tunerReloadConfig = loadConfig;
 
     async function saveConfig() {
+        // Don't persist ephemeral selections
+        const tuningToSave = (selectedTuningName === '_current' || selectedTuningName === 'free-tune')
+            ? null : selectedTuningName;
         try {
             await fetch('/api/plugins/tuner/config', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ lastTuning: selectedTuningName, visualizationMode }),
+                body: JSON.stringify({
+                    lastTuning: tuningToSave,
+                    lastInstrument: selectedInstrument,
+                    visualizationMode,
+                }),
             });
         } catch (e) {
             console.error('Tuner: Failed to save config', e);
         }
     }
 
+    // ── Save as Custom ────────────────────────────────────────────────
+    function _updateSaveAsCustomVisibility() {
+        if (!saveAsCustomContainer) return;
+        // Only show when on _current tuning and frequencies don't match any known tuning
+        const show = selectedTuningName === '_current'
+            && selectedTuning
+            && selectedTuning.length > 0
+            && !_tuningAlreadyKnown(selectedTuning);
+        if (show) {
+            saveAsCustomContainer.classList.remove('hidden');
+        } else {
+            saveAsCustomContainer.classList.add('hidden');
+            // Clear any inline input that may be open
+            const inp = saveAsCustomContainer.querySelector('.tuner-save-inline');
+            if (inp) inp.remove();
+        }
+    }
+
+    function _showSaveAsCustomInput() {
+        // Don't double-render
+        if (saveAsCustomContainer.querySelector('.tuner-save-inline')) return;
+
+        const labelBtn = saveAsCustomContainer.querySelector('.tuner-save-label');
+        if (labelBtn) labelBtn.classList.add('hidden');
+
+        const inline = document.createElement('div');
+        inline.className = 'tuner-save-inline flex gap-2 w-full';
+
+        const suggestedName = (currentSongOffsets && window._tunerUtils)
+            ? (window._tunerUtils.getTuningName(currentSongOffsets) || 'Custom Tuning')
+            : 'Custom Tuning';
+
+        const nameInput = document.createElement('input');
+        nameInput.type = 'text';
+        nameInput.value = suggestedName;
+        nameInput.className = 'flex-1 bg-dark-700 border border-gray-700 rounded px-2 py-1 text-xs text-white outline-none focus:border-accent';
+
+        const confirmBtn = document.createElement('button');
+        confirmBtn.textContent = 'Save';
+        confirmBtn.className = 'bg-accent/20 hover:bg-accent/30 border border-accent/40 text-accent text-xs px-3 py-1 rounded transition-colors';
+
+        const doSave = async () => {
+            const name = nameInput.value.trim();
+            if (!name || !selectedTuning || selectedTuning.length === 0) return;
+            const rounded = selectedTuning.map(f => Math.round(f * 100) / 100);
+            const instrument = _instrumentFromStringCount(rounded.length);
+            try {
+                // Read current config, add new custom tuning, write back
+                const config = await fetch('/api/plugins/tuner/config').then(r => r.json());
+                const custom = config.customTunings || {};
+                custom[name] = { instrument, strings: rounded };
+                await fetch('/api/plugins/tuner/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ customTunings: custom }),
+                });
+                // Switch to new custom tuning on matching instrument
+                selectedInstrument = instrument;
+                selectedTuningName = name;
+                selectedTuning = rounded;
+                if (instrumentSelect) instrumentSelect.value = instrument;
+                await loadConfig();
+                // After loadConfig re-renders options, select the new tuning
+                selectedTuningName = name;
+                selectedTuning = tunings[name] || rounded;
+                if (tuningSelect) tuningSelect.value = name;
+                renderStringNotes();
+                saveConfig();
+            } catch (e) {
+                console.error('Tuner: Failed to save custom tuning', e);
+            }
+        };
+
+        confirmBtn.onclick = doSave;
+        nameInput.onkeydown = (e) => { if (e.key === 'Enter') doSave(); };
+
+        inline.appendChild(nameInput);
+        inline.appendChild(confirmBtn);
+        saveAsCustomContainer.appendChild(inline);
+        nameInput.focus();
+        nameInput.select();
+    }
+
     // ── UI ────────────────────────────────────────────────────────────
+    function renderInstrumentOptions() {
+        if (!instrumentSelect) return;
+        instrumentSelect.innerHTML = '';
+
+        const guitarGroup = document.createElement('optgroup');
+        guitarGroup.label = 'Guitar';
+        [
+            ['guitar-6', 'Guitar 6-string'],
+            ['guitar-7', 'Guitar 7-string'],
+            ['guitar-8', 'Guitar 8-string'],
+        ].forEach(([val, label]) => {
+            const opt = document.createElement('option');
+            opt.value = val;
+            opt.textContent = label;
+            guitarGroup.appendChild(opt);
+        });
+
+        const bassGroup = document.createElement('optgroup');
+        bassGroup.label = 'Bass';
+        [
+            ['bass-4', 'Bass 4-string'],
+            ['bass-5', 'Bass 5-string'],
+        ].forEach(([val, label]) => {
+            const opt = document.createElement('option');
+            opt.value = val;
+            opt.textContent = label;
+            bassGroup.appendChild(opt);
+        });
+
+        instrumentSelect.appendChild(guitarGroup);
+        instrumentSelect.appendChild(bassGroup);
+        instrumentSelect.value = selectedInstrument;
+    }
+
     function renderTuningOptions() {
         if (!tuningSelect) return;
         tuningSelect.innerHTML = '';
@@ -216,6 +427,12 @@
         } else if (selectedTuningName === '_current') {
             selectedTuning = null;
         }
+
+        // Free Tune always first (after Current Song if present)
+        const freeTuneOpt = document.createElement('option');
+        freeTuneOpt.value = 'free-tune';
+        freeTuneOpt.textContent = 'Free Tune';
+        tuningSelect.appendChild(freeTuneOpt);
 
         Object.keys(tunings).forEach(name => {
             const opt = document.createElement('option');
@@ -293,9 +510,47 @@
         header.appendChild(settingsBtn);
         uiContainer.appendChild(header);
 
-        // Tuning selector
+        // Instrument + Tuning selector row
+        const selectorRow = document.createElement('div');
+        selectorRow.className = 'flex gap-2 w-full mb-4';
+
+        instrumentSelect = document.createElement('select');
+        instrumentSelect.className = 'flex-none w-36 bg-dark-700 text-sm text-gray-200 border border-gray-800 p-2 rounded-lg outline-none focus:border-accent transition';
+        renderInstrumentOptions();
+        instrumentSelect.onchange = (e) => {
+            selectedInstrument = e.target.value;
+            manualTargetFreq = null;
+
+            // Rebuild tunings for new instrument
+            tunings = {};
+            const groupName = _TUNER_INSTRUMENT_GROUPS[selectedInstrument];
+            if (groupName && defaultTunings[groupName]) {
+                Object.entries(defaultTunings[groupName]).forEach(([name, val]) => {
+                    if (_isTuningEnabled(selectedInstrument, name)) tunings[name] = val;
+                });
+            }
+            if (_serverConfig) {
+                Object.entries(_serverConfig.customTunings || {}).forEach(function([name, val]) {
+                    var strings = Array.isArray(val) ? val : (val.strings || []);
+                    var inst = Array.isArray(val) ? 'guitar-6' : (val.instrument || 'guitar-6');
+                    if (inst === selectedInstrument) tunings[name] = strings;
+                });
+            }
+
+            // Default to first tuning for new instrument
+            const firstTuning = Object.keys(tunings)[0] || null;
+            selectedTuningName = firstTuning || 'free-tune';
+            selectedTuning = firstTuning ? tunings[firstTuning] : [];
+
+            renderTuningOptions();
+            renderStringNotes();
+            _updateSaveAsCustomVisibility();
+            saveConfig();
+        };
+        selectorRow.appendChild(instrumentSelect);
+
         tuningSelect = document.createElement('select');
-        tuningSelect.className = 'w-full bg-dark-700 text-sm text-gray-200 border border-gray-800 mb-4 p-2 rounded-lg outline-none focus:border-accent transition';
+        tuningSelect.className = 'flex-1 bg-dark-700 text-sm text-gray-200 border border-gray-800 p-2 rounded-lg outline-none focus:border-accent transition';
         renderTuningOptions();
         tuningSelect.onchange = (e) => {
             selectedTuningName = e.target.value;
@@ -303,24 +558,42 @@
                 const info = window.highway?.getSongInfo();
                 if (info) {
                     const sc = info.stringCount || info.tuning.length;
-                    selectedTuning = window._tunerUtils.offsetsToFreqs(info.tuning.slice(0, sc), (info.arrangement || '').toLowerCase().includes('bass'));
+                    const isBass = (info.arrangement || '').toLowerCase().includes('bass');
+                    currentSongOffsets = info.tuning.slice(0, sc);
+                    currentSongIsBass = isBass;
+                    selectedTuning = window._tunerUtils.offsetsToFreqs(currentSongOffsets, isBass);
                 } else {
                     selectedTuning = null;
                 }
+            } else if (selectedTuningName === 'free-tune') {
+                selectedTuning = [];
             } else {
                 selectedTuning = tunings[selectedTuningName];
             }
             manualTargetFreq = null;
             renderStringNotes();
-            if (selectedTuningName !== '_current') saveConfig();
+            _updateSaveAsCustomVisibility();
+            if (selectedTuningName !== '_current' && selectedTuningName !== 'free-tune') saveConfig();
         };
-        uiContainer.appendChild(tuningSelect);
+        selectorRow.appendChild(tuningSelect);
+        uiContainer.appendChild(selectorRow);
 
         // String note buttons
         stringNoteContainer = document.createElement('div');
         stringNoteContainer.className = 'flex justify-between w-full mb-4 gap-1';
         uiContainer.appendChild(stringNoteContainer);
         renderStringNotes();
+
+        // Save as Custom container (hidden by default)
+        saveAsCustomContainer = document.createElement('div');
+        saveAsCustomContainer.className = 'w-full mb-3 hidden';
+
+        const labelBtn = document.createElement('button');
+        labelBtn.className = 'tuner-save-label w-full text-[11px] text-accent/70 hover:text-accent border border-accent/20 hover:border-accent/50 rounded-lg py-1.5 transition-colors';
+        labelBtn.textContent = 'Save as Custom Tuning';
+        labelBtn.onclick = _showSaveAsCustomInput;
+        saveAsCustomContainer.appendChild(labelBtn);
+        uiContainer.appendChild(saveAsCustomContainer);
 
         // Viz container — viz modules append their DOM here
         vizContainer = document.createElement('div');
@@ -369,7 +642,7 @@
             </select>
         `;
 
-        uiContainer.insertBefore(panel, tuningSelect);
+        uiContainer.insertBefore(panel, uiContainer.querySelector('.flex.gap-2'));
 
         panel.querySelector('.tuner-device-select').onchange = (e) => {
             selectedDeviceId = e.target.value;
@@ -418,18 +691,15 @@
             stream = await navigator.mediaDevices.getUserMedia(constraints);
         } catch (e) {
             if (e.name === 'OverconstrainedError' && selectedDeviceId) {
-                // Saved device may be mono-only — reset both device and channelCount.
                 selectedDeviceId = '';
                 saveSettings();
                 delete constraints.audio.deviceId;
                 delete constraints.audio.channelCount;
             } else if (e.name === 'NotFoundError' && selectedDeviceId) {
-                // Saved device no longer available — fall back to default.
                 selectedDeviceId = '';
                 saveSettings();
                 delete constraints.audio.deviceId;
             } else if (e.name === 'OverconstrainedError') {
-                // No saved device, but device rejects channelCount:2.
                 delete constraints.audio.channelCount;
             } else {
                 throw e;
@@ -520,9 +790,11 @@
         if (document.querySelector('.screen.active')?.id === 'player') selectedTuningName = '_current';
 
         initUI();
+        renderInstrumentOptions();
         renderTuningOptions();
         if (selectedTuningName === '_current') _syncCurrentTuning();
         else if (selectedTuning) renderStringNotes();
+        _updateSaveAsCustomVisibility();
 
         await _setVisualization(visualizationMode);
 
@@ -617,7 +889,6 @@
         }
 
         if (result.confidence < 0.5 && hasSignal) {
-            // dim signal — let viz handle its own timeout
             _validFrameCount = 0;
             _freqHistory = [];
             _lastFreq = 0;
@@ -626,12 +897,9 @@
             return;
         }
 
-        // Valid signal: octave-fold toward the last pitch, then median-filter.
         _freqHistory.push(_octaveFold(result.freq, _lastFreq));
         if (_freqHistory.length > _FREQ_HISTORY_LEN) _freqHistory.shift();
 
-        // Skip the pluck-attack transient — keep filling history but hold the
-        // display until a few consecutive valid frames have settled the pitch.
         _validFrameCount++;
         if (_validFrameCount <= _WARMUP_FRAMES) {
             if (activeViz) activeViz.update(null, 0, 0, vizMode);
