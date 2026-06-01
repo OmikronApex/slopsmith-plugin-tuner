@@ -9,7 +9,7 @@
     // Display colours
     var _TUNER_PT_LIT   = '#ff2200';
     var _TUNER_PT_UNLIT = '#1a0000';
-    var _TUNER_PT_GLOW  = '0 0 6px 1px #ff2200, 0 0 12px 2px #cc1100';
+
     var _TUNER_PT_BG    = '#0d0000';
 
     // ── 8-segment map ─────────────────────────────────────────────────
@@ -249,12 +249,13 @@
         var sharpEl = document.createElement('div');
         sharpEl.style.cssText = [
             'flex:0 0 30%',
-            'height:75%',
+            'height:100%',
             'display:flex',
-            'align-items:center',
+            'align-items:flex-end',
             'justify-content:center',
+            'padding-bottom:6%',
             'color:' + _TUNER_PT_UNLIT,
-            'font-size:200%',
+            'font-size:150%',
             'font-weight:bold',
             'font-family:sans-serif',
             'line-height:1',
@@ -372,7 +373,7 @@
 
         function _setSharp(lit) {
             sharpEl.style.color      = lit ? _TUNER_PT_LIT  : _TUNER_PT_UNLIT;
-            sharpEl.style.textShadow = lit ? _TUNER_PT_GLOW : 'none';
+            sharpEl.style.textShadow = lit ? '0 0 6px #ff2200, 0 0 12px #cc1100' : 'none';
         }
 
         function _setAuto(mode) {
