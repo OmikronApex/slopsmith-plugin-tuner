@@ -193,15 +193,15 @@
         });
 
         // ── 4. LCD display (letter + # inside one box) ────────────────
-        // top=33%, height=52% → bottom=85%, centre=59%.
+        // top=50%, height=35% → bottom=85%, centre=67.5%.
         var displayWrap = document.createElement('div');
         displayWrap.style.cssText = [
             'position:absolute',
             'left:50%',
-            'top:33%',
+            'top:50%',
             'transform:translateX(-50%)',
-            'width:32%',
-            'height:52%',
+            'width:23%',
+            'height:35%',
             'background:' + _TUNER_PT_BG,
             'border-radius:3px',
             'border:1px solid #2a0000',
@@ -230,15 +230,15 @@
             segmentEls[key] = el;
         }
 
-        var bw = '18%';
-        _makeSeg('a',  'top:0%;left:10%;width:80%;height:' + bw);
-        _makeSeg('b',  'top:4%;right:0%;width:' + bw + ';height:43%');
-        _makeSeg('c',  'bottom:4%;right:0%;width:' + bw + ';height:43%');
-        _makeSeg('d',  'bottom:0%;left:10%;width:80%;height:' + bw);
-        _makeSeg('e',  'bottom:4%;left:0%;width:' + bw + ';height:43%');
-        _makeSeg('f',  'top:4%;left:0%;width:' + bw + ';height:43%');
-        _makeSeg('g1', 'top:50%;left:8%;width:34%;height:' + bw + ';transform:translateY(-50%)');
-        _makeSeg('g2', 'top:50%;right:8%;width:34%;height:' + bw + ';transform:translateY(-50%)');
+        var bw = '15%';
+        _makeSeg('a',  'top:0%;left:8%;width:84%;height:' + bw);
+        _makeSeg('b',  'top:3%;right:0%;width:' + bw + ';height:44%');
+        _makeSeg('c',  'bottom:3%;right:0%;width:' + bw + ';height:44%');
+        _makeSeg('d',  'bottom:0%;left:8%;width:84%;height:' + bw);
+        _makeSeg('e',  'bottom:3%;left:0%;width:' + bw + ';height:44%');
+        _makeSeg('f',  'top:3%;left:0%;width:' + bw + ';height:44%');
+        _makeSeg('g1', 'top:50%;left:6%;width:37%;height:' + bw + ';transform:translateY(-50%)');
+        _makeSeg('g2', 'top:50%;right:6%;width:37%;height:' + bw + ';transform:translateY(-50%)');
 
         // "#" symbol inside the display box
         var sharpEl = document.createElement('div');
@@ -263,7 +263,7 @@
         // Anchored to the display's right edge (≈69%) at the display's
         // vertical midpoint (54% + 20% = 74%).
         var autoWrap = document.createElement('div');
-        autoWrap.style.cssText = 'position:absolute;left:72%;top:76%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:4%;pointer-events:none';
+        autoWrap.style.cssText = 'position:absolute;left:65%;top:78%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:4%;pointer-events:none';
 
         var autoLed = document.createElement('div');
         autoLed.style.cssText = [
