@@ -207,9 +207,9 @@
             'border:1px solid #2a0000',
             'display:flex',
             'flex-direction:row',
-            'align-items:center',
-            'justify-content:center',
-            'gap:4%',
+            'align-items:flex-end',
+            'justify-content:space-between',
+            'gap:3%',
             'padding:4%',
             'box-sizing:border-box',
             'box-shadow:inset 0 0 8px #000'
@@ -223,7 +223,7 @@
         var segSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         segSvg.setAttribute('viewBox', '0 0 100 200');
         segSvg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-        segSvg.style.cssText = 'width:42%;aspect-ratio:1/2;align-self:center;flex-shrink:0;overflow:visible;';
+        segSvg.style.cssText = 'width:42%;aspect-ratio:1/2;align-self:flex-end;flex-shrink:0;overflow:visible;';
         displayWrap.appendChild(segSvg);
 
         var segmentEls = {};
@@ -250,7 +250,9 @@
         var sharpSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         sharpSvg.setAttribute('viewBox', '0 0 60 200');
         sharpSvg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-        sharpSvg.style.cssText = 'width:20%;aspect-ratio:3/10;align-self:flex-end;margin-bottom:5%;flex-shrink:0;overflow:visible;pointer-events:none;';
+        // width:25.2% = 42% × (60/100) → same rendered height as segSvg (both 200-unit tall viewBox)
+        // symbol occupies y=135–195 (60×60 square) so its bottom = segment 'd' bottom at y=195
+        sharpSvg.style.cssText = 'width:25.2%;aspect-ratio:3/10;align-self:flex-end;flex-shrink:0;overflow:visible;pointer-events:none;';
         displayWrap.appendChild(sharpSvg);
 
         var sharpParts = [];
@@ -262,11 +264,12 @@
             sharpParts.push(el);
         }
 
-        // left vert, right vert, top horiz, bottom horiz
-        _makeSharpPoly('10,2   17,7   17,193  10,198  3,193   3,7');
-        _makeSharpPoly('50,2   57,7   57,193  50,198  43,193  43,7');
-        _makeSharpPoly('5,72   55,72  60,79   55,86   5,86    0,79');
-        _makeSharpPoly('5,114  55,114 60,121  55,128  5,128   0,121');
+        // Bars are each 60 units long (H: x=0–60, V: y=135–195) → equal length
+        // T=10, CH=4 — left vert, right vert, top horiz, bottom horiz
+        _makeSharpPoly('8,135   18,139  18,191  8,195   0,191   0,139');
+        _makeSharpPoly('42,135  52,139  52,191  42,195  34,191  34,139');
+        _makeSharpPoly('4,153   56,153  60,158  56,163  4,163   0,158');
+        _makeSharpPoly('4,167   56,167  60,172  56,177  4,177   0,172');
 
         // ── 5. AUTO LED (lit when mode is 'free' or 'auto') ──────────
         // Anchored to the display's right edge (≈69%) at the display's
