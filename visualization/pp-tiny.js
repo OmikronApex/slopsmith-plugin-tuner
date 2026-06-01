@@ -218,7 +218,7 @@
 
         // Letter digit (8-segment)
         var segContainer = document.createElement('div');
-        segContainer.style.cssText = 'position:relative;flex:0 0 42%;height:80%;';
+        segContainer.style.cssText = 'position:relative;flex:0 0 42%;aspect-ratio:1/1;align-self:center;';
         displayWrap.appendChild(segContainer);
 
         var segmentEls = {};
@@ -356,6 +356,7 @@
         function _setSegment(segEl, lit) {
             segEl.style.background = lit ? _TUNER_PT_LIT  : _TUNER_PT_UNLIT;
             segEl.style.boxShadow  = lit ? _TUNER_PT_GLOW : 'none';
+            segEl.style.zIndex     = lit ? '1' : '0';
         }
 
         function _renderNote(letter) {
