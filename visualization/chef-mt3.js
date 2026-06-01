@@ -468,11 +468,11 @@
         function _setSegment(el, lit) {
             var brt = _MT3_BRIGHTNESS[_mt3BrightnessIdx];
             el.setAttribute('fill', lit ? brt.litFill : _MT3_COL_SEG_UNLIT);
+            el.style.filter = lit ? brt.glow : 'none';
         }
         function _renderNote(letter) {
             var map = _TUNER_MT3_SEGMENTS[letter] || _TUNER_MT3_SEGMENTS[' '];
             for (var k = 0; k < _segKeys.length; k++) { _setSegment(_mt3SegEls[_segKeys[k]], map[k]); }
-            segSvg.style.filter = (letter !== ' ') ? _MT3_BRIGHTNESS[_mt3BrightnessIdx].glow : 'none';
         }
         function _setSharp(lit) {
             var brt = _MT3_BRIGHTNESS[_mt3BrightnessIdx];
