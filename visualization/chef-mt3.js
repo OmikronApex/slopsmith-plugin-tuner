@@ -156,7 +156,7 @@
         _hlGrad.setAttribute('gradientUnits', 'userSpaceOnUse');
         _hlGrad.setAttribute('x1', _MT3_ARC_SX.toFixed(2)); _hlGrad.setAttribute('y1', '0');
         _hlGrad.setAttribute('x2', _MT3_ARC_EX.toFixed(2)); _hlGrad.setAttribute('y2', '0');
-        [['0%','rgba(255,255,255,0)'],['50%','rgba(255,255,255,0.48)'],['100%','rgba(255,255,255,0)']]
+        [['0%','rgba(255,255,255,0)'],['50%','rgba(255,255,255,0.68)'],['100%','rgba(255,255,255,0)']]
         .forEach(function(s){var st=document.createElementNS(_SVG_NS,'stop');st.setAttribute('offset',s[0]);st.setAttribute('stop-color',s[1]);_hlGrad.appendChild(st);});
         _svgDefs.appendChild(_hlGrad);
 
@@ -204,7 +204,7 @@
         gaugeSvg.appendChild(arcShadow);
 
         // Specular highlight — bright white arc fading to transparent at ends; sits halfway between arc centre and outer edge
-        var _hlR        = _MT3_ARC_R - 6;
+        var _hlR        = _MT3_ARC_R - 2;
         var arcHighlight = document.createElementNS(_SVG_NS, 'path');
         arcHighlight.setAttribute('d',
             'M ' + (_MT3_cx + _hlR * Math.cos(_MT3_ARC_START)).toFixed(2) + ' ' +
