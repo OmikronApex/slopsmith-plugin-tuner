@@ -222,7 +222,7 @@
         var segSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         segSvg.setAttribute('viewBox', '0 0 100 200');
         segSvg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-        segSvg.style.cssText = 'width:52.5%;aspect-ratio:1/2;flex-shrink:0;overflow:visible;';
+        segSvg.style.cssText = 'width:55%;aspect-ratio:1/2;flex-shrink:0;overflow:visible;';
         displayWrap.appendChild(segSvg);
 
         var segmentEls = {};
@@ -249,7 +249,7 @@
         var sharpSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         sharpSvg.setAttribute('viewBox', '0 0 90 90');
         sharpSvg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-        sharpSvg.style.cssText = 'position:absolute;top:12%;right:5%;width:22%;aspect-ratio:1/1;overflow:visible;pointer-events:none;';
+        sharpSvg.style.cssText = 'position:absolute;top:26%;right:6%;width:22%;aspect-ratio:1/1;overflow:visible;pointer-events:none;';
         displayWrap.appendChild(sharpSvg);
 
         var sharpParts = [];
