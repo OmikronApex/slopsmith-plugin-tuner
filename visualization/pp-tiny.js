@@ -225,25 +225,26 @@
 
         function _makeSeg(key, cssText) {
             var el = document.createElement('div');
-            el.style.cssText = cssText + ';position:absolute;background:' + _TUNER_PT_UNLIT + ';border-radius:2px;transition:background 0.05s,box-shadow 0.05s;';
+            el.style.cssText = cssText + ';position:absolute;background:' + _TUNER_PT_UNLIT + ';transition:background 0.05s,box-shadow 0.05s;';
             segContainer.appendChild(el);
             segmentEls[key] = el;
         }
 
-        // 1:2 container (W × 2W). Equal physical length W for all segments:
-        //   horizontal: width=100%, height=6% (6% of 2W = 12% of W)
-        //   vertical:   width=12%, height=50% (50% of 2W = W)
-        //   g1/g2:      width=50% each, same height as horizontals
-        var bw_w = '12%';
-        var bw_h = '6%';
-        _makeSeg('a',  'top:0;left:0;width:100%;height:' + bw_h);
-        _makeSeg('b',  'top:0;right:0;width:' + bw_w + ';height:50%');
-        _makeSeg('c',  'bottom:0;right:0;width:' + bw_w + ';height:50%');
-        _makeSeg('d',  'bottom:0;left:0;width:100%;height:' + bw_h);
-        _makeSeg('e',  'bottom:0;left:0;width:' + bw_w + ';height:50%');
-        _makeSeg('f',  'top:0;left:0;width:' + bw_w + ';height:50%');
-        _makeSeg('g1', 'top:50%;left:0;width:50%;height:' + bw_h + ';transform:translateY(-50%)');
-        _makeSeg('g2', 'top:50%;right:0;width:50%;height:' + bw_h + ';transform:translateY(-50%)');
+        // 1:2 container (W × 2W). Gap=3%W=1.5%·2W, bar=12%W=6%·2W.
+        // clip-path gives hexagonal ends; inner g1/g2 edges are straight.
+        // Horizontal cut ≈ 6.4% of element, vertical cut ≈ 6.3%, g1/g2 cut ≈ 13.2%.
+        var _CP_H  = 'polygon(6.4% 0%,93.6% 0%,100% 50%,93.6% 100%,6.4% 100%,0% 50%)';
+        var _CP_V  = 'polygon(0% 6.3%,50% 0%,100% 6.3%,100% 93.7%,50% 100%,0% 93.7%)';
+        var _CP_G1 = 'polygon(13.2% 0%,100% 0%,100% 100%,13.2% 100%,0% 50%)';
+        var _CP_G2 = 'polygon(0% 0%,86.8% 0%,100% 50%,86.8% 100%,0% 100%)';
+        _makeSeg('a',  'top:0;left:3%;width:94%;height:6%;clip-path:' + _CP_H);
+        _makeSeg('b',  'top:1.5%;right:0;width:12%;height:47.75%;clip-path:' + _CP_V);
+        _makeSeg('c',  'bottom:1.5%;right:0;width:12%;height:47.75%;clip-path:' + _CP_V);
+        _makeSeg('d',  'bottom:0;left:3%;width:94%;height:6%;clip-path:' + _CP_H);
+        _makeSeg('e',  'bottom:1.5%;left:0;width:12%;height:47.75%;clip-path:' + _CP_V);
+        _makeSeg('f',  'top:1.5%;left:0;width:12%;height:47.75%;clip-path:' + _CP_V);
+        _makeSeg('g1', 'top:50%;left:3%;width:45.5%;height:6%;transform:translateY(-50%);clip-path:' + _CP_G1);
+        _makeSeg('g2', 'top:50%;right:3%;width:45.5%;height:6%;transform:translateY(-50%);clip-path:' + _CP_G2);
 
         // "#" symbol inside the display box
         var sharpEl = document.createElement('div');
