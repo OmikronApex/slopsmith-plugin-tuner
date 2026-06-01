@@ -203,8 +203,8 @@
         arcShadow.setAttribute('filter', 'url(#' + _glassBlurId + ')');
         gaugeSvg.appendChild(arcShadow);
 
-        // Specular highlight — bright white arc on inner-upper edge fading to transparent at ends
-        var _hlR        = _MT3_ARC_R - 5;
+        // Specular highlight — bright white arc fading to transparent at ends; sits halfway between arc centre and outer edge
+        var _hlR        = _MT3_ARC_R + 4;
         var arcHighlight = document.createElementNS(_SVG_NS, 'path');
         arcHighlight.setAttribute('d',
             'M ' + (_MT3_cx + _hlR * Math.cos(_MT3_ARC_START)).toFixed(2) + ' ' +
