@@ -70,8 +70,8 @@ Access advanced settings via the Slopsmith Plugin Manager (Settings -> Plugins -
 ## Changelog
 
 ### [1.3.0] - 2026-06-01
-- Added PP-Tiny visualization: faithful recreation of the Fender PT-100 chromatic tuner panel with a curved 11-LED arc, 8-segment note display with split centre bar, and always-on BATT. indicator.
-- Added CHEF MT-3 visualization: classic chromatic pedal tuner aesthetic with a 90° curved glass gauge arc, 51 tick marks, red 7-segment display, and rubber mode/brightness buttons.
+- Added PP-Tiny visualization: inspired by the Fender PT-100 chromatic tuner panel, with a curved 11-LED arc, 8-segment note display with split centre bar, and always-on BATT. indicator.
+- Added CHEF MT-3 visualization: inspired by the BOSS TU-3, featuring a 90° curved glass gauge arc, 51 tick marks, red 7-segment display, and rubber mode/brightness buttons.
 - Refactored `screen.js` into focused modules: audio pipeline extracted to `utils/audio.js`, UI layer extracted to `utils/ui.js` (shared-state factory pattern). `screen.js` reduced from ~1060 to ~300 lines.
 - Normalised `DEFAULT_TUNINGS` keys to instrument keys (`guitar-6`, `bass-4`, etc.) — removes the internal group-name lookup table.
 - Added plugin stylesheet (`assets/plugin.css`) via the Slopsmith styles contract, ensuring arbitrary Tailwind classes render correctly for runtime-installed users.
