@@ -25,8 +25,7 @@
     var _MT3_COL_BG        = '#0a0a0a';
     var _MT3_COL_GAUGE_ARC = 'rgba(255,255,255,0.18)';
     var _MT3_COL_TICK_DIM  = 'rgba(255,255,255,0.45)';
-    var _MT3_COL_TICK_LIT  = '#ff8800';
-    var _MT3_COL_TICK_SPIL = 'rgba(255,136,0,0.52)';
+    // Tick glow colours are computed per-tick at factory construction (orange→yellow gradient)
     var _MT3_COL_SEG_UNLIT = '#2a0000';
 
     // Brightness levels: [brightScale for tick glow, SVG filter flood-opacity, lit segment fill, segment drop-shadow]
@@ -193,6 +192,17 @@
             glowTick.setAttribute('stroke-linecap', 'round');
             _glowGroup.appendChild(glowTick);
             _mt3GlowTickEls.push(glowTick);
+        }
+
+        // Per-tick gradient colours: orange (#ff7700) at arc edges → yellow (#ffee00) at centre
+        // d = distance from centre (0 = centre tick, 1 = end ticks)
+        var _mt3TickColors     = [];
+        var _mt3TickSpillColors = [];
+        for (var tc = 0; tc < _TUNER_MT3_TICK_COUNT; tc++) {
+            var d  = Math.abs((tc / (_TUNER_MT3_TICK_COUNT - 1)) - 0.5) * 2;
+            var tg = Math.round(238 * (1 - d) + 119 * d);   // G channel: 238 (yellow) → 119 (orange)
+            _mt3TickColors.push('rgb(255,' + tg + ',0)');
+            _mt3TickSpillColors.push('rgba(255,' + tg + ',0,0.52)');
         }
 
         // Arc-following labels — inside the arc at R−18 (below the tube's inner edge with a gap)
@@ -450,10 +460,10 @@
                 _mt3LastTickState[ti] = state;
                 var el = _mt3GlowTickEls[ti];
                 if (state === 2) {
-                    el.setAttribute('stroke', _MT3_COL_TICK_LIT);
+                    el.setAttribute('stroke', _mt3TickColors[ti]);
                     el.setAttribute('stroke-width', '3');
                 } else if (state === 1) {
-                    el.setAttribute('stroke', _MT3_COL_TICK_SPIL);
+                    el.setAttribute('stroke', _mt3TickSpillColors[ti]);
                     el.setAttribute('stroke-width', '2');
                 } else {
                     el.setAttribute('stroke', 'none');
