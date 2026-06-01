@@ -138,6 +138,23 @@
         _sfMerge.appendChild(_sfMn1); _sfMerge.appendChild(_sfMn2);
         _svgFilter.appendChild(_sfBlur); _svgFilter.appendChild(_sfFlood);
         _svgFilter.appendChild(_sfComp); _svgFilter.appendChild(_sfMerge);
+        // Horizontal gradient for specular highlight: transparent at both arc ends, white at apex
+        var _hlGradId = 'mt3-hl-' + Math.random().toString(36).slice(2, 7);
+        var _hlGrad   = document.createElementNS(_SVG_NS, 'linearGradient');
+        _hlGrad.setAttribute('id', _hlGradId);
+        _hlGrad.setAttribute('gradientUnits', 'userSpaceOnUse');
+        _hlGrad.setAttribute('x1', _MT3_ARC_SX.toFixed(2));
+        _hlGrad.setAttribute('y1', '0');
+        _hlGrad.setAttribute('x2', _MT3_ARC_EX.toFixed(2));
+        _hlGrad.setAttribute('y2', '0');
+        [['0%','rgba(255,255,255,0)'], ['50%','rgba(255,255,255,0.72)'], ['100%','rgba(255,255,255,0)']]
+        .forEach(function (s) {
+            var stop = document.createElementNS(_SVG_NS, 'stop');
+            stop.setAttribute('offset', s[0]);
+            stop.setAttribute('stop-color', s[1]);
+            _hlGrad.appendChild(stop);
+        });
+        _svgDefs.appendChild(_hlGrad);
         _svgDefs.appendChild(_svgFilter);
         gaugeSvg.appendChild(_svgDefs);
 
@@ -145,7 +162,7 @@
             ' A ' + _MT3_ARC_R + ' ' + _MT3_ARC_R + ' 0 0 1 ' +
             _MT3_ARC_EX.toFixed(2) + ' ' + _MT3_ARC_EY.toFixed(2);
 
-        // Glass arc body — no dashed sheen overlay
+        // Glass arc body
         var arcBody = document.createElementNS(_SVG_NS, 'path');
         arcBody.setAttribute('d', _arcD);
         arcBody.setAttribute('fill', 'none');
@@ -153,6 +170,36 @@
         arcBody.setAttribute('stroke-width', '16');
         arcBody.setAttribute('stroke-linecap', 'round');
         gaugeSvg.appendChild(arcBody);
+
+        // Outer shadow — dark stroke on the outer-lower edge, simulates less light reaching far side
+        var _shadowR  = _MT3_ARC_R + 6;
+        var arcShadow = document.createElementNS(_SVG_NS, 'path');
+        arcShadow.setAttribute('d',
+            'M ' + (_MT3_cx + _shadowR * Math.cos(_MT3_ARC_START)).toFixed(2) + ' ' +
+                   (_MT3_cy + _shadowR * Math.sin(_MT3_ARC_START)).toFixed(2) +
+            ' A ' + _shadowR + ' ' + _shadowR + ' 0 0 1 ' +
+                   (_MT3_cx + _shadowR * Math.cos(_MT3_ARC_START + _MT3_ARC_SPAN)).toFixed(2) + ' ' +
+                   (_MT3_cy + _shadowR * Math.sin(_MT3_ARC_START + _MT3_ARC_SPAN)).toFixed(2));
+        arcShadow.setAttribute('fill', 'none');
+        arcShadow.setAttribute('stroke', 'rgba(0,0,0,0.38)');
+        arcShadow.setAttribute('stroke-width', '3.5');
+        arcShadow.setAttribute('stroke-linecap', 'round');
+        gaugeSvg.appendChild(arcShadow);
+
+        // Specular highlight — bright white arc on inner-upper edge fading to transparent at ends
+        var _hlR        = _MT3_ARC_R - 5;
+        var arcHighlight = document.createElementNS(_SVG_NS, 'path');
+        arcHighlight.setAttribute('d',
+            'M ' + (_MT3_cx + _hlR * Math.cos(_MT3_ARC_START)).toFixed(2) + ' ' +
+                   (_MT3_cy + _hlR * Math.sin(_MT3_ARC_START)).toFixed(2) +
+            ' A ' + _hlR + ' ' + _hlR + ' 0 0 1 ' +
+                   (_MT3_cx + _hlR * Math.cos(_MT3_ARC_START + _MT3_ARC_SPAN)).toFixed(2) + ' ' +
+                   (_MT3_cy + _hlR * Math.sin(_MT3_ARC_START + _MT3_ARC_SPAN)).toFixed(2));
+        arcHighlight.setAttribute('fill', 'none');
+        arcHighlight.setAttribute('stroke', 'url(#' + _hlGradId + ')');
+        arcHighlight.setAttribute('stroke-width', '2.5');
+        arcHighlight.setAttribute('stroke-linecap', 'round');
+        gaugeSvg.appendChild(arcHighlight);
 
         // dimGroup: base tick lines always shown at dim colour — constructed once, never updated
         var _dimGroup = document.createElementNS(_SVG_NS, 'g');
