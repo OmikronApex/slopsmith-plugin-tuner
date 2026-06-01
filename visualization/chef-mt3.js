@@ -284,6 +284,22 @@
         _makeSharpPoly('4,56.7   86,56.7  90,61.7  86,66.7  4,66.7   0,61.7');
 
         // ── Buttons ───────────────────────────────────────────────────
+        // Strobe indicator LED — centred above the MODE button, lit when strobe mode is active
+        // Button: bottom:24%, height:8% → top edge at bottom:32%; LED sits at bottom:33.5%
+        // Button left:calc(50%-22%), width:10% → centre at calc(50%-17%); LED width:2.5% → left:calc(50%-18.25%)
+        var _mt3StrobeLed = document.createElement('div');
+        _mt3StrobeLed.style.position      = 'absolute';
+        _mt3StrobeLed.style.bottom        = '33.5%';
+        _mt3StrobeLed.style.left          = 'calc(50% - 18.25%)';
+        _mt3StrobeLed.style.width         = '2.5%';
+        _mt3StrobeLed.style.height        = '0';
+        _mt3StrobeLed.style.paddingBottom = '2.5%';
+        _mt3StrobeLed.style.borderRadius  = '50%';
+        _mt3StrobeLed.style.background    = 'radial-gradient(circle at 35% 35%, #2a0000, #0a0000)';
+        _mt3StrobeLed.style.boxShadow     = 'none';
+        _mt3StrobeLed.style.pointerEvents = 'none';
+        panel.appendChild(_mt3StrobeLed);
+
         var _mt3ModeBtn = document.createElement('div');
         _mt3ModeBtn.style.position        = 'absolute';
         _mt3ModeBtn.style.bottom          = '24%';
@@ -478,9 +494,13 @@
                 _mt3Mode = 'strobe';
                 _mt3StrobeOffset = 0;
                 _clearTickStates();
+                _mt3StrobeLed.style.background = 'radial-gradient(circle at 35% 35%, #ff4444, #cc0000)';
+                _mt3StrobeLed.style.boxShadow  = '0 0 4px 2px #ff2200, 0 0 8px 3px #880000';
             } else {
                 _mt3Mode = 'standard';
                 _computeStandardStates(_mt3CurrentCents, _mt3HasSignal);
+                _mt3StrobeLed.style.background = 'radial-gradient(circle at 35% 35%, #2a0000, #0a0000)';
+                _mt3StrobeLed.style.boxShadow  = 'none';
             }
         });
 
