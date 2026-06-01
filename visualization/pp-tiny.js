@@ -217,7 +217,9 @@
         face.appendChild(displayWrap);
 
         // Letter digit (8-segment SVG, viewBox 100×200)
-        // T=13, G=2.5, CH=5, mid-gap=2 — hexagonal segment shapes
+        // T=16, G=5, CH=6, mid-gap=3 — thicker segs, uniform 5-unit gaps
+        // horiz: (xL+CH,y0),(xR-CH,y0),(xR,y0+T/2),(xR-CH,y1),(xL+CH,y1),(xL,y0+T/2)
+        // vert:  (x+T/2,y0),(x+T,y0+CH),(x+T,y1-CH),(x+T/2,y1),(x,y1-CH),(x,y0+CH)
         var segSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         segSvg.setAttribute('viewBox', '0 0 100 200');
         segSvg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
@@ -234,16 +236,14 @@
             segmentEls[key] = el;
         }
 
-        // horiz: (x+CH,y0),(x+W-CH,y0),(x+W,y0+T/2),(x+W-CH,y1),(x+CH,y1),(x,y0+T/2)
-        // vert:  (x+T/2,y0),(x+T,y0+CH),(x+T,y1-CH),(x+T/2,y1),(x,y1-CH),(x,y0+CH)
-        _makeSeg('a',  '7.5,2.5   92.5,2.5   97.5,9     92.5,15.5  7.5,15.5   2.5,9');
-        _makeSeg('b',  '91,18     97.5,23    97.5,86    91,91      84.5,86    84.5,23');
-        _makeSeg('c',  '91,109    97.5,114   97.5,177   91,182     84.5,177   84.5,114');
-        _makeSeg('d',  '7.5,184.5 92.5,184.5 97.5,191   92.5,197.5 7.5,197.5  2.5,191');
-        _makeSeg('e',  '9,109     15.5,114   15.5,177   9,182      2.5,177    2.5,114');
-        _makeSeg('f',  '9,18      15.5,23    15.5,86    9,91       2.5,86     2.5,23');
-        _makeSeg('g1', '7.5,93.5  44,93.5    49,100     44,106.5   7.5,106.5  2.5,100');
-        _makeSeg('g2', '56,93.5   92.5,93.5  97.5,100   92.5,106.5 56,106.5   51,100');
+        _makeSeg('a',  '11,5    89,5    95,13   89,21   11,21   5,13');
+        _makeSeg('b',  '87,26   95,32   95,81   87,87   79,81   79,32');
+        _makeSeg('c',  '87,113  95,119  95,168  87,174  79,168  79,119');
+        _makeSeg('d',  '11,179  89,179  95,187  89,195  11,195  5,187');
+        _makeSeg('e',  '13,113  21,119  21,168  13,174  5,168   5,119');
+        _makeSeg('f',  '13,26   21,32   21,81   13,87   5,81    5,32');
+        _makeSeg('g1', '11,92   42.5,92 48.5,100 42.5,108 11,108 5,100');
+        _makeSeg('g2', '57.5,92 89,92   95,100  89,108  57.5,108 51.5,100');
 
         // "#" symbol inside the display box
         var sharpEl = document.createElement('div');
