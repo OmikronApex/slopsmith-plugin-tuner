@@ -183,7 +183,7 @@
                 const derivedInstrument = _instrumentForTuning(first);
                 if (derivedInstrument && derivedInstrument !== selectedInstrument) {
                     selectedInstrument = derivedInstrument;
-                    if (instrumentSelect) instrumentSelect.value = derivedInstrument;
+                    if (instrumentSelect) { instrumentSelect.value = derivedInstrument; _updateInstrumentDisplay(); }
                 }
             }
         }
@@ -222,7 +222,7 @@
             if (config.lastInstrument && _TUNER_INSTRUMENT_GROUPS[config.lastInstrument]) {
                 selectedInstrument = config.lastInstrument;
             }
-            if (instrumentSelect) instrumentSelect.value = selectedInstrument;
+            if (instrumentSelect) { instrumentSelect.value = selectedInstrument; _updateInstrumentDisplay(); }
 
             // Build tunings map for selected instrument, handling compound disabledTunings keys
             tunings = {};
@@ -252,7 +252,7 @@
                 if (first) { selectedTuningName = first; selectedTuning = tunings[first]; }
             }
 
-            if (instrumentSelect) instrumentSelect.value = selectedInstrument;
+            if (instrumentSelect) { instrumentSelect.value = selectedInstrument; _updateInstrumentDisplay(); }
             if (tuningSelect) renderTuningOptions();
             if (uiContainer && !uiContainer.classList.contains('hidden')) renderStringNotes();
             _updateSaveAsCustomVisibility();
@@ -367,6 +367,19 @@
     }
 
     // ── UI ────────────────────────────────────────────────────────────
+    const _INSTRUMENT_DISPLAY = {
+        'guitar-6': 'Guitar (6)', 'guitar-7': 'Guitar (7)', 'guitar-8': 'Guitar (8)',
+        'bass-4': 'Bass (4)', 'bass-5': 'Bass (5)',
+    };
+
+    let _instrumentDisplaySpan = null;
+
+    function _updateInstrumentDisplay() {
+        if (_instrumentDisplaySpan) {
+            _instrumentDisplaySpan.textContent = _INSTRUMENT_DISPLAY[selectedInstrument] || selectedInstrument;
+        }
+    }
+
     function renderInstrumentOptions() {
         if (!instrumentSelect) return;
         instrumentSelect.innerHTML = '';
@@ -374,9 +387,9 @@
         const guitarGroup = document.createElement('optgroup');
         guitarGroup.label = 'Guitar';
         [
-            ['guitar-6', 'Guitar 6-string'],
-            ['guitar-7', 'Guitar 7-string'],
-            ['guitar-8', 'Guitar 8-string'],
+            ['guitar-6', '6-string'],
+            ['guitar-7', '7-string'],
+            ['guitar-8', '8-string'],
         ].forEach(([val, label]) => {
             const opt = document.createElement('option');
             opt.value = val;
@@ -387,8 +400,8 @@
         const bassGroup = document.createElement('optgroup');
         bassGroup.label = 'Bass';
         [
-            ['bass-4', 'Bass 4-string'],
-            ['bass-5', 'Bass 5-string'],
+            ['bass-4', '4-string'],
+            ['bass-5', '5-string'],
         ].forEach(([val, label]) => {
             const opt = document.createElement('option');
             opt.value = val;
@@ -399,6 +412,7 @@
         instrumentSelect.appendChild(guitarGroup);
         instrumentSelect.appendChild(bassGroup);
         instrumentSelect.value = selectedInstrument;
+        _updateInstrumentDisplay();
     }
 
     function renderTuningOptions() {
@@ -514,11 +528,26 @@
         const selectorRow = document.createElement('div');
         selectorRow.className = 'flex gap-2 w-full mb-4';
 
+        // Instrument select wrapped in a relative container so we can overlay the
+        // formatted label ("Guitar (6)") — the native select text is hidden via
+        // color:transparent so the overlay shows instead when the dropdown is closed.
+        const instrWrapper = document.createElement('div');
+        instrWrapper.className = 'relative flex-none';
+        instrWrapper.style.width = '6.5rem';
+
+        _instrumentDisplaySpan = document.createElement('span');
+        _instrumentDisplaySpan.className = 'absolute inset-0 flex items-center px-2 text-sm text-gray-200 pointer-events-none';
+        _instrumentDisplaySpan.textContent = _INSTRUMENT_DISPLAY[selectedInstrument] || selectedInstrument;
+
         instrumentSelect = document.createElement('select');
-        instrumentSelect.className = 'flex-none w-36 bg-dark-700 text-sm text-gray-200 border border-gray-800 p-2 rounded-lg outline-none focus:border-accent transition';
+        instrumentSelect.className = 'w-full h-full bg-dark-700 border border-gray-800 p-2 rounded-lg outline-none focus:border-accent transition';
+        instrumentSelect.style.color = 'transparent';
+        instrumentSelect.style.cssText += '; -webkit-appearance: auto; appearance: auto;';
+
         renderInstrumentOptions();
         instrumentSelect.onchange = (e) => {
             selectedInstrument = e.target.value;
+            _updateInstrumentDisplay();
             manualTargetFreq = null;
 
             // Rebuild tunings for new instrument
@@ -547,7 +576,10 @@
             _updateSaveAsCustomVisibility();
             saveConfig();
         };
-        selectorRow.appendChild(instrumentSelect);
+
+        instrWrapper.appendChild(_instrumentDisplaySpan);
+        instrWrapper.appendChild(instrumentSelect);
+        selectorRow.appendChild(instrWrapper);
 
         tuningSelect = document.createElement('select');
         tuningSelect.className = 'flex-1 bg-dark-700 text-sm text-gray-200 border border-gray-800 p-2 rounded-lg outline-none focus:border-accent transition';
