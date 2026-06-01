@@ -1,6 +1,10 @@
 # Story 6.5: CHEF MT-3 — Gauge Animation, Note Display & Strobe Mode
 
-Status: ready-for-dev
+---
+baseline_commit: 3238d9332b343a5830d3bce46f6e850a4ff88b19
+---
+
+Status: review
 
 ## Story
 
@@ -38,59 +42,23 @@ so that I can tune accurately using a familiar pedal-style interface.
 
 ## Tasks / Subtasks
 
-- [ ] Implement `update(note, cents, freq, mode)` — standard marker positioning (AC: 1–6)
-  - [ ] Declare factory-scope state vars: `_mt3Mode = 'standard'`, `_mt3CurrentCents = 0`, `_mt3SmoothedCents = 0`, `_mt3RafId = null`, `_mt3LastTime = null`
-  - [ ] `_renderNote(letter)` — drive `_mt3SegEls` from `_TUNER_MT3_SEGMENTS`; same pattern as `pp-tiny.js` `_renderNote`
-  - [ ] `_setSharp(lit)` — set `_mt3SharpEl` color/glow; same pattern as `pp-tiny.js` `_setSharp`
-  - [ ] `_positionMarkersStandard(cents, hasSignal)`:
-    - If `!hasSignal`: set all 3 marker `opacity` to `0`; return
-    - Clamp cents to ±50; compute arc angle for deviation: `centreAngle = Math.PI` (leftmost), `spanAngle = Math.PI`; `t = (cents + 50) / 100`; `targetAngle = Math.PI + t * Math.PI`
-    - Spread 3 markers ±4 degrees around `targetAngle`:
-      ```javascript
-      var offsets = [-4, 0, +4];  // degrees
-      offsets.forEach(function(deg, i) {
-          var a = targetAngle + deg * Math.PI / 180;
-          var r = _MT3_ARC_R - 9;  // place markers inside the arc
-          var cx = _MT3_cx + r * Math.cos(a);
-          var cy = _MT3_cy + r * Math.sin(a);
-          _mt3MarkerEls[i].setAttribute('cx', String(cx));
-          _mt3MarkerEls[i].setAttribute('cy', String(cy));
-          _mt3MarkerEls[i].setAttribute('r', '4');
-          _mt3MarkerEls[i].setAttribute('fill', _MT3_COL_MARKER_LIT);
-          _mt3MarkerEls[i].style.filter = 'drop-shadow(0 0 4px #ff8800)';
-          _mt3MarkerEls[i].style.opacity = '1';
-      });
-      ```
-  - [ ] In `update()`: if `_mt3Mode === 'standard'`: call `_positionMarkersStandard`; call `_renderNote`; call `_setSharp`; update `_mt3CurrentCents` for RAF decay
-- [ ] Implement strobe RAF animation (AC: 7–10)
-  - [ ] Declare `_mt3StrobeOffset = 0` (angle accumulator in radians)
-  - [ ] `_animateStrobe(now)`:
-    - Compute `dt`; clamp to 0.1s
-    - Lerp `_mt3SmoothedCents` → `_mt3CurrentCents` (factor `1 - exp(-10 * dt)`)
-    - If `|_mt3SmoothedCents| > 0.1`:
-      - `normalized = max(0, |_mt3SmoothedCents| - _TUNER_MT3_IN_TUNE_THR) / (50 - _TUNER_MT3_IN_TUNE_THR)`
-      - `speed = Math.PI * pow(normalized, 0.9)` (radians/sec, full arc per second at max)
-      - If `_mt3SmoothedCents > 0` (sharp): `speed = -speed` (drift right = angle increases)
-      - `_mt3StrobeOffset = ((_mt3StrobeOffset + speed * dt) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI)`
-    - Position `_TUNER_MT3_STROBE_GROUP_COUNT × 2 = 10` markers (reuse `_mt3MarkerEls` won't work — need separate refs):
-      - Declare `_mt3StrobeEls[]` (10 `<circle>` elements) in factory scope, populated at construction time alongside `_mt3MarkerEls`
-      - Each group `g` (0..4): base angle = `Math.PI + (g / _TUNER_MT3_STROBE_GROUP_COUNT) * Math.PI + _mt3StrobeOffset`; two dots per group at base ± 2° offset
-      - Set cx/cy like `_positionMarkersStandard`; all dots use `_MT3_COL_MARKER_LIT` and `opacity:1`
-    - `_mt3RafId = requestAnimationFrame(_animateStrobe)`
-  - [ ] Start RAF loop at factory construction (same as `axe-fx-iii.js`); it runs always but strobe elements are hidden in standard mode
-  - [ ] In standard mode: set all `_mt3StrobeEls[i].style.opacity = '0'`
-  - [ ] In strobe mode: set all `_mt3MarkerEls[i].style.opacity = '0'`; strobe elements shown by RAF
-- [ ] Add 10 strobe dot elements to SVG at construction time (Story 6.4 builds 3 marker elements; this story adds 10 more) (AC: 7)
-  - [ ] In factory scope, after building the gauge SVG, append 10 `<circle>` elements with `opacity:0`, store in `_mt3StrobeEls`
-- [ ] Wire MODE button (AC: 11, 12)
-  - [ ] Add `addEventListener('click', ...)` on the MODE button element built in Story 6.4
-  - [ ] Toggle `_mt3Mode` between `'standard'` and `'strobe'`
-  - [ ] On click: brief box-shadow pulse (set → setTimeout clear, 120ms)
-  - [ ] On mode change to strobe: hide `_mt3MarkerEls`, show strobe elements; reset `_mt3StrobeOffset = 0`
-  - [ ] On mode change to standard: hide `_mt3StrobeEls`, show markers based on last known cents
-- [ ] Update `destroy()` (AC: 13)
-  - [ ] `if (_mt3RafId) { cancelAnimationFrame(_mt3RafId); _mt3RafId = null; }`
-  - [ ] `panel.remove()`
+- [x] Implement `update(note, cents)` — standard marker positioning (AC: 1–6)
+  - [x] Factory-scope state: `_mt3Mode='standard'`, `_mt3CurrentCents=0`, `_mt3SmoothedCents=0`, `_mt3RafId=null`, `_mt3LastTime=null`
+  - [x] `_renderNote(letter)` — drives `_mt3SegEls` from `_TUNER_MT3_SEGMENTS`
+  - [x] `_setSharp(lit)` — sets all `_mt3SharpParts[]` fill colors
+  - [x] `_positionMarkersStandard(cents, hasSignal)` — clamps ±50, computes angle = π + t×π, spreads 3 markers ±4° around target
+  - [x] `update()`: calls `_positionMarkersStandard`, `_renderNote`, `_setSharp`; sets `_mt3CurrentCents`
+- [x] Implement strobe RAF animation (AC: 7–10)
+  - [x] `_mt3StrobeOffset` angle accumulator; `_animateStrobe(now)` lerps `_mt3SmoothedCents` with exp factor
+  - [x] Speed = π × normalized^0.9; flat (cents<0) → speed negated → drift left; sharp → drift right
+  - [x] 5 groups × 2 dots; base angle = π + (g/N)×π + offset; ±2° within each group
+  - [x] RAF starts unconditionally at construction; strobe dots hidden in standard mode
+- [x] 10 strobe dot `<circle>` elements added to SVG at construction, stored in `_mt3StrobeEls` (AC: 7)
+- [x] Wire MODE button click handler (AC: 11, 12)
+  - [x] Toggles `_mt3Mode` standard↔strobe; brief boxShadow press feedback (120ms timeout)
+  - [x] Mode→strobe: hide `_mt3MarkerEls`, reset `_mt3StrobeOffset=0`
+  - [x] Mode→standard: hide `_mt3StrobeEls`, reposition markers at `_mt3CurrentCents`
+- [x] `destroy()` cancels RAF + `panel.remove()` (AC: 13)
 
 ## Dev Notes
 
@@ -153,9 +121,23 @@ Copy `_TUNER_PT_SEGMENTS` from `visualization/pp-tiny.js` and rename it `_TUNER_
 ## Dev Agent Record
 
 ### Agent Model Used
+claude-sonnet-4-6
 
 ### Debug Log References
+- Story spec comment "drift right = angle increases" was self-contradictory with the negate-for-sharp code; implemented intuitive behavior: sharp=right, flat=left (negate for flat)
+- CSS `filter: drop-shadow()` doesn't accept spread-radius; simplified glow to `drop-shadow(0 0 5px #ff2200)`
 
 ### Completion Notes List
+- Implemented alongside 6.4 in a single `visualization/chef-mt3.js`
+- Standard mode: `_positionMarkersStandard` places 3 orange circles at angle π+(t×π) ±4° where t=(cents+50)/100
+- Strobe mode: RAF loop decays `_mt3SmoothedCents`; 5 groups of 2 dots at base angles π+(g/5)×π+offset; sharp→drift right (offset increases), flat→drift left
+- MODE button: `addEventListener('click')` on `_mt3ModeBtn`; 120ms press feedback; hides/shows appropriate element sets
+- `destroy()`: cancelAnimationFrame + panel.remove()
+- No separate commit for 6.4 vs 6.5 since single file; both stories committed together
 
 ### File List
+- visualization/chef-mt3.js (new)
+- screen.js
+
+### Change Log
+- 2026-06-01: Stories 6.4 + 6.5 complete — CHEF MT-3 scaffold and full animation implemented in chef-mt3.js

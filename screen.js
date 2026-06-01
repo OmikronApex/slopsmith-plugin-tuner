@@ -365,6 +365,7 @@
                 <option value="mace-fx-iii" ${visualizationMode === 'mace-fx-iii' ? 'selected' : ''}>Mace Fx III</option>
                 <option value="toilet-tuner" ${visualizationMode === 'toilet-tuner' ? 'selected' : ''}>Toilet Tuner</option>
                 <option value="pp-tiny" ${visualizationMode === 'pp-tiny' ? 'selected' : ''}>PP-Tiny</option>
+                <option value="chef-mt3" ${visualizationMode === 'chef-mt3' ? 'selected' : ''}>CHEF MT-3</option>
             </select>
         `;
 

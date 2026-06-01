@@ -1,6 +1,10 @@
 # Story 6.4: CHEF MT-3 — Scaffold, Static Panel Layout & Settings Wiring
 
-Status: ready-for-dev
+---
+baseline_commit: 3238d9332b343a5830d3bce46f6e850a4ff88b19
+---
+
+Status: review
 
 ## Story
 
@@ -30,58 +34,25 @@ so that the subsequent story can layer live gauge animation and note display ont
 
 ## Tasks / Subtasks
 
-- [ ] Create `visualization/chef-mt3.js` (AC: 1–8, 10)
-  - [ ] IIFE wrapper `(function() { 'use strict'; ... })()`
-  - [ ] Module-level constants (prefix `_TUNER_MT3_`):
-    - `_TUNER_MT3_IN_TUNE_THR = 2` (cents)
-    - `_TUNER_MT3_GAUGE_CENTS = 50` (±50 range)
-    - `_TUNER_MT3_TICK_COUNT = 11` (gauge tick lines including centre)
-    - `_TUNER_MT3_MARKER_COUNT = 3` (moving glow lights, Story 6.5)
-    - `_TUNER_MT3_STROBE_GROUP_COUNT = 5` (strobe mode groups, Story 6.5)
-  - [ ] Color constants:
-    - `_MT3_COL_BG = '#0a0a0a'` (shiny black)
-    - `_MT3_COL_BORDER = '#3a3a3a'` (chrome perimeter)
-    - `_MT3_COL_GAUGE_ARC = 'rgba(255,255,255,0.18)'` (glass arc stroke)
-    - `_MT3_COL_TICK = 'rgba(255,255,255,0.55)'` (tick lines)
-    - `_MT3_COL_MARKER_LIT = '#ff8800'` (orange glow marker, used in 6.5)
-    - `_MT3_COL_MARKER_DIM = 'rgba(80,30,0,0.4)'` (unlit marker)
-    - `_MT3_COL_SEG_LIT = '#ff2200'` (bright red lit segment)
-    - `_MT3_COL_SEG_LIT_GLOW = '0 0 6px 2px #ff2200, 0 0 12px 4px #aa1100'`
-    - `_MT3_COL_SEG_UNLIT = '#2a0000'` (dark-red unlit segment)
-    - `_MT3_COL_BUTTON = '#1a1a1a'` (rubber button face)
-    - `_MT3_COL_LABEL = '#c8c8c8'` (white label text)
-  - [ ] Register as `window['_tunerViz_chef-mt3'] = function(container) { ... }` (bracket notation)
-  - [ ] Build outer chrome-border panel (AC: 2)
-    - `panel` div: `position:relative`, `overflow:hidden`, `aspectRatio: '5 / 3'`, `minHeight: '120px'`, `backgroundColor: _MT3_COL_BG`, `border: '2px solid #505050'`, `borderRadius: '6px'` (chamfered via border-radius)
-  - [ ] Build four corner screws (AC: 3)
-    - For each corner: small `div` (12px × 12px), `borderRadius: '50%'`, `background: 'radial-gradient(...)'` to simulate screw head, `position:absolute`, positioned at `top:3%/bottom:3%` × `left:2%/right:2%`
-    - Add a horizontal `div` (the slot line) centered inside each screw circle for cross-slot detail
-  - [ ] Build curved gauge arc SVG (AC: 4)
-    - `_MT3_VB_W = 200, _MT3_VB_H = 110`; arc center `cx=100, cy=110`; radius `_MT3_ARC_R = 90`
-    - Arc path: `M (cx-R) cy A R R 0 0 1 (cx+R) cy` (upward ∩ semicircle, sweep=1)
-    - Arc stroke: `_MT3_COL_GAUGE_ARC`, stroke-width `≈ 18` SVG units (wide for glass look)
-    - Glass sheen: second arc path identical geometry, stroke `rgba(255,255,255,0.35)`, stroke-width `3`, `stroke-dasharray: "10 8"` (dashed highlight)
-    - Tick lines: 11 points evenly spaced along the arc angle (−90° to +90° in 18° steps), each a short radial line (inner radius 84, outer radius 90), stroke `_MT3_COL_TICK`, stroke-width `1.5`
-    - Tick labels `"−50"`, `"0"`, `"+50"` as `<text>` SVG elements below the arc ends/centre (y = `cy + 8` outside the arc base)
-    - SVG: `position:absolute`, `top:5%`, `left:0`, `right:0`, width `100%`, height `55%`, `overflow:visible`
-    - At this stage no marker light elements; reserve DOM refs array `_mt3MarkerEls = []` in factory scope for Story 6.5 to populate
-  - [ ] Build 3 gauge marker placeholder elements (AC: 4, for Story 6.5 to activate)
-    - 3 small circle elements (`<circle>` in the gauge SVG), initially `opacity:0`; store refs in `_mt3MarkerEls[0..2]`
-  - [ ] Build 7-segment display (AC: 5)
-    - Outer display container: `position:absolute`, `bottom:18%`, `left:50%`, `transform:translateX(-50%)`, `width:18%`, `height:22%`
-    - Dark-red display background div behind segments
-    - 7+1 segment elements (a, b, c, d, e, f, g-left, g-right split): styled as thin rectangles/trapezoids in `_MT3_COL_SEG_UNLIT`; store refs in `_mt3SegEls` object keyed `{a,b,c,d,e,f,g1,g2}`
-    - "#" symbol element: `position:absolute` to lower-right of display container; color `_MT3_COL_SEG_UNLIT`; store ref as `_mt3SharpEl`
-  - [ ] Build segment lookup table `_TUNER_MT3_SEGMENTS` (same letter → 8-bit array mapping as pp-tiny pattern; letters A–G plus space; g1 and g2 are the split centre bar)
-  - [ ] Build MODE and BRGHT. buttons (AC: 6)
-    - Left button: `position:absolute`, `bottom:5%`, `left:calc(50% - 22%)`, `width:10%`, `height:14%`; `backgroundColor:_MT3_COL_BUTTON`; `borderRadius:3px`; `border:1px solid #333`; `boxShadow:'inset 0 1px 2px rgba(255,255,255,0.08), 0 2px 3px rgba(0,0,0,0.7)'`; label `"MODE"` below or inside
-    - Right button: mirror position to the right (`left:calc(50% + 12%)`); label `"BRGHT."`
-    - Buttons are non-interactive DOM (no click handlers yet; MODE click wired in Story 6.5)
-  - [ ] Brand label "CHEF MT-3" (AC: 7): small text element, `position:absolute`, `top:4%`, `right:3%`, color `_MT3_COL_LABEL`, `fontSize:'0.55em'`
-  - [ ] Stub `update(note, cents, freq, mode)` — empty function body (AC: 10)
-  - [ ] `destroy()` — `panel.remove()` (AC: 8)
-- [ ] Wire viz select in `screen.js` (AC: 9)
-  - [ ] Add `<option value="chef-mt3" ${visualizationMode === 'chef-mt3' ? 'selected' : ''}>CHEF MT-3</option>` after the "PP-Tiny" option (~line 367)
+- [x] Create `visualization/chef-mt3.js` (AC: 1–8, 10)
+  - [x] IIFE wrapper `(function() { 'use strict'; ... })()`
+  - [x] Module-level constants (prefix `_TUNER_MT3_`): IN_TUNE_THR=2, GAUGE_CENTS=50, TICK_COUNT=11, MARKER_COUNT=3, STROBE_GROUP_COUNT=5
+  - [x] Color constants: BG, GAUGE_ARC, TICK, MARKER_LIT, SEG_LIT, SEG_UNLIT, BUTTON, LABEL
+  - [x] Register as `window['_tunerViz_chef-mt3'] = function(container) { ... }` (bracket notation)
+  - [x] Build outer chrome-border panel (AC: 2): `aspectRatio:5/3`, `borderRadius:6px`, `border:2px solid #505050`
+  - [x] Build four corner screws (AC: 3): absolute-positioned circles with radial-gradient and slot line
+  - [x] Build curved gauge arc SVG (AC: 4): viewBox 200×110, R=90, glass arc body + dashed sheen + 11 tick lines + −50/0/+50 labels
+  - [x] Build 3 gauge marker `<circle>` elements in SVG, opacity:0, stored in `_mt3MarkerEls`
+  - [x] Build 7-segment display (AC: 5): SVG polygon segments (same coordinates as pp-tiny), dark-red background, `_mt3SegEls` object
+  - [x] "#" symbol: SVG polygon in `sharpSvg`, stored in `_mt3SharpParts[]`
+  - [x] Build segment lookup table `_TUNER_MT3_SEGMENTS` (A–G + space, same encoding as pp-tiny)
+  - [x] Build MODE button with `_mt3ModeBtn` ref (AC: 6): left of display, rubber style
+  - [x] Build BRGHT. button (AC: 6): right of display, rubber style, decorative only
+  - [x] Brand label "CHEF MT-3" (AC: 7): top-right, `fontSize:0.55em`
+  - [x] `update(note, cents)` — full implementation included (not just stub, done alongside 6.5)
+  - [x] `destroy()` — cancels RAF + `panel.remove()` (AC: 8)
+- [x] Wire viz select in `screen.js` (AC: 9)
+  - [x] Added `<option value="chef-mt3" ...>CHEF MT-3</option>` after PP-Tiny option (line 368)
 
 ## Dev Notes
 
@@ -167,9 +138,26 @@ function _makeScrew(topOrBottom, leftOrRight) {
 ## Dev Agent Record
 
 ### Agent Model Used
+claude-sonnet-4-6
 
 ### Debug Log References
+- Removed unused `_markerPos` helper and `_MT3_COL_SEG_LIT_GLOW` constant after IDE diagnostics
+- Renamed loop vars in `_positionMarkersStandard` to `mi` to avoid duplicate `var` declarations
+- `update()` signature simplified to `(note, cents)` since freq/mode not used
 
 ### Completion Notes List
+- Stories 6.4 and 6.5 implemented together in one file; full `update()` + strobe RAF included (no stub phase)
+- Panel: black face, `borderRadius:6px` chamfer, `border:2px solid #505050` chrome perimeter
+- 4 corner screws: percentage-based absolute positioning, radial-gradient circles with slot line
+- Gauge: viewBox 200×110, cx=100 cy=110 R=90; arc body (stroke-width 18) + dashed sheen; 11 tick lines at π+(πi/10) angles; SVG text labels
+- 3 standard `<circle>` markers + 10 strobe `<circle>` dots in SVG, all initially opacity:0
+- 7-seg display: same SVG polygon coordinates as pp-tiny, `_TUNER_MT3_SEGMENTS` table
+- "#" symbol: 4-polygon SVG same as pp-tiny
+- MODE button click: toggles `_mt3Mode`, brief shadow press feedback, hides/shows appropriate dots
 
 ### File List
+- visualization/chef-mt3.js (new)
+- screen.js
+
+### Change Log
+- 2026-06-01: Stories 6.4 + 6.5 implemented together in chef-mt3.js
