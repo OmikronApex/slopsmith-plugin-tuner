@@ -173,6 +173,12 @@
             currentSongOffsets = songInfo.tuning.slice(0, sc);
             currentSongIsBass = isBass;
             selectedTuning = window._tunerUtils.offsetsToFreqs(currentSongOffsets, isBass);
+            // Sync instrument select to match the song's string count
+            const songInstrument = (sc === 4 || sc === 5) ? (isBass ? 'bass-' + sc : 'guitar-6') : _instrumentFromStringCount(sc);
+            if (songInstrument !== selectedInstrument) {
+                selectedInstrument = songInstrument;
+                _updateInstrumentDisplay();
+            }
         } else {
             const first = Object.keys(tunings)[0];
             if (first) {
@@ -343,7 +349,7 @@
                 selectedInstrument = instrument;
                 selectedTuningName = name;
                 selectedTuning = rounded;
-                if (instrumentSelect) instrumentSelect.value = instrument;
+                _updateInstrumentDisplay();
                 await loadConfig();
                 // After loadConfig re-renders options, select the new tuning
                 selectedTuningName = name;
@@ -372,17 +378,26 @@
         'bass-4': 'Bass (4)', 'bass-5': 'Bass (5)',
     };
 
-    let _instrumentDisplaySpan = null;
+    // Sentinel option placed at index 0; holds the display label; hidden in open list via CSS.
+    let _instrumentSentinel = null;
 
     function _updateInstrumentDisplay() {
-        if (_instrumentDisplaySpan) {
-            _instrumentDisplaySpan.textContent = _INSTRUMENT_DISPLAY[selectedInstrument] || selectedInstrument;
+        if (_instrumentSentinel) {
+            _instrumentSentinel.textContent = _INSTRUMENT_DISPLAY[selectedInstrument] || selectedInstrument;
+            if (instrumentSelect) instrumentSelect.value = '__display__';
         }
     }
 
     function renderInstrumentOptions() {
         if (!instrumentSelect) return;
         instrumentSelect.innerHTML = '';
+
+        // Sentinel: selected when collapsed, hidden when list is open via display:none
+        _instrumentSentinel = document.createElement('option');
+        _instrumentSentinel.value = '__display__';
+        _instrumentSentinel.textContent = _INSTRUMENT_DISPLAY[selectedInstrument] || selectedInstrument;
+        _instrumentSentinel.style.display = 'none';
+        instrumentSelect.appendChild(_instrumentSentinel);
 
         const guitarGroup = document.createElement('optgroup');
         guitarGroup.label = 'Guitar';
@@ -411,8 +426,8 @@
 
         instrumentSelect.appendChild(guitarGroup);
         instrumentSelect.appendChild(bassGroup);
-        instrumentSelect.value = selectedInstrument;
-        _updateInstrumentDisplay();
+        // Show sentinel (display label) as the collapsed value
+        instrumentSelect.value = '__display__';
     }
 
     function renderTuningOptions() {
@@ -528,25 +543,8 @@
         const selectorRow = document.createElement('div');
         selectorRow.className = 'flex gap-2 w-full mb-4';
 
-        // Instrument select: the native select is opacity:0 (so open options remain
-        // fully visible in the OS popup) while a sibling span shows the formatted label.
-        const instrWrapper = document.createElement('div');
-        instrWrapper.className = 'relative flex-none bg-dark-700 border border-gray-800 rounded-lg focus-within:border-accent transition';
-        instrWrapper.style.width = '6.5rem';
-        instrWrapper.style.height = '2.25rem'; // matches p-2 text-sm select height
-
-        _instrumentDisplaySpan = document.createElement('span');
-        _instrumentDisplaySpan.className = 'absolute inset-0 flex items-center pl-2 pr-5 text-sm text-gray-200 pointer-events-none truncate';
-        _instrumentDisplaySpan.textContent = _INSTRUMENT_DISPLAY[selectedInstrument] || selectedInstrument;
-
-        // Chevron arrow indicator
-        const instrArrow = document.createElement('span');
-        instrArrow.className = 'absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500';
-        instrArrow.innerHTML = '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>';
-
         instrumentSelect = document.createElement('select');
-        instrumentSelect.className = 'absolute inset-0 w-full h-full rounded-lg outline-none cursor-pointer';
-        instrumentSelect.style.opacity = '0';
+        instrumentSelect.className = 'flex-none bg-dark-700 text-sm text-gray-200 border border-gray-800 p-2 rounded-lg outline-none focus:border-accent transition';
 
         renderInstrumentOptions();
         instrumentSelect.onchange = (e) => {
@@ -581,10 +579,7 @@
             saveConfig();
         };
 
-        instrWrapper.appendChild(_instrumentDisplaySpan);
-        instrWrapper.appendChild(instrArrow);
-        instrWrapper.appendChild(instrumentSelect);
-        selectorRow.appendChild(instrWrapper);
+        selectorRow.appendChild(instrumentSelect);
 
         tuningSelect = document.createElement('select');
         tuningSelect.className = 'flex-1 min-w-0 bg-dark-700 text-sm text-gray-200 border border-gray-800 p-2 rounded-lg outline-none focus:border-accent transition';
