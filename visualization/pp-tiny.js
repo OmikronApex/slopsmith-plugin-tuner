@@ -70,12 +70,12 @@
         });
         defs.appendChild(grad);
 
-        // Bevel face gradient: perpendicular direction, darker — angled face receives less light
+        // Bevel trapezoid gradient: lit from bottom-left (opposing angle to main face)
         var bevelGrad = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
         bevelGrad.setAttribute('id', _bevelGradId);
-        bevelGrad.setAttribute('x1', '1'); bevelGrad.setAttribute('y1', '0');
-        bevelGrad.setAttribute('x2', '0'); bevelGrad.setAttribute('y2', '1');
-        [['0%','#909090'],['35%','#606060'],['65%','#787878'],['100%','#383838']].forEach(function(s) {
+        bevelGrad.setAttribute('x1', '0'); bevelGrad.setAttribute('y1', '1');
+        bevelGrad.setAttribute('x2', '1'); bevelGrad.setAttribute('y2', '0');
+        [['0%','#d8d8d8'],['25%','#989898'],['55%','#b4b4b4'],['80%','#606060'],['100%','#484848']].forEach(function(s) {
             var stop = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
             stop.setAttribute('offset', s[0]); stop.setAttribute('stop-color', s[1]);
             bevelGrad.appendChild(stop);
@@ -101,26 +101,29 @@
             f.appendChild(t); f.appendChild(cm); f.appendChild(bl); f.appendChild(cp);
             return f;
         }
-        defs.appendChild(_makeBrushFilter(_brushId,      '0.65', '0.015', '3'));  // horizontal grain for arc face
-        defs.appendChild(_makeBrushFilter(_bevelBrushId, '0.015', '0.65', '7')); // vertical grain for bevel face
+        defs.appendChild(_makeBrushFilter(_brushId,      '0.65', '0.015', '3'));  // horizontal grain — main arc face
+        defs.appendChild(_makeBrushFilter(_bevelBrushId, '0.015', '0.65', '7')); // vertical grain  — bevel face
 
         frameSvg.appendChild(defs);
 
-        // Main arc face — bottom corners replaced with 45° bevel diagonal cuts (6-unit bevel)
+        // Main frame — restored with original rounded corners, unchanged
         var framePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        framePath.setAttribute('d', 'M 0,50 A 50,50 0 0 1 100,50 L 100,69 L 94,75 L 6,75 L 0,69 Z');
+        framePath.setAttribute('d', 'M 0,50 A 50,50 0 0 1 100,50 L 100,73 Q 100,75 98,75 L 2,75 Q 0,75 0,73 Z');
         framePath.setAttribute('fill', 'url(#' + _gradId + ')');
         framePath.setAttribute('filter', 'url(#' + _brushId + ')');
         frameSvg.appendChild(framePath);
 
-        // Bevel face triangles — drawn between framePath and the inner faceBgPath so they're masked correctly
-        ['M 0,69 L 6,75 L 0,75 Z', 'M 100,69 L 100,75 L 94,75 Z'].forEach(function (d) {
-            var p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            p.setAttribute('d', d);
-            p.setAttribute('fill', 'url(#' + _bevelGradId + ')');
-            p.setAttribute('filter', 'url(#' + _bevelBrushId + ')');
-            frameSvg.appendChild(p);
-        });
+        // Bevel trapezoid — sits on top of the main frame, covers only the bottom strip.
+        // Top edge: y=69, horizontal from x=6 to x=94.
+        // Sides: 45° — right goes (94,69)→(99,74), left goes (1,74)→(6,69).
+        // Bottom edge: lower half of each original rounded corner (split at t=0.5 via de Casteljau)
+        //   Right corner midpoint ≈ (99,74); lower half: Q 99,75 98,75
+        //   Left  corner midpoint ≈ (1,74);  lower half: Q 1,75 2,75 → then line back
+        var bevelPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        bevelPath.setAttribute('d', 'M 6,69 L 94,69 L 99,74 Q 99,75 98,75 L 2,75 Q 1,75 1,74 Z');
+        bevelPath.setAttribute('fill', 'url(#' + _bevelGradId + ')');
+        bevelPath.setAttribute('filter', 'url(#' + _bevelBrushId + ')');
+        frameSvg.appendChild(bevelPath);
 
         var faceBgPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         faceBgPath.setAttribute('d', 'M 4,50 A 46,46 0 0 1 96,50 L 96,70 Q 96,71 95,71 L 5,71 Q 4,71 4,70 Z');
