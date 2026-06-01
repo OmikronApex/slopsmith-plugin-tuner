@@ -249,7 +249,7 @@
         var sharpSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         sharpSvg.setAttribute('viewBox', '0 0 90 90');
         sharpSvg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-        sharpSvg.style.cssText = 'position:absolute;bottom:5%;right:5%;width:22%;aspect-ratio:1/1;overflow:visible;pointer-events:none;';
+        sharpSvg.style.cssText = 'position:absolute;top:0%;right:5%;width:22%;aspect-ratio:1/1;overflow:visible;pointer-events:none;';
         displayWrap.appendChild(sharpSvg);
 
         var sharpParts = [];
