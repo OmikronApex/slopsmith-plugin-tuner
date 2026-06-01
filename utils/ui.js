@@ -313,7 +313,7 @@ window._tunerUI = function(state, actions) {
                 <option value="default" ${state.visualizationMode === 'default' ? 'selected' : ''}>Default</option>
                 <option value="strobe" ${state.visualizationMode === 'strobe' ? 'selected' : ''}>Strobe</option>
                 <option value="analogue-gauge" ${state.visualizationMode === 'analogue-gauge' ? 'selected' : ''}>Analogue Gauge</option>
-                <option value="mace-fx-iii" ${state.visualizationMode === 'mace-fx-iii' ? 'selected' : ''}>Mace Fx III</option>
+                <option value="mace-fx-iii" ${state.visualizationMode === 'mace-fx-iii' ? 'selected' : ''}>Mace-Fx III</option>
                 <option value="pp-tiny" ${state.visualizationMode === 'pp-tiny' ? 'selected' : ''}>Bender PP-Tiny</option>
                 <option value="chef-mt3" ${state.visualizationMode === 'chef-mt3' ? 'selected' : ''}>CHEF MT-3</option>
                 <option value="toilet-tuner" ${state.visualizationMode === 'toilet-tuner' ? 'selected' : ''}>Toilet Tuner</option>
