@@ -114,11 +114,12 @@
         frameSvg.appendChild(framePath);
 
         // Bevel trapezoid — sits on top of the main frame, covers only the bottom strip.
-        // Top edge: y=69, from x=4 to x=96 (Δ=4 from each outer edge corner start).
-        // Sides: 45° — right (96,69)→(100,73), left closes Z from (0,73)→(4,69). Δx=Δy=4 ✓
-        // Bottom edge: full original rounded corners so the radius matches exactly.
+        // Sides meet the corner curves at their t=0.5 midpoints (de Casteljau):
+        //   Right midpoint: (99.5, 74.5); lower-half bezier: Q 99,75 98,75
+        //   Left  midpoint: (0.5,  74.5); lower-half bezier: Q 1,75 0.5,74.5 (path direction reversed)
+        // 45° sides: Δx=Δy=5.5 each ✓ — top edge y=69, x=6 to x=94
         var bevelPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        bevelPath.setAttribute('d', 'M 4,69 L 96,69 L 100,73 Q 100,75 98,75 L 2,75 Q 0,75 0,73 Z');
+        bevelPath.setAttribute('d', 'M 6,69 L 94,69 L 99.5,74.5 Q 99,75 98,75 L 2,75 Q 1,75 0.5,74.5 Z');
         bevelPath.setAttribute('fill', 'url(#' + _bevelGradId + ')');
         bevelPath.setAttribute('filter', 'url(#' + _bevelBrushId + ')');
         frameSvg.appendChild(bevelPath);
