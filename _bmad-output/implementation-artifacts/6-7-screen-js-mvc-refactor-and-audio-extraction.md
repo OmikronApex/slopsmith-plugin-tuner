@@ -4,7 +4,7 @@ baseline_commit: 466079dbde89bf28973db1982e410ee445327ee6
 
 # Story 6.7: screen.js MVC Refactor & Audio Extraction
 
-Status: review
+Status: done
 
 ## Story
 
