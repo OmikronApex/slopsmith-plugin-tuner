@@ -245,25 +245,28 @@
         _makeSeg('g1', '11,92   42.5,92 48.5,100 42.5,108 11,108 5,100');
         _makeSeg('g2', '57.5,92 89,92   95,100  89,108  57.5,108 51.5,100');
 
-        // "#" symbol inside the display box
-        var sharpEl = document.createElement('div');
-        sharpEl.style.cssText = [
-            'flex:0 0 30%',
-            'height:100%',
-            'display:flex',
-            'align-items:flex-end',
-            'justify-content:center',
-            'padding-bottom:6%',
-            'color:' + _TUNER_PT_UNLIT,
-            'font-size:150%',
-            'font-weight:bold',
-            'font-family:sans-serif',
-            'line-height:1',
-            'text-shadow:none',
-            'pointer-events:none'
-        ].join(';');
-        sharpEl.textContent = '#';
-        displayWrap.appendChild(sharpEl);
+        // "#" symbol — SVG, same 200-unit height axis as segSvg so glow scale matches
+        // viewBox 0 0 60 200: two verticals + two horizontals, same hexagonal style
+        var sharpSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        sharpSvg.setAttribute('viewBox', '0 0 60 200');
+        sharpSvg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+        sharpSvg.style.cssText = 'width:20%;aspect-ratio:3/10;align-self:flex-end;margin-bottom:5%;flex-shrink:0;overflow:visible;pointer-events:none;';
+        displayWrap.appendChild(sharpSvg);
+
+        var sharpParts = [];
+        function _makeSharpPoly(points) {
+            var el = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+            el.setAttribute('points', points);
+            el.setAttribute('fill', _TUNER_PT_UNLIT);
+            sharpSvg.appendChild(el);
+            sharpParts.push(el);
+        }
+
+        // left vert, right vert, top horiz, bottom horiz
+        _makeSharpPoly('10,2   17,7   17,193  10,198  3,193   3,7');
+        _makeSharpPoly('50,2   57,7   57,193  50,198  43,193  43,7');
+        _makeSharpPoly('5,72   55,72  60,79   55,86   5,86    0,79');
+        _makeSharpPoly('5,114  55,114 60,121  55,128  5,128   0,121');
 
         // ── 5. AUTO LED (lit when mode is 'free' or 'auto') ──────────
         // Anchored to the display's right edge (≈69%) at the display's
@@ -372,8 +375,12 @@
         }
 
         function _setSharp(lit) {
-            sharpEl.style.color      = lit ? _TUNER_PT_LIT  : _TUNER_PT_UNLIT;
-            sharpEl.style.textShadow = lit ? '0 0 0.4px #ff4400, 0 0 1px #cc1100' : 'none';
+            var fill   = lit ? _TUNER_PT_LIT : _TUNER_PT_UNLIT;
+            var filter = lit ? 'drop-shadow(0 0 2px #ff4400) drop-shadow(0 0 5px #cc1100)' : 'none';
+            for (var si = 0; si < sharpParts.length; si++) {
+                sharpParts[si].setAttribute('fill', fill);
+                sharpParts[si].style.filter = filter;
+            }
         }
 
         function _setAuto(mode) {
