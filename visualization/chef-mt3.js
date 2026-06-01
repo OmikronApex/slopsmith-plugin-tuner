@@ -27,8 +27,14 @@
     var _MT3_COL_TICK_DIM  = 'rgba(255,255,255,0.45)';
     var _MT3_COL_TICK_LIT  = '#ff8800';
     var _MT3_COL_TICK_SPIL = 'rgba(255,136,0,0.52)';
-    var _MT3_COL_SEG_LIT   = '#ff2200';
     var _MT3_COL_SEG_UNLIT = '#2a0000';
+
+    // Brightness levels: [brightScale for tick glow, SVG filter flood-opacity, lit segment fill, segment drop-shadow]
+    var _MT3_BRIGHTNESS = [
+        { brightScale: 0.35, floodOpacity: '0.30', litFill: '#cc1500', glow: 'drop-shadow(0 0 2px #bb1100)' },  // low
+        { brightScale: 1.0,  floodOpacity: '0.65', litFill: '#ff2200', glow: 'drop-shadow(0 0 5px #ff2200)' },  // medium
+        { brightScale: 1.0,  floodOpacity: '1.0',  litFill: '#ff5533', glow: 'drop-shadow(0 0 9px #ff4400)' },  // high
+    ];
     var _MT3_COL_BUTTON    = '#1a1a1a';
     var _MT3_COL_LABEL     = '#c8c8c8';
 
@@ -326,7 +332,7 @@
         brightBtn.style.cursor          = 'default';
         panel.appendChild(brightBtn);
 
-        [{text: 'MODE', left: 'calc(50% - 22%)'}, {text: 'BRGHT.', left: 'calc(50% + 12%)'}]
+        [{text: 'MODE', left: 'calc(50% - 22%)'}, {text: 'BRGHT', left: 'calc(50% + 12%)'}]
         .forEach(function (lbl) {
             var el = document.createElement('div');
             el.style.position      = 'absolute';
@@ -356,12 +362,15 @@
         container.appendChild(panel);
 
         // ── Animation / glow state ────────────────────────────────────
-        var _mt3Mode          = 'standard';
-        var _mt3CurrentCents  = 0;
-        var _mt3SmoothedCents = 0;
-        var _mt3HasSignal     = false;
-        var _mt3GlowOpacity   = 0;
-        var _mt3RafId         = null;
+        var _mt3Mode            = 'standard';
+        var _mt3CurrentCents    = 0;
+        var _mt3SmoothedCents   = 0;
+        var _mt3HasSignal       = false;
+        var _mt3GlowOpacity     = 0;
+        var _mt3RafId           = null;
+        var _mt3BrightnessIdx   = 1;   // 0=low, 1=medium, 2=high
+        var _mt3LastLetter      = ' '; // for re-render on brightness change
+        var _mt3LastSharp       = false;
         var _mt3LastTime      = null;
         var _mt3StrobeOffset  = 0;
 
@@ -375,18 +384,20 @@
 
         // ── Segment helpers ───────────────────────────────────────────
         function _setSegment(el, lit) {
-            el.setAttribute('fill', lit ? _MT3_COL_SEG_LIT : _MT3_COL_SEG_UNLIT);
-            el.style.filter = lit ? 'drop-shadow(0 0 5px #ff2200)' : 'none';
+            var brt = _MT3_BRIGHTNESS[_mt3BrightnessIdx];
+            el.setAttribute('fill', lit ? brt.litFill : _MT3_COL_SEG_UNLIT);
+            el.style.filter = lit ? brt.glow : 'none';
         }
         function _renderNote(letter) {
             var map = _TUNER_MT3_SEGMENTS[letter] || _TUNER_MT3_SEGMENTS[' '];
             for (var k = 0; k < _segKeys.length; k++) { _setSegment(_mt3SegEls[_segKeys[k]], map[k]); }
         }
         function _setSharp(lit) {
+            var brt = _MT3_BRIGHTNESS[_mt3BrightnessIdx];
             for (var p = 0; p < _mt3SharpParts.length; p++) {
-                _mt3SharpParts[p].setAttribute('fill', lit ? _MT3_COL_SEG_LIT : _MT3_COL_SEG_UNLIT);
+                _mt3SharpParts[p].setAttribute('fill', lit ? brt.litFill : _MT3_COL_SEG_UNLIT);
             }
-            sharpSvg.style.filter = lit ? 'drop-shadow(0 0 5px #ff2200)' : 'none';
+            sharpSvg.style.filter = lit ? brt.glow : 'none';
         }
 
         // ── Tick state helpers ────────────────────────────────────────
@@ -465,7 +476,8 @@
             var opacityTarget = _mt3HasSignal ? 1.0 : 0.0;
             var opacityRate   = _mt3HasSignal ? 8.0 : 2.5;
             _mt3GlowOpacity  += (opacityTarget - _mt3GlowOpacity) * (1 - Math.exp(-opacityRate * dt));
-            _glowGroup.setAttribute('opacity', _mt3GlowOpacity.toFixed(3));
+            var _scaledOpacity = Math.min(1, _mt3GlowOpacity * _MT3_BRIGHTNESS[_mt3BrightnessIdx].brightScale);
+            _glowGroup.setAttribute('opacity', _scaledOpacity.toFixed(3));
 
             // Advance strobe offset
             if (_mt3Mode === 'strobe' && Math.abs(_mt3SmoothedCents) > 0.1) {
@@ -504,6 +516,20 @@
             }
         });
 
+        // ── BRGHT button — cycle low/medium/high brightness ──────────
+        brightBtn.addEventListener('click', function () {
+            brightBtn.style.boxShadow = 'inset 0 2px 4px rgba(0,0,0,0.9)';
+            setTimeout(function () {
+                brightBtn.style.boxShadow = 'inset 0 1px 2px rgba(255,255,255,0.08), 0 2px 3px rgba(0,0,0,0.7)';
+            }, 120);
+            _mt3BrightnessIdx = (_mt3BrightnessIdx + 1) % _MT3_BRIGHTNESS.length;
+            // Update SVG tick glow filter intensity
+            _sfFlood.setAttribute('flood-opacity', _MT3_BRIGHTNESS[_mt3BrightnessIdx].floodOpacity);
+            // Re-render segment display with new brightness
+            _renderNote(_mt3LastLetter);
+            _setSharp(_mt3LastSharp);
+        });
+
         // ── Public: update ────────────────────────────────────────────
         function update(note, cents) {
             var hasNote = (note !== null && note !== undefined);
@@ -511,9 +537,13 @@
             _mt3CurrentCents = hasNote ? (cents || 0) : 0;
             if (_mt3Mode === 'standard') { _computeStandardStates(_mt3CurrentCents, hasNote); }
             if (hasNote) {
-                _renderNote(note.charAt(0));
-                _setSharp(note.length > 1 && note.charAt(1) === '#');
+                _mt3LastLetter = note.charAt(0);
+                _mt3LastSharp  = note.length > 1 && note.charAt(1) === '#';
+                _renderNote(_mt3LastLetter);
+                _setSharp(_mt3LastSharp);
             } else {
+                _mt3LastLetter = ' ';
+                _mt3LastSharp  = false;
                 _renderNote(' ');
                 _setSharp(false);
             }
