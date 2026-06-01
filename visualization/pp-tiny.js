@@ -200,8 +200,8 @@
             'left:50%',
             'top:50%',
             'transform:translateX(-50%)',
-            'width:29%',
-            'height:44%',
+            'width:23%',
+            'height:35%',
             'background:' + _TUNER_PT_BG,
             'border-radius:3px',
             'border:1px solid #2a0000',
@@ -222,7 +222,7 @@
         var segSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         segSvg.setAttribute('viewBox', '0 0 100 200');
         segSvg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-        segSvg.style.cssText = 'width:42%;aspect-ratio:1/2;flex-shrink:0;overflow:visible;';
+        segSvg.style.cssText = 'width:52.5%;aspect-ratio:1/2;flex-shrink:0;overflow:visible;';
         displayWrap.appendChild(segSvg);
 
         var segmentEls = {};
