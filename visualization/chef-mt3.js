@@ -334,6 +334,7 @@
             var el = document.createElementNS(_SVG_NS, 'polygon');
             el.setAttribute('points', points);
             el.setAttribute('fill', _MT3_COL_SEG_UNLIT);
+            el.setAttribute('shape-rendering', 'crispEdges');
             segSvg.appendChild(el);
             _mt3SegEls[key] = el;
         }
@@ -363,6 +364,7 @@
             var el = document.createElementNS(_SVG_NS, 'polygon');
             el.setAttribute('points', pts);
             el.setAttribute('fill', _MT3_COL_SEG_UNLIT);
+            el.setAttribute('shape-rendering', 'crispEdges');
             sharpSvg.appendChild(el);
             _mt3SharpParts.push(el);
         }
