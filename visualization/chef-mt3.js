@@ -4,11 +4,11 @@
  * Inspired by classic chromatic pedal tuners:
  *   - Shiny black rectangular panel with chamfered edges and corner screws
  *   - 90° curved glass gauge arc spanning between the screw inner edges
- *   - 51 tick marks centered on the glass arc, glow orange to indicate deviation
+ *   - 51 tick marks; glow fades in/out with audio signal presence
  *   - Red 7-segment display (bottom centre) with "#" symbol
  *   - Two rubber buttons flanked by panel labels: MODE (left), BRGHT. (right)
  *   - Standard mode: nearest tick cluster glows for current deviation
- *   - Strobe mode: tick clusters drift left/right proportional to deviation
+ *   - Strobe mode: groups of 3 bright ticks + lightspill drift with deviation
  *
  * Contract: window['_tunerViz_chef-mt3'](container) → { update(note, cents, freq, mode), destroy() }
  */
@@ -18,7 +18,7 @@
     // ── Module-level constants ─────────────────────────────────────────
     var _TUNER_MT3_IN_TUNE_THR        = 2;
     var _TUNER_MT3_GAUGE_CENTS        = 50;
-    var _TUNER_MT3_TICK_COUNT         = 51;   // 0¢ centre + 25 × 2¢ per side
+    var _TUNER_MT3_TICK_COUNT         = 51;   // 0¢ centre + 25×2¢ per side
     var _TUNER_MT3_STROBE_GROUP_COUNT = 5;
 
     // ── Colours ────────────────────────────────────────────────────────
@@ -26,23 +26,20 @@
     var _MT3_COL_GAUGE_ARC = 'rgba(255,255,255,0.18)';
     var _MT3_COL_TICK_DIM  = 'rgba(255,255,255,0.45)';
     var _MT3_COL_TICK_LIT  = '#ff8800';
+    var _MT3_COL_TICK_SPIL = 'rgba(255,136,0,0.52)';
     var _MT3_COL_SEG_LIT   = '#ff2200';
     var _MT3_COL_SEG_UNLIT = '#2a0000';
     var _MT3_COL_BUTTON    = '#1a1a1a';
     var _MT3_COL_LABEL     = '#c8c8c8';
 
     // ── Gauge SVG geometry ─────────────────────────────────────────────
-    // SVG element: width:100%, height:auto, panel aspect 5:3
-    // → element ratio ≈ 100/(55%×60%) = 3.03  → viewBox "0 0 200 66"
-    //
-    // 90° arc: 225° (−50¢) → 270° (apex) → 315° (+50¢)
-    // R=124 → endpoints at x≈12/188, aligning with screw inner edges (6% from sides)
-    // cy=138 → apex at y = 138−124 = 14  (within viewBox)
+    // viewBox "0 0 200 66": ratio 3.03 matches SVG element (width:100% height:auto on 5:3 panel)
+    // 90° arc: 225°(−50¢) → 270°(apex) → 315°(+50¢); R=124, cy=138 → apex at y=14
     var _MT3_cx        = 100;
     var _MT3_cy        = 138;
     var _MT3_ARC_R     = 124;
-    var _MT3_ARC_START = 5 * Math.PI / 4;    // 225°
-    var _MT3_ARC_SPAN  = Math.PI / 2;         // 90°
+    var _MT3_ARC_START = 5 * Math.PI / 4;
+    var _MT3_ARC_SPAN  = Math.PI / 2;
 
     var _MT3_ARC_SX = _MT3_cx + _MT3_ARC_R * Math.cos(_MT3_ARC_START);
     var _MT3_ARC_SY = _MT3_cy + _MT3_ARC_R * Math.sin(_MT3_ARC_START);
@@ -105,8 +102,6 @@
         });
 
         // ── Gauge SVG ─────────────────────────────────────────────────
-        // viewBox "0 0 200 66": ratio 3.03 matches SVG element (100% × auto on 5:3 panel at 55% height)
-        // height:auto lets the viewBox aspect ratio set the rendered height → fills full panel width
         var gaugeSvg = document.createElementNS(_SVG_NS, 'svg');
         gaugeSvg.setAttribute('viewBox', '0 0 200 66');
         gaugeSvg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
@@ -117,11 +112,35 @@
         gaugeSvg.style.height   = 'auto';
         gaugeSvg.style.overflow = 'visible';
 
+        // SVG glow filter — applied to the glow tick group as a whole
+        var _glowId     = 'mt3-glow-' + Math.random().toString(36).slice(2, 7);
+        var _svgDefs    = document.createElementNS(_SVG_NS, 'defs');
+        var _svgFilter  = document.createElementNS(_SVG_NS, 'filter');
+        _svgFilter.setAttribute('id', _glowId);
+        _svgFilter.setAttribute('x', '-60%'); _svgFilter.setAttribute('y', '-60%');
+        _svgFilter.setAttribute('width', '220%'); _svgFilter.setAttribute('height', '220%');
+        var _sfBlur  = document.createElementNS(_SVG_NS, 'feGaussianBlur');
+        _sfBlur.setAttribute('stdDeviation', '1.8'); _sfBlur.setAttribute('result', 'blur');
+        var _sfFlood = document.createElementNS(_SVG_NS, 'feFlood');
+        _sfFlood.setAttribute('flood-color', '#ff8800'); _sfFlood.setAttribute('flood-opacity', '0.65');
+        _sfFlood.setAttribute('result', 'col');
+        var _sfComp  = document.createElementNS(_SVG_NS, 'feComposite');
+        _sfComp.setAttribute('in', 'col'); _sfComp.setAttribute('in2', 'blur');
+        _sfComp.setAttribute('operator', 'in'); _sfComp.setAttribute('result', 'glow');
+        var _sfMerge = document.createElementNS(_SVG_NS, 'feMerge');
+        var _sfMn1   = document.createElementNS(_SVG_NS, 'feMergeNode'); _sfMn1.setAttribute('in', 'glow');
+        var _sfMn2   = document.createElementNS(_SVG_NS, 'feMergeNode'); _sfMn2.setAttribute('in', 'SourceGraphic');
+        _sfMerge.appendChild(_sfMn1); _sfMerge.appendChild(_sfMn2);
+        _svgFilter.appendChild(_sfBlur); _svgFilter.appendChild(_sfFlood);
+        _svgFilter.appendChild(_sfComp); _svgFilter.appendChild(_sfMerge);
+        _svgDefs.appendChild(_svgFilter);
+        gaugeSvg.appendChild(_svgDefs);
+
         var _arcD = 'M ' + _MT3_ARC_SX.toFixed(2) + ' ' + _MT3_ARC_SY.toFixed(2) +
             ' A ' + _MT3_ARC_R + ' ' + _MT3_ARC_R + ' 0 0 1 ' +
             _MT3_ARC_EX.toFixed(2) + ' ' + _MT3_ARC_EY.toFixed(2);
 
-        // Glass arc body (stroke-width 16 → spans R-8 to R+8)
+        // Glass arc body — no dashed sheen overlay
         var arcBody = document.createElementNS(_SVG_NS, 'path');
         arcBody.setAttribute('d', _arcD);
         arcBody.setAttribute('fill', 'none');
@@ -130,47 +149,51 @@
         arcBody.setAttribute('stroke-linecap', 'round');
         gaugeSvg.appendChild(arcBody);
 
-        // Glass sheen — dashed highlight
-        var arcSheen = document.createElementNS(_SVG_NS, 'path');
-        arcSheen.setAttribute('d', _arcD);
-        arcSheen.setAttribute('fill', 'none');
-        arcSheen.setAttribute('stroke', 'rgba(255,255,255,0.35)');
-        arcSheen.setAttribute('stroke-width', '2');
-        arcSheen.setAttribute('stroke-dasharray', '6 5');
-        arcSheen.setAttribute('stroke-linecap', 'round');
-        gaugeSvg.appendChild(arcSheen);
+        // dimGroup: base tick lines always shown at dim colour — constructed once, never updated
+        var _dimGroup = document.createElementNS(_SVG_NS, 'g');
+        gaugeSvg.appendChild(_dimGroup);
 
-        // Tick lines — centered on the arc (symmetric ±halfLen around R)
-        // Minor ticks: ±3 (length 6); major (every 5th = 10¢ marks): ±5 (length 10)
-        var _mt3TickEls = [];
+        // glowGroup: lit tick overlay with shared glow filter, opacity animated 0→1
+        var _glowGroup = document.createElementNS(_SVG_NS, 'g');
+        _glowGroup.setAttribute('filter', 'url(#' + _glowId + ')');
+        _glowGroup.setAttribute('opacity', '0');
+        gaugeSvg.appendChild(_glowGroup);
+
+        var _mt3GlowTickEls = [];
+
         for (var i = 0; i < _TUNER_MT3_TICK_COUNT; i++) {
-            var isMajor  = (i % 5 === 0);
-            var halfLen  = isMajor ? 5 : 3;
-            var a        = _MT3_ARC_START + (_MT3_ARC_SPAN / (_TUNER_MT3_TICK_COUNT - 1)) * i;
-            var cosA     = Math.cos(a), sinA = Math.sin(a);
+            var isMajor = (i % 5 === 0);
+            var halfLen = isMajor ? 5 : 3;
+            var a       = _MT3_ARC_START + (_MT3_ARC_SPAN / (_TUNER_MT3_TICK_COUNT - 1)) * i;
+            var cosA    = Math.cos(a), sinA = Math.sin(a);
             var x1 = _MT3_cx + (_MT3_ARC_R - halfLen) * cosA;
             var y1 = _MT3_cy + (_MT3_ARC_R - halfLen) * sinA;
             var x2 = _MT3_cx + (_MT3_ARC_R + halfLen) * cosA;
             var y2 = _MT3_cy + (_MT3_ARC_R + halfLen) * sinA;
-            var tick = document.createElementNS(_SVG_NS, 'line');
-            tick.setAttribute('x1', String(x1));
-            tick.setAttribute('y1', String(y1));
-            tick.setAttribute('x2', String(x2));
-            tick.setAttribute('y2', String(y2));
-            tick.setAttribute('stroke', _MT3_COL_TICK_DIM);
-            tick.setAttribute('stroke-width', isMajor ? '2' : '1');
-            tick.setAttribute('stroke-linecap', 'round');
-            gaugeSvg.appendChild(tick);
-            _mt3TickEls.push(tick);
+
+            var dimTick = document.createElementNS(_SVG_NS, 'line');
+            dimTick.setAttribute('x1', String(x1)); dimTick.setAttribute('y1', String(y1));
+            dimTick.setAttribute('x2', String(x2)); dimTick.setAttribute('y2', String(y2));
+            dimTick.setAttribute('stroke', _MT3_COL_TICK_DIM);
+            dimTick.setAttribute('stroke-width', '1');
+            dimTick.setAttribute('stroke-linecap', 'round');
+            _dimGroup.appendChild(dimTick);
+
+            var glowTick = document.createElementNS(_SVG_NS, 'line');
+            glowTick.setAttribute('x1', String(x1)); glowTick.setAttribute('y1', String(y1));
+            glowTick.setAttribute('x2', String(x2)); glowTick.setAttribute('y2', String(y2));
+            glowTick.setAttribute('stroke', 'none');
+            glowTick.setAttribute('stroke-width', '1');
+            glowTick.setAttribute('stroke-linecap', 'round');
+            _glowGroup.appendChild(glowTick);
+            _mt3GlowTickEls.push(glowTick);
         }
 
-        // Arc-following labels: -50 and +50 outside the arc, 0 inside (below apex)
-        // Outside labels at R+15 in the outward radial direction from arc center
-        // 0 label at a slightly inward position so it sits below the apex visibly
+        // Arc-following labels
         [
-            { t: 0.0,  text: '-50', rOffset: +15, anchor: 'start'  },
-            { t: 0.5,  text:  '0',  rOffset: -26, anchor: 'middle' },
-            { t: 1.0,  text: '+50', rOffset: +15, anchor: 'end'    },
+            { t: 0.0, text: '-50', rOffset: +15, anchor: 'start'  },
+            { t: 0.5, text:  '0',  rOffset: -26, anchor: 'middle' },
+            { t: 1.0, text: '+50', rOffset: +15, anchor: 'end'    },
         ].forEach(function (lbl) {
             var ang = _MT3_ARC_START + lbl.t * _MT3_ARC_SPAN;
             var r   = _MT3_ARC_R + lbl.rOffset;
@@ -178,7 +201,7 @@
             var ly  = _MT3_cy + r * Math.sin(ang);
             var el  = document.createElementNS(_SVG_NS, 'text');
             el.setAttribute('x', String(lx));
-            el.setAttribute('y', String(ly + 3));   // +3 for optical baseline alignment
+            el.setAttribute('y', String(ly + 3));
             el.setAttribute('text-anchor', lbl.anchor);
             el.setAttribute('font-size', '7');
             el.setAttribute('fill', 'rgba(255,255,255,0.50)');
@@ -258,7 +281,7 @@
         _makeSharpPoly('4,23.3   86,23.3  90,28.3  86,33.3  4,33.3   0,28.3');
         _makeSharpPoly('4,56.7   86,56.7  90,61.7  86,66.7  4,66.7   0,61.7');
 
-        // ── Buttons — vertical centre aligns with display ─────────────
+        // ── Buttons ───────────────────────────────────────────────────
         var _mt3ModeBtn = document.createElement('div');
         _mt3ModeBtn.style.position        = 'absolute';
         _mt3ModeBtn.style.bottom          = '9%';
@@ -285,7 +308,6 @@
         brightBtn.style.cursor          = 'default';
         panel.appendChild(brightBtn);
 
-        // Panel labels below buttons
         [{text: 'MODE', left: 'calc(50% - 22%)'}, {text: 'BRGHT.', left: 'calc(50% + 12%)'}]
         .forEach(function (lbl) {
             var el = document.createElement('div');
@@ -302,7 +324,6 @@
             panel.appendChild(el);
         });
 
-        // Brand label
         var brandLbl = document.createElement('div');
         brandLbl.style.position      = 'absolute';
         brandLbl.style.top           = '4%';
@@ -316,13 +337,23 @@
 
         container.appendChild(panel);
 
-        // ── Animation state ───────────────────────────────────────────
+        // ── Animation / glow state ────────────────────────────────────
         var _mt3Mode          = 'standard';
         var _mt3CurrentCents  = 0;
         var _mt3SmoothedCents = 0;
+        var _mt3HasSignal     = false;
+        var _mt3GlowOpacity   = 0;
         var _mt3RafId         = null;
         var _mt3LastTime      = null;
         var _mt3StrobeOffset  = 0;
+
+        // Tick state: 0=dim, 1=spill, 2=bright  (computed each frame, never persisted between calls)
+        var _mt3TickState     = [];
+        var _mt3LastTickState = [];
+        for (var ti = 0; ti < _TUNER_MT3_TICK_COUNT; ti++) {
+            _mt3TickState.push(0);
+            _mt3LastTickState.push(-1);   // -1 = unrendered, forces first paint
+        }
 
         // ── Segment helpers ───────────────────────────────────────────
         function _setSegment(el, lit) {
@@ -339,75 +370,97 @@
             }
         }
 
-        // ── Tick glow helpers ─────────────────────────────────────────
-        function _dimAllTicks() {
-            for (var ti = 0; ti < _TUNER_MT3_TICK_COUNT; ti++) {
-                var isMajor = (ti % 5 === 0);
-                _mt3TickEls[ti].setAttribute('stroke', _MT3_COL_TICK_DIM);
-                _mt3TickEls[ti].setAttribute('stroke-width', isMajor ? '2' : '1');
-                _mt3TickEls[ti].style.filter = 'none';
-            }
+        // ── Tick state helpers ────────────────────────────────────────
+        function _clearTickStates() {
+            for (var ti = 0; ti < _TUNER_MT3_TICK_COUNT; ti++) { _mt3TickState[ti] = 0; }
         }
 
-        function _litTick(idx, bright) {
+        // Never downgrade: a bright centre tick won't be overwritten by a spill from another group
+        function _setTickState(idx, level) {
             if (idx < 0 || idx >= _TUNER_MT3_TICK_COUNT) { return; }
-            // Never downgrade an already-bright centre tick
-            if (!bright && _mt3TickEls[idx].getAttribute('stroke') === _MT3_COL_TICK_LIT) { return; }
-            if (bright) {
-                _mt3TickEls[idx].setAttribute('stroke', _MT3_COL_TICK_LIT);
-                _mt3TickEls[idx].setAttribute('stroke-width', '3');
-                _mt3TickEls[idx].style.filter = 'drop-shadow(0 0 4px #ff8800)';
-            } else {
-                _mt3TickEls[idx].setAttribute('stroke', 'rgba(255,136,0,0.55)');
-                _mt3TickEls[idx].setAttribute('stroke-width', '2');
-                _mt3TickEls[idx].style.filter = 'drop-shadow(0 0 2px #ff8800)';
-            }
+            if (level > _mt3TickState[idx]) { _mt3TickState[idx] = level; }
         }
 
-        function _highlightTicks(cents, hasSignal) {
-            _dimAllTicks();
+        // Standard mode: 1 bright + ±1 spill
+        function _computeStandardStates(cents, hasSignal) {
+            _clearTickStates();
             if (!hasSignal) { return; }
             var clamped   = Math.max(-_TUNER_MT3_GAUGE_CENTS, Math.min(_TUNER_MT3_GAUGE_CENTS, cents));
-            var targetIdx = Math.round((clamped + _TUNER_MT3_GAUGE_CENTS) / (2 * _TUNER_MT3_GAUGE_CENTS / (_TUNER_MT3_TICK_COUNT - 1)));
-            targetIdx     = Math.max(0, Math.min(_TUNER_MT3_TICK_COUNT - 1, targetIdx));
-            _litTick(targetIdx,     true);
-            _litTick(targetIdx - 1, false);
-            _litTick(targetIdx + 1, false);
+            var targetIdx = Math.round((clamped + _TUNER_MT3_GAUGE_CENTS) /
+                (2 * _TUNER_MT3_GAUGE_CENTS / (_TUNER_MT3_TICK_COUNT - 1)));
+            targetIdx = Math.max(0, Math.min(_TUNER_MT3_TICK_COUNT - 1, targetIdx));
+            _setTickState(targetIdx,     2);
+            _setTickState(targetIdx - 1, 1);
+            _setTickState(targetIdx + 1, 1);
         }
 
-        function _updateStrobeTicks() {
-            _dimAllTicks();
+        // Strobe mode: 3 bright ticks per group + ±1 spill on each outer edge
+        function _computeStrobeStates() {
+            _clearTickStates();
             for (var g = 0; g < _TUNER_MT3_STROBE_GROUP_COUNT; g++) {
                 var baseAngle = _MT3_ARC_START + (g / _TUNER_MT3_STROBE_GROUP_COUNT) * _MT3_ARC_SPAN + _mt3StrobeOffset;
                 var relAngle  = ((baseAngle - _MT3_ARC_START) % _MT3_ARC_SPAN + _MT3_ARC_SPAN) % _MT3_ARC_SPAN;
                 var nearIdx   = Math.max(0, Math.min(_TUNER_MT3_TICK_COUNT - 1,
                     Math.round(relAngle / _MT3_ARC_SPAN * (_TUNER_MT3_TICK_COUNT - 1))));
-                _litTick(nearIdx,     true);
-                _litTick(nearIdx - 1, false);
-                _litTick(nearIdx + 1, false);
+                // 3 bright ticks centred at nearIdx
+                _setTickState(nearIdx - 1, 2);
+                _setTickState(nearIdx,     2);
+                _setTickState(nearIdx + 1, 2);
+                // Lightspill beyond the cluster
+                _setTickState(nearIdx - 2, 1);
+                _setTickState(nearIdx + 2, 1);
             }
         }
 
-        // ── Strobe RAF loop ───────────────────────────────────────────
+        // Apply current tick states to the glowGroup DOM — only write changed ticks
+        function _applyTickStates() {
+            for (var ti = 0; ti < _TUNER_MT3_TICK_COUNT; ti++) {
+                var state = _mt3TickState[ti];
+                if (state === _mt3LastTickState[ti]) { continue; }
+                _mt3LastTickState[ti] = state;
+                var el = _mt3GlowTickEls[ti];
+                if (state === 2) {
+                    el.setAttribute('stroke', _MT3_COL_TICK_LIT);
+                    el.setAttribute('stroke-width', '3');
+                } else if (state === 1) {
+                    el.setAttribute('stroke', _MT3_COL_TICK_SPIL);
+                    el.setAttribute('stroke-width', '2');
+                } else {
+                    el.setAttribute('stroke', 'none');
+                    el.setAttribute('stroke-width', '1');
+                }
+            }
+        }
+
+        // ── RAF loop ──────────────────────────────────────────────────
         function _animateStrobe(now) {
             if (_mt3LastTime === null) { _mt3LastTime = now; }
             var dt = Math.min((now - _mt3LastTime) / 1000, 0.1);
             _mt3LastTime = now;
 
+            // Smooth cents for strobe drift
             var lerpFactor = 1 - Math.exp(-10 * dt);
             _mt3SmoothedCents += (_mt3CurrentCents - _mt3SmoothedCents) * lerpFactor;
 
-            if (_mt3Mode === 'strobe') {
-                if (Math.abs(_mt3SmoothedCents) > 0.1) {
-                    var absCents   = Math.min(_TUNER_MT3_GAUGE_CENTS, Math.abs(_mt3SmoothedCents));
-                    var normalized = Math.max(0, absCents - _TUNER_MT3_IN_TUNE_THR) / (_TUNER_MT3_GAUGE_CENTS - _TUNER_MT3_IN_TUNE_THR);
-                    var speed      = _MT3_ARC_SPAN * Math.pow(normalized, 0.9);
-                    if (_mt3SmoothedCents < 0) { speed = -speed; }
-                    _mt3StrobeOffset = ((_mt3StrobeOffset + speed * dt) % _MT3_ARC_SPAN + _MT3_ARC_SPAN) % _MT3_ARC_SPAN;
-                }
-                _updateStrobeTicks();
+            // Animate glow opacity: fast fade-in (~120ms), slow fade-out (~400ms)
+            var opacityTarget = _mt3HasSignal ? 1.0 : 0.0;
+            var opacityRate   = _mt3HasSignal ? 8.0 : 2.5;
+            _mt3GlowOpacity  += (opacityTarget - _mt3GlowOpacity) * (1 - Math.exp(-opacityRate * dt));
+            _glowGroup.setAttribute('opacity', _mt3GlowOpacity.toFixed(3));
+
+            // Advance strobe offset
+            if (_mt3Mode === 'strobe' && Math.abs(_mt3SmoothedCents) > 0.1) {
+                var absCents   = Math.min(_TUNER_MT3_GAUGE_CENTS, Math.abs(_mt3SmoothedCents));
+                var normalized = Math.max(0, absCents - _TUNER_MT3_IN_TUNE_THR) / (_TUNER_MT3_GAUGE_CENTS - _TUNER_MT3_IN_TUNE_THR);
+                var speed      = _MT3_ARC_SPAN * Math.pow(normalized, 0.9);
+                if (_mt3SmoothedCents < 0) { speed = -speed; }
+                _mt3StrobeOffset = ((_mt3StrobeOffset + speed * dt) % _MT3_ARC_SPAN + _MT3_ARC_SPAN) % _MT3_ARC_SPAN;
             }
 
+            // Recompute and apply strobe tick states each frame
+            if (_mt3Mode === 'strobe') { _computeStrobeStates(); }
+
+            _applyTickStates();
             _mt3RafId = requestAnimationFrame(_animateStrobe);
         }
         _mt3RafId = requestAnimationFrame(_animateStrobe);
@@ -421,18 +474,19 @@
             if (_mt3Mode === 'standard') {
                 _mt3Mode = 'strobe';
                 _mt3StrobeOffset = 0;
-                _dimAllTicks();
+                _clearTickStates();
             } else {
                 _mt3Mode = 'standard';
-                _highlightTicks(_mt3CurrentCents, _mt3CurrentCents !== 0);
+                _computeStandardStates(_mt3CurrentCents, _mt3HasSignal);
             }
         });
 
         // ── Public: update ────────────────────────────────────────────
         function update(note, cents) {
             var hasNote = (note !== null && note !== undefined);
+            _mt3HasSignal    = hasNote;
             _mt3CurrentCents = hasNote ? (cents || 0) : 0;
-            if (_mt3Mode === 'standard') { _highlightTicks(_mt3CurrentCents, hasNote); }
+            if (_mt3Mode === 'standard') { _computeStandardStates(_mt3CurrentCents, hasNote); }
             if (hasNote) {
                 _renderNote(note.charAt(0));
                 _setSharp(note.length > 1 && note.charAt(1) === '#');
