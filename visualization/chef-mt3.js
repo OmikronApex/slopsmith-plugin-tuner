@@ -147,7 +147,7 @@
         _hlGrad.setAttribute('y1', '0');
         _hlGrad.setAttribute('x2', _MT3_ARC_EX.toFixed(2));
         _hlGrad.setAttribute('y2', '0');
-        [['0%','rgba(255,255,255,0)'], ['50%','rgba(255,255,255,0.72)'], ['100%','rgba(255,255,255,0)']]
+        [['0%','rgba(255,255,255,0)'], ['50%','rgba(255,255,255,0.48)'], ['100%','rgba(255,255,255,0)']]
         .forEach(function (s) {
             var stop = document.createElementNS(_SVG_NS, 'stop');
             stop.setAttribute('offset', s[0]);
@@ -155,6 +155,24 @@
             _hlGrad.appendChild(stop);
         });
         _svgDefs.appendChild(_hlGrad);
+
+        // Horizontal gradient for outer shadow: transparent at ends, dark at centre
+        var _shGradId = 'mt3-sh-' + Math.random().toString(36).slice(2, 7);
+        var _shGrad   = document.createElementNS(_SVG_NS, 'linearGradient');
+        _shGrad.setAttribute('id', _shGradId);
+        _shGrad.setAttribute('gradientUnits', 'userSpaceOnUse');
+        _shGrad.setAttribute('x1', _MT3_ARC_SX.toFixed(2));
+        _shGrad.setAttribute('y1', '0');
+        _shGrad.setAttribute('x2', _MT3_ARC_EX.toFixed(2));
+        _shGrad.setAttribute('y2', '0');
+        [['0%','rgba(0,0,0,0)'], ['50%','rgba(0,0,0,0.28)'], ['100%','rgba(0,0,0,0)']]
+        .forEach(function (s) {
+            var stop = document.createElementNS(_SVG_NS, 'stop');
+            stop.setAttribute('offset', s[0]);
+            stop.setAttribute('stop-color', s[1]);
+            _shGrad.appendChild(stop);
+        });
+        _svgDefs.appendChild(_shGrad);
         _svgDefs.appendChild(_svgFilter);
         gaugeSvg.appendChild(_svgDefs);
 
@@ -181,7 +199,7 @@
                    (_MT3_cx + _shadowR * Math.cos(_MT3_ARC_START + _MT3_ARC_SPAN)).toFixed(2) + ' ' +
                    (_MT3_cy + _shadowR * Math.sin(_MT3_ARC_START + _MT3_ARC_SPAN)).toFixed(2));
         arcShadow.setAttribute('fill', 'none');
-        arcShadow.setAttribute('stroke', 'rgba(0,0,0,0.38)');
+        arcShadow.setAttribute('stroke', 'url(#' + _shGradId + ')');
         arcShadow.setAttribute('stroke-width', '3.5');
         arcShadow.setAttribute('stroke-linecap', 'round');
         gaugeSvg.appendChild(arcShadow);
