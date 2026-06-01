@@ -102,7 +102,7 @@
             return f;
         }
         defs.appendChild(_makeBrushFilter(_brushId,      '0.65', '0.015', '3'));  // horizontal grain — main arc face
-        defs.appendChild(_makeBrushFilter(_bevelBrushId, '0.015', '0.65', '7')); // vertical grain  — bevel face
+        defs.appendChild(_makeBrushFilter(_bevelBrushId, '0.02',  '0.45', '7')); // vertical grain, different frequency — bevel face
 
         frameSvg.appendChild(defs);
 
@@ -114,13 +114,11 @@
         frameSvg.appendChild(framePath);
 
         // Bevel trapezoid — sits on top of the main frame, covers only the bottom strip.
-        // Top edge: y=69, horizontal from x=6 to x=94.
-        // Sides: 45° — right goes (94,69)→(99,74), left goes (1,74)→(6,69).
-        // Bottom edge: lower half of each original rounded corner (split at t=0.5 via de Casteljau)
-        //   Right corner midpoint ≈ (99,74); lower half: Q 99,75 98,75
-        //   Left  corner midpoint ≈ (1,74);  lower half: Q 1,75 2,75 → then line back
+        // Top edge: y=69, from x=4 to x=96 (Δ=4 from each outer edge corner start).
+        // Sides: 45° — right (96,69)→(100,73), left closes Z from (0,73)→(4,69). Δx=Δy=4 ✓
+        // Bottom edge: full original rounded corners so the radius matches exactly.
         var bevelPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        bevelPath.setAttribute('d', 'M 6,69 L 94,69 L 99,74 Q 99,75 98,75 L 2,75 Q 1,75 1,74 Z');
+        bevelPath.setAttribute('d', 'M 4,69 L 96,69 L 100,73 Q 100,75 98,75 L 2,75 Q 0,75 0,73 Z');
         bevelPath.setAttribute('fill', 'url(#' + _bevelGradId + ')');
         bevelPath.setAttribute('filter', 'url(#' + _bevelBrushId + ')');
         frameSvg.appendChild(bevelPath);
