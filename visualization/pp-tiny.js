@@ -246,13 +246,14 @@
         _makeSeg('g2', '57.5,92 89,92   95,100  89,108  57.5,108 51.5,100');
 
         // "#" symbol — SVG, same 200-unit height axis as segSvg so glow scale matches
-        // viewBox 0 0 60 200: two verticals + two horizontals, same hexagonal style
+        // viewBox 0 0 90 200: bars 90 units long, same height axis as segSvg
         var sharpSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        sharpSvg.setAttribute('viewBox', '0 0 60 200');
+        sharpSvg.setAttribute('viewBox', '0 0 90 200');
         sharpSvg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-        // width:25.2% = 42% × (60/100) → same rendered height as segSvg (both 200-unit tall viewBox)
-        // symbol occupies y=135–195 (60×60 square) so its bottom = segment 'd' bottom at y=195
-        sharpSvg.style.cssText = 'width:25.2%;aspect-ratio:3/10;align-self:flex-end;flex-shrink:0;overflow:visible;pointer-events:none;';
+        // width:37.8% = 42% × (90/100) → same rendered height as segSvg (both 200-unit tall viewBox)
+        // symbol occupies 90×90 area (y=105–195) so its bottom = segment 'd' bottom at y=195
+        // T=10, s=(90-20)/3=23.3 → bars and gaps evenly distributed
+        sharpSvg.style.cssText = 'width:37.8%;aspect-ratio:9/20;align-self:flex-end;flex-shrink:0;overflow:visible;pointer-events:none;';
         displayWrap.appendChild(sharpSvg);
 
         var sharpParts = [];
@@ -264,12 +265,11 @@
             sharpParts.push(el);
         }
 
-        // Bars are each 60 units long (H: x=0–60, V: y=135–195) → equal length
-        // T=10, CH=4 — left vert, right vert, top horiz, bottom horiz
-        _makeSharpPoly('8,135   18,139  18,191  8,195   0,191   0,139');
-        _makeSharpPoly('42,135  52,139  52,191  42,195  34,191  34,139');
-        _makeSharpPoly('4,153   56,153  60,158  56,163  4,163   0,158');
-        _makeSharpPoly('4,167   56,167  60,172  56,177  4,177   0,172');
+        // left vert, right vert, top horiz, bottom horiz — all 90 units long, T=10, CH=4
+        _makeSharpPoly('28.3,105  33.3,109  33.3,191  28.3,195  23.3,191  23.3,109');
+        _makeSharpPoly('61.7,105  66.7,109  66.7,191  61.7,195  56.7,191  56.7,109');
+        _makeSharpPoly('4,128.3   86,128.3  90,133.3  86,138.3  4,138.3   0,133.3');
+        _makeSharpPoly('4,161.7   86,161.7  90,166.7  86,171.7  4,171.7   0,166.7');
 
         // ── 5. AUTO LED (lit when mode is 'free' or 'auto') ──────────
         // Anchored to the display's right edge (≈69%) at the display's
