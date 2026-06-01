@@ -373,7 +373,7 @@
 
         function _setSharp(lit) {
             sharpEl.style.color      = lit ? _TUNER_PT_LIT  : _TUNER_PT_UNLIT;
-            sharpEl.style.textShadow = lit ? '0 0 6px #ff2200, 0 0 12px #cc1100' : 'none';
+            sharpEl.style.textShadow = lit ? '0 0 2px #ff4400, 0 0 5px #cc1100' : 'none';
         }
 
         function _setAuto(mode) {
