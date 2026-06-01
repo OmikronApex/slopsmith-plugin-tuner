@@ -52,60 +52,75 @@
         frameSvg.setAttribute('preserveAspectRatio', 'none');
         frameSvg.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:100%;display:block;';
 
-        var _brushId = 'ppTinyBrush' + _ppTinyCount;
+        var _brushId      = 'ppTinyBrush'      + _ppTinyCount;
+        var _bevelGradId  = 'ppTinyBevelGrad'  + _ppTinyCount;
+        var _bevelBrushId = 'ppTinyBevelBrush' + _ppTinyCount;
 
         var defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
 
-        // Metallic gradient: multiple highlight/shadow bands simulate curved-surface reflection
+        // Main face: metallic gradient with multiple highlight/shadow bands
         var grad = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
         grad.setAttribute('id', _gradId);
         grad.setAttribute('x1', '0.2'); grad.setAttribute('y1', '0');
         grad.setAttribute('x2', '0.8'); grad.setAttribute('y2', '1');
         [['0%','#f2f2f2'],['14%','#d0d0d0'],['30%','#888888'],['46%','#bababa'],['62%','#7e7e7e'],['80%','#c2c2c2'],['100%','#6a6a6a']].forEach(function(s) {
             var stop = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
-            stop.setAttribute('offset', s[0]);
-            stop.setAttribute('stop-color', s[1]);
+            stop.setAttribute('offset', s[0]); stop.setAttribute('stop-color', s[1]);
             grad.appendChild(stop);
         });
         defs.appendChild(grad);
 
-        // Brushed-metal filter: anisotropic turbulence (fine horizontal grain) soft-light blended over fill
-        var brushFilter = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
-        brushFilter.setAttribute('id', _brushId);
-        brushFilter.setAttribute('color-interpolation-filters', 'sRGB');
-        var _feTurb = document.createElementNS('http://www.w3.org/2000/svg', 'feTurbulence');
-        _feTurb.setAttribute('type', 'fractalNoise');
-        _feTurb.setAttribute('baseFrequency', '0.65 0.015');
-        _feTurb.setAttribute('numOctaves', '2');
-        _feTurb.setAttribute('seed', '3');
-        _feTurb.setAttribute('result', 'noise');
-        var _feGray = document.createElementNS('http://www.w3.org/2000/svg', 'feColorMatrix');
-        _feGray.setAttribute('type', 'matrix');
-        _feGray.setAttribute('in', 'noise');
-        _feGray.setAttribute('values', '0.4 0 0 0 0.25  0.4 0 0 0 0.25  0.4 0 0 0 0.25  0 0 0 1 0');
-        _feGray.setAttribute('result', 'grayNoise');
-        var _feBlend = document.createElementNS('http://www.w3.org/2000/svg', 'feBlend');
-        _feBlend.setAttribute('in', 'SourceGraphic');
-        _feBlend.setAttribute('in2', 'grayNoise');
-        _feBlend.setAttribute('mode', 'soft-light');
-        _feBlend.setAttribute('result', 'blended');
-        var _feClip = document.createElementNS('http://www.w3.org/2000/svg', 'feComposite');
-        _feClip.setAttribute('in', 'blended');
-        _feClip.setAttribute('in2', 'SourceGraphic');
-        _feClip.setAttribute('operator', 'in');
-        brushFilter.appendChild(_feTurb);
-        brushFilter.appendChild(_feGray);
-        brushFilter.appendChild(_feBlend);
-        brushFilter.appendChild(_feClip);
-        defs.appendChild(brushFilter);
+        // Bevel face gradient: perpendicular direction, darker — angled face receives less light
+        var bevelGrad = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+        bevelGrad.setAttribute('id', _bevelGradId);
+        bevelGrad.setAttribute('x1', '1'); bevelGrad.setAttribute('y1', '0');
+        bevelGrad.setAttribute('x2', '0'); bevelGrad.setAttribute('y2', '1');
+        [['0%','#909090'],['35%','#606060'],['65%','#787878'],['100%','#383838']].forEach(function(s) {
+            var stop = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+            stop.setAttribute('offset', s[0]); stop.setAttribute('stop-color', s[1]);
+            bevelGrad.appendChild(stop);
+        });
+        defs.appendChild(bevelGrad);
+
+        function _makeBrushFilter(id, freqX, freqY, seed) {
+            var f = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
+            f.setAttribute('id', id);
+            f.setAttribute('color-interpolation-filters', 'sRGB');
+            var t = document.createElementNS('http://www.w3.org/2000/svg', 'feTurbulence');
+            t.setAttribute('type', 'fractalNoise'); t.setAttribute('baseFrequency', freqX + ' ' + freqY);
+            t.setAttribute('numOctaves', '2'); t.setAttribute('seed', seed); t.setAttribute('result', 'noise');
+            var cm = document.createElementNS('http://www.w3.org/2000/svg', 'feColorMatrix');
+            cm.setAttribute('type', 'matrix'); cm.setAttribute('in', 'noise');
+            cm.setAttribute('values', '0.4 0 0 0 0.25  0.4 0 0 0 0.25  0.4 0 0 0 0.25  0 0 0 1 0');
+            cm.setAttribute('result', 'grayNoise');
+            var bl = document.createElementNS('http://www.w3.org/2000/svg', 'feBlend');
+            bl.setAttribute('in', 'SourceGraphic'); bl.setAttribute('in2', 'grayNoise');
+            bl.setAttribute('mode', 'soft-light'); bl.setAttribute('result', 'blended');
+            var cp = document.createElementNS('http://www.w3.org/2000/svg', 'feComposite');
+            cp.setAttribute('in', 'blended'); cp.setAttribute('in2', 'SourceGraphic'); cp.setAttribute('operator', 'in');
+            f.appendChild(t); f.appendChild(cm); f.appendChild(bl); f.appendChild(cp);
+            return f;
+        }
+        defs.appendChild(_makeBrushFilter(_brushId,      '0.65', '0.015', '3'));  // horizontal grain for arc face
+        defs.appendChild(_makeBrushFilter(_bevelBrushId, '0.015', '0.65', '7')); // vertical grain for bevel face
 
         frameSvg.appendChild(defs);
 
+        // Main arc face — bottom corners replaced with 45° bevel diagonal cuts (6-unit bevel)
         var framePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        framePath.setAttribute('d', 'M 0,50 A 50,50 0 0 1 100,50 L 100,73 Q 100,75 98,75 L 2,75 Q 0,75 0,73 Z');
+        framePath.setAttribute('d', 'M 0,50 A 50,50 0 0 1 100,50 L 100,69 L 94,75 L 6,75 L 0,69 Z');
         framePath.setAttribute('fill', 'url(#' + _gradId + ')');
         framePath.setAttribute('filter', 'url(#' + _brushId + ')');
         frameSvg.appendChild(framePath);
+
+        // Bevel face triangles — drawn between framePath and the inner faceBgPath so they're masked correctly
+        ['M 0,69 L 6,75 L 0,75 Z', 'M 100,69 L 100,75 L 94,75 Z'].forEach(function (d) {
+            var p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            p.setAttribute('d', d);
+            p.setAttribute('fill', 'url(#' + _bevelGradId + ')');
+            p.setAttribute('filter', 'url(#' + _bevelBrushId + ')');
+            frameSvg.appendChild(p);
+        });
 
         var faceBgPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         faceBgPath.setAttribute('d', 'M 4,50 A 46,46 0 0 1 96,50 L 96,70 Q 96,71 95,71 L 5,71 Q 4,71 4,70 Z');
