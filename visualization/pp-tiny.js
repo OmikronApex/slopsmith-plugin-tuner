@@ -200,16 +200,15 @@
             'left:50%',
             'top:50%',
             'transform:translateX(-50%)',
-            'width:23%',
-            'height:35%',
+            'width:29%',
+            'height:44%',
             'background:' + _TUNER_PT_BG,
             'border-radius:3px',
             'border:1px solid #2a0000',
             'display:flex',
             'flex-direction:row',
-            'align-items:flex-end',
-            'justify-content:space-between',
-            'gap:3%',
+            'align-items:center',
+            'justify-content:center',
             'padding:4%',
             'box-sizing:border-box',
             'box-shadow:inset 0 0 8px #000'
@@ -223,7 +222,7 @@
         var segSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         segSvg.setAttribute('viewBox', '0 0 100 200');
         segSvg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-        segSvg.style.cssText = 'width:42%;aspect-ratio:1/2;align-self:flex-end;flex-shrink:0;overflow:visible;';
+        segSvg.style.cssText = 'width:42%;aspect-ratio:1/2;flex-shrink:0;overflow:visible;';
         displayWrap.appendChild(segSvg);
 
         var segmentEls = {};
@@ -245,15 +244,12 @@
         _makeSeg('g1', '11,92   42.5,92 48.5,100 42.5,108 11,108 5,100');
         _makeSeg('g2', '57.5,92 89,92   95,100  89,108  57.5,108 51.5,100');
 
-        // "#" symbol — SVG, same 200-unit height axis as segSvg so glow scale matches
-        // viewBox 0 0 90 200: bars 90 units long, same height axis as segSvg
-        var sharpSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        sharpSvg.setAttribute('viewBox', '0 0 90 200');
-        sharpSvg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-        // width:37.8% = 42% × (90/100) → same rendered height as segSvg (both 200-unit tall viewBox)
-        // symbol occupies 90×90 area (y=105–195) so its bottom = segment 'd' bottom at y=195
+        // "#" symbol — absolute-positioned bottom-right, viewBox 90×90 (symbol fills it)
         // T=10, s=(90-20)/3=23.3 → bars and gaps evenly distributed
-        sharpSvg.style.cssText = 'width:37.8%;aspect-ratio:9/20;align-self:flex-end;flex-shrink:0;overflow:visible;pointer-events:none;';
+        var sharpSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        sharpSvg.setAttribute('viewBox', '0 0 90 90');
+        sharpSvg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+        sharpSvg.style.cssText = 'position:absolute;bottom:5%;right:5%;width:22%;aspect-ratio:1/1;overflow:visible;pointer-events:none;';
         displayWrap.appendChild(sharpSvg);
 
         var sharpParts = [];
@@ -265,11 +261,11 @@
             sharpParts.push(el);
         }
 
-        // left vert, right vert, top horiz, bottom horiz — all 90 units long, T=10, CH=4
-        _makeSharpPoly('28.3,105  33.3,109  33.3,191  28.3,195  23.3,191  23.3,109');
-        _makeSharpPoly('61.7,105  66.7,109  66.7,191  61.7,195  56.7,191  56.7,109');
-        _makeSharpPoly('4,128.3   86,128.3  90,133.3  86,138.3  4,138.3   0,133.3');
-        _makeSharpPoly('4,161.7   86,161.7  90,166.7  86,171.7  4,171.7   0,166.7');
+        // left vert, right vert, top horiz, bottom horiz — all 90 units, T=10, CH=4, s=23.3
+        _makeSharpPoly('28.3,0   33.3,4   33.3,86  28.3,90  23.3,86  23.3,4');
+        _makeSharpPoly('61.7,0   66.7,4   66.7,86  61.7,90  56.7,86  56.7,4');
+        _makeSharpPoly('4,23.3   86,23.3  90,28.3  86,33.3  4,33.3   0,28.3');
+        _makeSharpPoly('4,56.7   86,56.7  90,61.7  86,66.7  4,66.7   0,61.7');
 
         // ── 5. AUTO LED (lit when mode is 'free' or 'auto') ──────────
         // Anchored to the display's right edge (≈69%) at the display's
