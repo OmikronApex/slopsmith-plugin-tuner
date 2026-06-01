@@ -218,7 +218,7 @@
 
         // Letter digit (8-segment)
         var segContainer = document.createElement('div');
-        segContainer.style.cssText = 'position:relative;flex:0 0 42%;aspect-ratio:1/1;align-self:center;';
+        segContainer.style.cssText = 'position:relative;flex:0 0 42%;aspect-ratio:1/2;align-self:center;';
         displayWrap.appendChild(segContainer);
 
         var segmentEls = {};
@@ -230,15 +230,20 @@
             segmentEls[key] = el;
         }
 
-        var bw = '15%';
-        _makeSeg('a',  'top:0%;left:8%;width:84%;height:' + bw);
-        _makeSeg('b',  'top:3%;right:0%;width:' + bw + ';height:44%');
-        _makeSeg('c',  'bottom:3%;right:0%;width:' + bw + ';height:44%');
-        _makeSeg('d',  'bottom:0%;left:8%;width:84%;height:' + bw);
-        _makeSeg('e',  'bottom:3%;left:0%;width:' + bw + ';height:44%');
-        _makeSeg('f',  'top:3%;left:0%;width:' + bw + ';height:44%');
-        _makeSeg('g1', 'top:50%;left:6%;width:37%;height:' + bw + ';transform:translateY(-50%)');
-        _makeSeg('g2', 'top:50%;right:6%;width:37%;height:' + bw + ';transform:translateY(-50%)');
+        // 1:2 container (W × 2W). Equal physical length W for all segments:
+        //   horizontal: width=100%, height=6% (6% of 2W = 12% of W)
+        //   vertical:   width=12%, height=50% (50% of 2W = W)
+        //   g1/g2:      width=50% each, same height as horizontals
+        var bw_w = '12%';
+        var bw_h = '6%';
+        _makeSeg('a',  'top:0;left:0;width:100%;height:' + bw_h);
+        _makeSeg('b',  'top:0;right:0;width:' + bw_w + ';height:50%');
+        _makeSeg('c',  'bottom:0;right:0;width:' + bw_w + ';height:50%');
+        _makeSeg('d',  'bottom:0;left:0;width:100%;height:' + bw_h);
+        _makeSeg('e',  'bottom:0;left:0;width:' + bw_w + ';height:50%');
+        _makeSeg('f',  'top:0;left:0;width:' + bw_w + ';height:50%');
+        _makeSeg('g1', 'top:50%;left:0;width:50%;height:' + bw_h + ';transform:translateY(-50%)');
+        _makeSeg('g2', 'top:50%;right:0;width:50%;height:' + bw_h + ';transform:translateY(-50%)');
 
         // "#" symbol inside the display box
         var sharpEl = document.createElement('div');
