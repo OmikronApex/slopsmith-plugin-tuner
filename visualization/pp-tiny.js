@@ -53,7 +53,6 @@
         frameSvg.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:100%;display:block;';
 
         var _brushId      = 'ppTinyBrush'      + _ppTinyCount;
-        var _bevelGradId  = 'ppTinyBevelGrad'  + _ppTinyCount;
         var _bevelBrushId = 'ppTinyBevelBrush' + _ppTinyCount;
 
         var defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
@@ -70,17 +69,6 @@
         });
         defs.appendChild(grad);
 
-        // Bevel trapezoid gradient: lit from bottom-left (opposing angle to main face)
-        var bevelGrad = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
-        bevelGrad.setAttribute('id', _bevelGradId);
-        bevelGrad.setAttribute('x1', '0'); bevelGrad.setAttribute('y1', '1');
-        bevelGrad.setAttribute('x2', '1'); bevelGrad.setAttribute('y2', '0');
-        [['0%','#d8d8d8'],['25%','#989898'],['55%','#b4b4b4'],['80%','#606060'],['100%','#484848']].forEach(function(s) {
-            var stop = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
-            stop.setAttribute('offset', s[0]); stop.setAttribute('stop-color', s[1]);
-            bevelGrad.appendChild(stop);
-        });
-        defs.appendChild(bevelGrad);
 
         function _makeBrushFilter(id, freqX, freqY, seed, contrast, base) {
             var c = contrast || 0.4, b = base !== undefined ? base : 0.25;
@@ -122,7 +110,7 @@
         // 45° sides: Δx=Δy=5.5 each ✓ — top edge y=69, x=6 to x=94
         var bevelPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         bevelPath.setAttribute('d', 'M 6,69 L 94,69 L 99.5,74.5 Q 99,75 98,75 L 2,75 Q 1,75 0.5,74.5 Z');
-        bevelPath.setAttribute('fill', 'url(#' + _bevelGradId + ')');
+        bevelPath.setAttribute('fill', '#c0c0c0');
         bevelPath.setAttribute('filter', 'url(#' + _bevelBrushId + ')');
         frameSvg.appendChild(bevelPath);
 
