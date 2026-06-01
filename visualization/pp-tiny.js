@@ -271,7 +271,7 @@
         // Anchored to the display's right edge (≈69%) at the display's
         // vertical midpoint (54% + 20% = 74%).
         var autoWrap = document.createElement('div');
-        autoWrap.style.cssText = 'position:absolute;left:65%;top:78%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:4%;pointer-events:none';
+        autoWrap.style.cssText = 'position:absolute;left:85%;top:92%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:4%;pointer-events:none';
 
         var autoLed = document.createElement('div');
         autoLed.style.cssText = [
