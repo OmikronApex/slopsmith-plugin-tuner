@@ -82,7 +82,9 @@
         });
         defs.appendChild(bevelGrad);
 
-        function _makeBrushFilter(id, freqX, freqY, seed) {
+        function _makeBrushFilter(id, freqX, freqY, seed, contrast, base) {
+            var c = contrast || 0.4, b = base !== undefined ? base : 0.25;
+            var v = c + ' 0 0 0 ' + b + '  ' + c + ' 0 0 0 ' + b + '  ' + c + ' 0 0 0 ' + b + '  0 0 0 1 0';
             var f = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
             f.setAttribute('id', id);
             f.setAttribute('color-interpolation-filters', 'sRGB');
@@ -91,7 +93,7 @@
             t.setAttribute('numOctaves', '2'); t.setAttribute('seed', seed); t.setAttribute('result', 'noise');
             var cm = document.createElementNS('http://www.w3.org/2000/svg', 'feColorMatrix');
             cm.setAttribute('type', 'matrix'); cm.setAttribute('in', 'noise');
-            cm.setAttribute('values', '0.4 0 0 0 0.25  0.4 0 0 0 0.25  0.4 0 0 0 0.25  0 0 0 1 0');
+            cm.setAttribute('values', v);
             cm.setAttribute('result', 'grayNoise');
             var bl = document.createElementNS('http://www.w3.org/2000/svg', 'feBlend');
             bl.setAttribute('in', 'SourceGraphic'); bl.setAttribute('in2', 'grayNoise');
@@ -101,8 +103,8 @@
             f.appendChild(t); f.appendChild(cm); f.appendChild(bl); f.appendChild(cp);
             return f;
         }
-        defs.appendChild(_makeBrushFilter(_brushId,      '0.65', '0.015', '3'));  // horizontal grain — main arc face
-        defs.appendChild(_makeBrushFilter(_bevelBrushId, '0.02',  '0.45', '7')); // vertical grain, different frequency — bevel face
+        defs.appendChild(_makeBrushFilter(_brushId,      '0.65', '0.015', '3', 0.4,  0.25)); // horizontal grain — main arc face
+        defs.appendChild(_makeBrushFilter(_bevelBrushId, '0.45', '0.015', '7', 0.65, 0.08)); // horizontal grain, lower freq, higher contrast — bevel face
 
         frameSvg.appendChild(defs);
 
