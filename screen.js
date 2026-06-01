@@ -148,10 +148,7 @@
         try {
             const config = await fetch('/api/plugins/tuner/config').then(r => r.json());
             _state._serverConfig = config;
-            // Normalise keys: handle servers still using old human-readable group names
-            const _oldKeyMap = { "Guitar": "guitar-6", "Guitar 7-string": "guitar-7", "Guitar 8-string": "guitar-8", "Bass 4-string": "bass-4", "Bass 5-string": "bass-5" };
-            const rawTunings = config.defaultTunings || {};
-            _state.defaultTunings = Object.fromEntries(Object.entries(rawTunings).map(([k, v]) => [_oldKeyMap[k] || k, v]));
+            _state.defaultTunings = config.defaultTunings || {};
             _state.showFloatingButton = config.showFloatingButton !== false;
             _state.visualizationMode = config.visualizationMode || 'default';
 
