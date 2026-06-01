@@ -69,6 +69,13 @@ Access advanced settings via the Slopsmith Plugin Manager (Settings -> Plugins -
 
 ## Changelog
 
+### [1.3.0] - 2026-06-01
+- Refactored `screen.js` into focused modules: audio pipeline extracted to `utils/audio.js`, UI layer extracted to `utils/ui.js` (shared-state factory pattern). `screen.js` reduced from ~1060 to ~300 lines.
+- Normalised `DEFAULT_TUNINGS` keys to instrument keys (`guitar-6`, `bass-4`, etc.) — removes the internal group-name lookup table.
+- Added plugin stylesheet (`assets/plugin.css`) via the Slopsmith styles contract, ensuring arbitrary Tailwind classes render correctly for runtime-installed users.
+- Moved SVG assets (`Bathroom.svg`, `Plunger.svg`, `Toiletbowl.svg`) to the root `assets/` directory; removed the now-redundant custom asset route from `routes.py`.
+- Moved Toilet Tuner to the end of the visualization picker list.
+
 ### [1.2.8] - 2026-05-31
 - Added Toilet Tuner visualization: bathroom scene background with a plunger that slides left/right proportional to cents deviation; dips into the toilet bowl when in tune (±2 cents) and shows a 💩 emoji on the wall calendar.
 
