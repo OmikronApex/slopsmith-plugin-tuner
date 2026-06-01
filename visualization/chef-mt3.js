@@ -189,6 +189,9 @@
 
         // Inner shadow — dark stroke on the inner-lower edge, simulates less light reaching far side
         var _shadowR  = _MT3_ARC_R - 6;
+        // Align shadow gradient vector to shadow arc's own endpoints (not the main arc's)
+        _shGrad.setAttribute('x1', (_MT3_cx + _shadowR * Math.cos(_MT3_ARC_START)).toFixed(2));
+        _shGrad.setAttribute('x2', (_MT3_cx + _shadowR * Math.cos(_MT3_ARC_START + _MT3_ARC_SPAN)).toFixed(2));
         var arcShadow = document.createElementNS(_SVG_NS, 'path');
         arcShadow.setAttribute('d',
             'M ' + (_MT3_cx + _shadowR * Math.cos(_MT3_ARC_START)).toFixed(2) + ' ' +
