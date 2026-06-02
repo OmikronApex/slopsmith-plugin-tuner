@@ -30,6 +30,7 @@
         _instrumentSentinel: null,
         selectedDeviceId: '',
         selectedChannel: 'mono',
+        audioInputMode: 'auto',
     };
     let _tunerUIApi = null;
 
@@ -151,6 +152,7 @@
             _state.defaultTunings = config.defaultTunings || {};
             _state.showFloatingButton = config.showFloatingButton !== false;
             _state.visualizationMode = config.visualizationMode || 'default';
+            _state.audioInputMode = config.audioInputMode || 'auto';
 
             if (config.lastInstrument && _state.defaultTunings[config.lastInstrument]) {
                 _state.selectedInstrument = config.lastInstrument;
@@ -204,7 +206,7 @@
     async function restartAudio() {
         _state.uiContainer?.querySelector('.tuner-mic-error')?.remove();
         try {
-            await window._tunerAudio.restart({ deviceId: _state.selectedDeviceId, channel: _state.selectedChannel });
+            await window._tunerAudio.restart({ deviceId: _state.selectedDeviceId, channel: _state.selectedChannel, audioInputMode: _state.audioInputMode });
         } catch (e) {
             console.error('Tuner: Failed to restart audio', e);
             disable();
@@ -254,7 +256,7 @@
         _state.uiContainer?.querySelector('.tuner-mic-error')?.remove();
         try {
             await window._tunerAudio.start(
-                { deviceId: _state.selectedDeviceId, channel: _state.selectedChannel },
+                { deviceId: _state.selectedDeviceId, channel: _state.selectedChannel, audioInputMode: _state.audioInputMode },
                 _tunerUIApi.updateUI
             );
             _state.enabled = true;

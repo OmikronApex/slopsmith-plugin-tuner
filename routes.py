@@ -69,7 +69,8 @@ def setup(app: FastAPI, context: dict):
             "customTunings": {},
             "disabledTunings": [],
             "showFloatingButton": True,
-            "visualizationMode": "default"
+            "visualizationMode": "default",
+            "audioInputMode": "auto"
         }
         if not config_file.exists():
             return defaults
@@ -85,6 +86,8 @@ def setup(app: FastAPI, context: dict):
             res["disabledTunings"] = data.get("disabledTunings", [])
             res["showFloatingButton"] = bool(data.get("showFloatingButton", True))
             res["visualizationMode"] = str(data.get("visualizationMode", "default"))
+            raw_mode = str(data.get("audioInputMode", "auto"))
+            res["audioInputMode"] = raw_mode if raw_mode in ("auto", "browser") else "auto"
 
             if not isinstance(res["customTunings"], dict):
                 res["customTunings"] = {}

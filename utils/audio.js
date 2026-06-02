@@ -19,6 +19,8 @@
     let _validFrameCount = 0;
     let _lastFreq = 0;
     let _onResult = null;
+    let _usingDesktopBridge = false;
+    let _bridgeInterval = null;
 
     function _octaveFold(freq, ref) {
         if (!ref || freq <= 0) return freq;
@@ -64,7 +66,59 @@
         if (_onResult) _onResult({ smoothedFreq, rms, hasSignal });
     }
 
-    async function _doStart(deviceId, channel) {
+    async function _tryBridgeStart(audioInputMode) {
+        if (audioInputMode === 'browser') return false;
+        var desktop = (typeof window !== 'undefined') ? window.slopsmithDesktop : null;
+        if (!desktop || !desktop.isDesktop || !desktop.audio
+            || typeof desktop.audio.getPitchDetection !== 'function'
+            || typeof desktop.audio.isAvailable !== 'function') return false;
+
+        var available = false;
+        try { available = await desktop.audio.isAvailable(); } catch (_) {}
+        if (!available) return false;
+
+        var mlActive = false;
+        try {
+            if (typeof desktop.audio.isMlNoteDetection === 'function') {
+                mlActive = (await desktop.audio.isMlNoteDetection()) === true;
+            }
+        } catch (_) {}
+        if (mlActive) {
+            console.log('[tuner] bridge skipped — ML detector active, using browser pipeline');
+            return false;
+        }
+
+        try {
+            var running = typeof desktop.audio.isAudioRunning === 'function'
+                ? await desktop.audio.isAudioRunning() : false;
+            if (!running && typeof desktop.audio.startAudio === 'function') {
+                await desktop.audio.startAudio();
+            }
+        } catch (_) {}
+
+        _usingDesktopBridge = true;
+        console.log('[tuner] using desktop JUCE bridge for audio input');
+
+        _bridgeInterval = setInterval(async function() {
+            try {
+                var p = await desktop.audio.getPitchDetection();
+                if (p && p.midiNote >= 0 && p.frequency > 0 && p.confidence >= 0.15) {
+                    if (_onResult) _onResult({ smoothedFreq: p.frequency, rms: 1.0, hasSignal: true });
+                } else {
+                    if (_onResult) _onResult({ smoothedFreq: null, rms: 0, hasSignal: false });
+                }
+            } catch (e) {
+                console.warn('[tuner] bridge poll failed:', e && e.message ? e.message : e);
+                if (_onResult) _onResult({ smoothedFreq: null, rms: 0, hasSignal: false });
+            }
+        }, 30);
+
+        return true;
+    }
+
+    async function _doStart(deviceId, channel, audioInputMode) {
+        var bridgeStarted = await _tryBridgeStart(audioInputMode || 'auto');
+        if (bridgeStarted) return;
         const constraints = {
             audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 2 }
         };
@@ -132,6 +186,8 @@
     }
 
     function _doStop() {
+        if (_bridgeInterval) { clearInterval(_bridgeInterval); _bridgeInterval = null; }
+        _usingDesktopBridge = false;
         if (_detectInterval) { clearInterval(_detectInterval); _detectInterval = null; }
         if (_yinWorker) { _yinWorker.terminate(); _yinWorker = null; }
         _processingFrame = false;
@@ -150,7 +206,7 @@
     window._tunerAudio = {
         start: async function(options, onResult) {
             _onResult = onResult;
-            await _doStart(options.deviceId, options.channel);
+            await _doStart(options.deviceId, options.channel, options.audioInputMode || 'auto');
         },
         stop: function() {
             _onResult = null;
@@ -158,7 +214,8 @@
         },
         restart: async function(options) {
             _doStop();
-            await _doStart(options.deviceId, options.channel);
+            await _doStart(options.deviceId, options.channel, options.audioInputMode || 'auto');
         },
+        get usingBridge() { return _usingDesktopBridge; },
     };
 })();

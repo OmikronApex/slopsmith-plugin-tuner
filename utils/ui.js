@@ -298,16 +298,20 @@ window._tunerUI = function(state, actions) {
             <div class="mb-2">
                 <span class="text-gray-400 font-semibold uppercase tracking-tighter">Audio Settings</span>
             </div>
-            <label class="block text-gray-500 mb-1">Microphone</label>
-            <select class="tuner-device-select w-full bg-dark-800 border border-gray-700 rounded px-2 py-1 text-gray-200 mb-2 outline-none focus:border-accent">
-                <option value="">Default</option>
-            </select>
-            <label class="block text-gray-500 mb-1">Input Channel</label>
-            <select class="tuner-channel-select w-full bg-dark-800 border border-gray-700 rounded px-2 py-1 text-gray-200 outline-none focus:border-accent">
-                <option value="mono" ${state.selectedChannel === 'mono' ? 'selected' : ''}>Mono (mix both)</option>
-                <option value="left" ${state.selectedChannel === 'left' ? 'selected' : ''}>Left (Channel 1)</option>
-                <option value="right" ${state.selectedChannel === 'right' ? 'selected' : ''}>Right (Channel 2)</option>
-            </select>
+            <div class="tuner-mic-section">
+                <label class="block text-gray-500 mb-1">Microphone</label>
+                <select class="tuner-device-select w-full bg-dark-800 border border-gray-700 rounded px-2 py-1 text-gray-200 mb-2 outline-none focus:border-accent">
+                    <option value="">Default</option>
+                </select>
+            </div>
+            <div class="tuner-channel-section">
+                <label class="block text-gray-500 mb-1">Input Channel</label>
+                <select class="tuner-channel-select w-full bg-dark-800 border border-gray-700 rounded px-2 py-1 text-gray-200 outline-none focus:border-accent">
+                    <option value="mono" ${state.selectedChannel === 'mono' ? 'selected' : ''}>Mono (mix both)</option>
+                    <option value="left" ${state.selectedChannel === 'left' ? 'selected' : ''}>Left (Channel 1)</option>
+                    <option value="right" ${state.selectedChannel === 'right' ? 'selected' : ''}>Right (Channel 2)</option>
+                </select>
+            </div>
             <label class="block text-gray-500 mb-1 mt-2">Visualization</label>
             <select class="tuner-viz-select w-full bg-dark-800 border border-gray-700 rounded px-2 py-1 text-gray-200 outline-none focus:border-accent">
                 <option value="default" ${state.visualizationMode === 'default' ? 'selected' : ''}>Default</option>
@@ -341,6 +345,13 @@ window._tunerUI = function(state, actions) {
         };
 
         populateDevices(panel);
+
+        if (window._tunerAudio && window._tunerAudio.usingBridge) {
+            var micSec = panel.querySelector('.tuner-mic-section');
+            var chanSec = panel.querySelector('.tuner-channel-section');
+            if (micSec) micSec.classList.add('hidden');
+            if (chanSec) chanSec.classList.add('hidden');
+        }
     }
 
     async function populateDevices(panel) {
