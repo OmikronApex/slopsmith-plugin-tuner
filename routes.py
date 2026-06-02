@@ -117,8 +117,11 @@ def setup(app: FastAPI, context: dict):
         config_file.write_text(json.dumps(current, indent=2), encoding="utf-8")
 
     _viz_dir = Path(__file__).parent / "visualization"
+    _viz_assets_dir = Path(__file__).parent / "visualization" / "assets"
     _workers_dir = Path(__file__).parent / "workers"
     _utils_dir = Path(__file__).parent / "utils"
+
+    _ASSET_MEDIA_TYPES = {".svg": "image/svg+xml", ".png": "image/png"}
 
     def _serve_js_from(base_dir: Path, filename: str) -> Response:
         target = (base_dir / filename).resolve()
@@ -130,9 +133,24 @@ def setup(app: FastAPI, context: dict):
             return Response(target.read_text(encoding="utf-8"), media_type="application/javascript")
         return Response("", status_code=404)
 
+    def _serve_asset_from(base_dir: Path, filename: str) -> Response:
+        target = (base_dir / filename).resolve()
+        try:
+            target.relative_to(base_dir.resolve())
+        except ValueError:
+            return Response("", status_code=404)
+        media_type = _ASSET_MEDIA_TYPES.get(target.suffix)
+        if media_type and target.is_file():
+            return Response(target.read_bytes(), media_type=media_type)
+        return Response("", status_code=404)
+
     @app.get("/api/plugins/tuner/visualization/{filename}")
     def get_viz_file(filename: str):
         return _serve_js_from(_viz_dir, filename)
+
+    @app.get("/api/plugins/tuner/viz-assets/{filename}")
+    def get_viz_asset(filename: str):
+        return _serve_asset_from(_viz_assets_dir, filename)
 
     @app.get("/api/plugins/tuner/workers/{filename}")
     def get_worker_file(filename: str):
