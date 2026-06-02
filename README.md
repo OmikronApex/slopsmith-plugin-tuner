@@ -33,6 +33,15 @@ This plugin adds a floating "Tuner" button to the Slopsmith interface, providing
 
 ## Installation
 
+### Download a Release
+1. Download one of the [Releases](https://github.com/OmikronApex/slopsmith-plugin-tuner/releases)
+2. Extract it to your plugins folder
+3. Restart Slopsmith
+
+### Update Manager
+The plugin is listed in the official plugin repository, so it can also be installed directly via the [Update Manager](https://github.com/masc0t/slopsmith-update-manager)
+
+### Git
 ```bash
 cd /path/to/slopsmith/plugins
 git clone https://github.com/OmikronApex/slopsmith-plugin-tuner.git tuner
