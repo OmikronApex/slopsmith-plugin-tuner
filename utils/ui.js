@@ -534,7 +534,14 @@ window._tunerUI = function(state, actions) {
     }
 
     function injectPlayerButton() {
-        const controls = document.getElementById('player-controls');
+        // v3: mount into the host's stable plugin-control slot (Plugins rail
+        // popover). The legacy `button:last-child` anchor resolves to a NESTED
+        // transport button in v3 and would throw on insertBefore; the slot is
+        // always present in v3, so that anchor is only used in the classic UI.
+        const slot = (window.slopsmith && window.slopsmith.uiVersion === 'v3'
+            && window.slopsmith.ui && typeof window.slopsmith.ui.playerControlSlot === 'function')
+            ? window.slopsmith.ui.playerControlSlot() : null;
+        const controls = slot || document.getElementById('player-controls');
         if (!controls || document.getElementById('btn-tuner-player')) return;
 
         const btn = document.createElement('button');
@@ -542,7 +549,7 @@ window._tunerUI = function(state, actions) {
         btn.textContent = 'Tuner';
         btn.title = 'Open Tuner';
         btn.onclick = window.tuner.toggle;
-        const closeBtn = controls.querySelector('button:last-child');
+        const closeBtn = slot ? null : controls.querySelector('button:last-child');
         if (closeBtn) controls.insertBefore(btn, closeBtn);
         else controls.appendChild(btn);
         updatePlayerButton();
