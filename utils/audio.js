@@ -70,23 +70,18 @@
         if (audioInputMode === 'browser') return false;
         var desktop = (typeof window !== 'undefined') ? window.slopsmithDesktop : null;
         if (!desktop || !desktop.isDesktop || !desktop.audio
-            || typeof desktop.audio.getPitchDetection !== 'function'
             || typeof desktop.audio.isAvailable !== 'function') return false;
 
         var available = false;
         try { available = await desktop.audio.isAvailable(); } catch (_) {}
         if (!available) return false;
 
-        var mlActive = false;
-        try {
-            if (typeof desktop.audio.isMlNoteDetection === 'function') {
-                mlActive = (await desktop.audio.isMlNoteDetection()) === true;
-            }
-        } catch (_) {}
-        if (mlActive) {
-            console.log('[tuner] bridge skipped — ML detector active, using browser pipeline');
-            return false;
-        }
+        // The tuner runs its own tuning-optimised YIN over the raw sample frame.
+        // The engine's getRawPitch endpoint is deliberately NOT used as a
+        // fallback — it produces a jittery readout. A build without
+        // getRawAudioFrame can't feed our pipeline, so fall back to getUserMedia
+        // instead of claiming the bridge.
+        if (typeof desktop.audio.getRawAudioFrame !== 'function') return false;
 
         try {
             var running = typeof desktop.audio.isAudioRunning === 'function'
@@ -97,18 +92,29 @@
         } catch (_) {}
 
         _usingDesktopBridge = true;
-        console.log('[tuner] using desktop JUCE bridge for audio input');
+        console.log('[tuner] using desktop JUCE bridge with raw audio + YIN');
+
+        var bridgeSampleRate = 48000;
+        try {
+            if (typeof desktop.audio.getSampleRate === 'function') {
+                var sr = await desktop.audio.getSampleRate();
+                if (typeof sr === 'number' && Number.isFinite(sr) && sr > 0) bridgeSampleRate = sr;
+            }
+        } catch (_) {}
+
+        _yinWorker = new Worker('/api/plugins/tuner/workers/yin.js');
+        _yinWorker.onmessage = function(e) { _handleYinResult(e.data); _processingFrame = false; };
+        _yinWorker.onerror = function(e) { console.error('Tuner: YIN worker error', e); _processingFrame = false; };
 
         _bridgeInterval = setInterval(async function() {
+            if (_processingFrame || !_yinWorker) return;
             try {
-                var p = await desktop.audio.getPitchDetection();
-                if (p && p.midiNote >= 0 && p.frequency > 0 && p.confidence >= 0.15) {
-                    if (_onResult) _onResult({ smoothedFreq: p.frequency, rms: 1.0, hasSignal: true });
-                } else {
-                    if (_onResult) _onResult({ smoothedFreq: null, rms: 0, hasSignal: false });
-                }
+                var samples = await desktop.audio.getRawAudioFrame(_TUNER_MIN_YIN_SAMPLES);
+                if (!samples || samples.length < _TUNER_MIN_YIN_SAMPLES) return;
+                _processingFrame = true;
+                _yinWorker.postMessage({ samples: samples, sampleRate: bridgeSampleRate }, [samples.buffer]);
             } catch (e) {
-                console.warn('[tuner] bridge poll failed:', e && e.message ? e.message : e);
+                console.warn('[tuner] bridge raw audio poll failed:', e && e.message ? e.message : e);
                 if (_onResult) _onResult({ smoothedFreq: null, rms: 0, hasSignal: false });
             }
         }, 30);
