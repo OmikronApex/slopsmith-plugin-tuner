@@ -10,6 +10,22 @@
         </label>
     </div>
 
+    <script>
+    if (window.slopsmithDesktop && window.slopsmithDesktop.isDesktop) {
+        document.currentScript.insertAdjacentHTML('beforebegin', `
+    <div class="flex items-center justify-between bg-dark-900/50 p-3 rounded-xl border border-gray-800/50">
+        <div>
+            <h3 class="text-sm font-medium text-gray-200">Force Browser Audio</h3>
+            <p class="text-[11px] text-gray-500">Use the browser microphone pipeline instead of the desktop audio engine.</p>
+        </div>
+        <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="tuner-force-browser-audio" class="sr-only peer" onchange="window._tunerToggleBrowserAudio(this.checked)">
+            <div class="w-9 h-5 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-accent"></div>
+        </label>
+    </div>`);
+    }
+    </script>
+
     <div>
         <h3 class="text-sm font-medium text-gray-400 mb-3">Tuning Visibility</h3>
         <p class="text-xs text-gray-500 mb-4">Toggle which built-in tunings appear in the tuner menu.</p>
@@ -61,7 +77,7 @@
 
     <script>
         (function() {
-            let config = { customTunings: {}, disabledTunings: [], defaultTunings: {}, showFloatingButton: true };
+            let config = { customTunings: {}, disabledTunings: [], defaultTunings: {}, showFloatingButton: true, audioInputMode: 'auto' };
             let expandedGroups = [];
 
             var _INSTRUMENT_CAPTIONS = {
@@ -88,12 +104,20 @@
                     const floatingToggle = document.getElementById('tuner-show-floating');
                     if (floatingToggle) floatingToggle.checked = config.showFloatingButton !== false;
 
+                    const browserAudioToggle = document.getElementById('tuner-force-browser-audio');
+                    if (browserAudioToggle) browserAudioToggle.checked = config.audioInputMode === 'browser';
+
                     render();
                 } catch (e) { console.error('Tuner settings: load failed', e); }
             }
 
             window._tunerToggleFloating = (enabled) => {
                 config.showFloatingButton = enabled;
+                save();
+            };
+
+            window._tunerToggleBrowserAudio = (forceBrowser) => {
+                config.audioInputMode = forceBrowser ? 'browser' : 'auto';
                 save();
             };
 

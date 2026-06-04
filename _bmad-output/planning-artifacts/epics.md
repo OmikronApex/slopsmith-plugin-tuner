@@ -1,5 +1,5 @@
 ---
-stepsCompleted: ['step-01', 'step-02', 'step-03', 'step-04', 'epic2-step-01', 'epic2-step-02', 'epic2-step-03', 'epic3-step-01', 'epic3-step-02', 'epic3-step-03', 'epic4-step-01', 'epic4-step-02', 'epic4-step-03', 'epic5-step-01', 'epic5-step-02', 'epic6-step-01', 'epic6-step-02']
+stepsCompleted: ['step-01', 'step-02', 'step-03', 'step-04', 'epic2-step-01', 'epic2-step-02', 'epic2-step-03', 'epic3-step-01', 'epic3-step-02', 'epic3-step-03', 'epic4-step-01', 'epic4-step-02', 'epic4-step-03', 'epic5-step-01', 'epic5-step-02', 'epic6-step-01', 'epic6-step-02', 'epic7-step-01', 'epic7-step-02']
 inputDocuments:
   - _bmad-output/planning-artifacts/prds/prd-slopsmith-plugin-tuner-2026-05-30/prd.md
   - _bmad-output/project-context.md
@@ -184,6 +184,7 @@ No UX Design document exists yet. Story 2.1 will produce `_bmad-output/planning-
 ### Epic 4: Axe-Fx III Visualization
 ### Epic 5: Toilet Tuner Visualization
 ### Epic 6: PP-Tiny Visualization
+### Epic 7: Infrastructure — Asset Endpoint Isolation & JUCE Audio Bridge
 
 Establish a formal architecture document for the slopsmith-plugin-tuner using the BMad workflow, providing AI agents and contributors with authoritative system design guidance; then implement code corrections surfaced during the architectural review.
 
@@ -878,3 +879,146 @@ so that I can tune accurately using a familiar pedal-style interface.
 **Given** the RAF animation loop is running
 **When** `destroy()` is called
 **Then** all RAF IDs are cancelled; all DOM nodes removed from container
+
+---
+
+### New Functional Requirements (Epic 7 — Infrastructure: Asset Endpoint Isolation & JUCE Audio Bridge)
+
+#### Part A — Visualization Asset Relocation
+
+- **FR-VA-01:** SVG assets (`Bathroom.svg`, `Plunger.svg`, `Toiletbowl.svg`) shall be relocated from the root-level `assets/` folder to `visualization/assets/` subfolder.
+- **FR-VA-02:** A new route `GET /api/plugins/tuner/viz-assets/{filename}` shall serve static asset files (`.svg`, `.png`) from `visualization/assets/`, guarded by the same `.resolve()` + `.relative_to()` path-traversal check used by all other file-serving routes in `routes.py`.
+- **FR-VA-03:** `toilet-tuner.js` shall reference all SVG assets via `/api/plugins/tuner/viz-assets/<filename>` — not via any path under `/api/plugins/tuner/visualization/` or any path that overlaps Slopsmith's host `/api/assets/` namespace.
+- **FR-VA-04:** The existing `/api/plugins/tuner/visualization/{filename}` route shall continue to serve only `.js` files; requests for `.svg` or other non-JS extensions return 404 (existing behaviour, formally enforced).
+
+#### Part B — JUCE Audio Bridge
+
+- **FR-JB-01:** At startup, `screen.js` shall probe for the Slopsmith Desktop Electron IPC bridge by checking `window.slopsmithDesktop?.isDesktop`, `typeof window.slopsmithDesktop.audio?.getPitchDetection === 'function'`, `await window.slopsmithDesktop.audio.isAvailable()`, and `(await window.slopsmithDesktop.audio.isMlNoteDetection()) === false`. All four conditions must be true to activate bridge mode. The ML check is mandatory: the BasicPitch ML detector always returns `cents = 0.0` (discrete pitch class only), which would render the tuner useless.
+- **FR-JB-02:** In bridge mode, the plugin polls `window.slopsmithDesktop.audio.getPitchDetection()` on a 30 ms interval. The returned `{ frequency, cents, midiNote, confidence }` struct (from `PitchDetector::Detection`) is consumed directly: `frequency` and `cents` are already computed by the native YIN detector running on a background thread inside the JUCE engine. `midiNote` is used to derive the note-class string (stripping the octave suffix from `noteName`, or computing from `midiNote % 12`). The YIN Web Worker and `ScriptProcessorNode` pipeline are not started.
+- **FR-JB-03:** If any probe condition fails (bridge absent, engine unavailable, ML active), the plugin silently starts the existing `getUserMedia` + YIN Worker pipeline instead. No user-facing indication of the fallback is required; a `console.log` noting the active path is sufficient.
+- **FR-JB-04:** A `audioInputMode` config field (`"auto"` | `"browser"`) shall be persisted server-side in `tuner.json`. Default: `"auto"`. When `"auto"`, bridge mode is used when available and all probe conditions pass; when `"browser"`, the Web Audio pipeline is always used regardless of bridge availability. The settings panel exposes this toggle only when `window.slopsmithDesktop?.isDesktop` is true (irrelevant in browser context).
+- **FR-JB-05:** When bridge mode is active, the audio device selector and channel selector in the settings panel are hidden or disabled — they have no effect when the JUCE engine owns the audio device.
+- **FR-JB-06:** Each IPC poll is wrapped in try/catch. A thrown error or `midiNote < 0` / `frequency <= 0` from the result is treated as no-signal for that tick (same semantics as `rms < 0.01` in the YIN worker path). Failures are logged at `console.warn` level. No reconnect or retry logic is required — the next scheduled poll fires normally. If the engine stops mid-session the tuner displays no pitch detected until the engine resumes or the user switches to browser mode.
+
+### Applicable NFRs (Epic 7)
+
+- **NFR-03** — no external JS or Python libs introduced
+- **NFR-05** — all error paths (missing bridge, engine stop, IPC throw, path traversal) caught and handled; no unhandled exceptions
+
+### Additional Requirements (Epic 7)
+
+- `routes.py` changes in Story 7.1 follow existing patterns: `pathlib.Path`, `.resolve()` + `.relative_to()` guard, `Response` with appropriate `media_type`
+- Story 7.2 is a pure `screen.js` change — `routes.py` is untouched
+- `audioInputMode` config key follows existing partial-update pattern: only the changed field is POST'd; `_write()` merges with existing config
+
+### FR Coverage Map (Epic 7)
+
+- **FR-VA-01:** Epic 7 (Story 7.1) — SVG assets moved from `assets/` to `visualization/assets/`
+- **FR-VA-02:** Epic 7 (Story 7.1) — New `/viz-assets/` route in `routes.py`
+- **FR-VA-03:** Epic 7 (Story 7.1) — `toilet-tuner.js` references updated
+- **FR-VA-04:** Epic 7 (Story 7.1) — `.js`-only enforcement on `/visualization/` route (documented)
+- **FR-JB-01:** Epic 7 (Story 7.2) — Bridge probe logic in `startAudio()`
+- **FR-JB-02:** Epic 7 (Story 7.2) — Poll loop consuming `{ frequency, cents, midiNote }`
+- **FR-JB-03:** Epic 7 (Story 7.2) — Silent fallback to Web Audio pipeline
+- **FR-JB-04:** Epic 7 (Story 7.2) — `audioInputMode` config field + settings toggle
+- **FR-JB-05:** Epic 7 (Story 7.2) — Device/channel selector hide in bridge mode
+- **FR-JB-06:** Epic 7 (Story 7.2) — Per-tick catch, no-signal handling, console.warn
+
+---
+
+## Epic 7: Infrastructure — Asset Endpoint Isolation & JUCE Audio Bridge
+
+Cleanly separate visualization static assets onto a dedicated `/viz-assets/` API route, eliminating collision risk with Slopsmith's host `/api/assets/` namespace and making SVGs actually reachable. Separately, implement a JUCE Bridge audio input path so the tuner taps into Slopsmith Desktop's native YIN detector (already running inside the JUCE engine) as a first-class input source — bypassing the browser Web Audio pipeline entirely when running in the desktop app. The bridge is gated on YIN mode only: if the engine has switched to the BasicPitch ML detector (which produces no cents data), the tuner falls back to its own browser pipeline automatically. The existing Web Audio pipeline remains the default everywhere and a hard fallback in all other cases.
+
+**FRs covered:** FR-VA-01 through FR-VA-04, FR-JB-01 through FR-JB-06
+**NFRs:** NFR-03, NFR-05
+
+---
+
+### Story 7.1: Relocate Visualization Assets to Dedicated Endpoint
+
+As a developer maintaining the slopsmith-plugin-tuner,
+I want SVG visualization assets served from a dedicated `/viz-assets/` route backed by a `visualization/assets/` subfolder,
+So that asset URLs are unambiguous, non-colliding with Slopsmith's host asset namespace, and reliably reachable by visualization code.
+
+**Acceptance Criteria:**
+
+**Given** the files `Bathroom.svg`, `Plunger.svg`, and `Toiletbowl.svg` currently reside in `assets/`
+**When** Story 7.1 is complete
+**Then** those three files exist at `visualization/assets/Bathroom.svg`, `visualization/assets/Plunger.svg`, and `visualization/assets/Toiletbowl.svg`; the root `assets/` folder no longer contains them
+
+**Given** `routes.py` is updated
+**When** `GET /api/plugins/tuner/viz-assets/Bathroom.svg` is requested
+**Then** the response is the SVG file contents with `Content-Type: image/svg+xml`; path-traversal is guarded by `.resolve()` + `.relative_to(base_dir.resolve())` identical to the existing JS-serving pattern
+
+**Given** a path-traversal attempt such as `GET /api/plugins/tuner/viz-assets/../routes.py`
+**When** the route handler evaluates the path
+**Then** the response is 404 — the traversal guard rejects it
+
+**Given** `toilet-tuner.js` references assets
+**When** the visualization renders
+**Then** all three `<img>` src attributes use `/api/plugins/tuner/viz-assets/<filename>` — no reference to `/api/plugins/tuner/visualization/` or `/api/assets/` remains
+
+**Given** the existing `/api/plugins/tuner/visualization/{filename}` route
+**When** a `.svg` filename is requested via that route
+**Then** the response is 404 — the `.js`-only suffix check rejects non-JS requests (existing behaviour confirmed and documented)
+
+**Given** the Toilet Tuner visualization is loaded and the new routes are in place
+**When** the panel renders in a running Slopsmith instance
+**Then** all three SVG images display correctly — the bathroom background, plunger, and toilet bowl overlay are visible as expected
+
+---
+
+### Story 7.2: Implement JUCE Bridge Audio Input
+
+As a musician using the Slopsmith Desktop app,
+I want the tuner plugin to receive pitch data from the desktop's native JUCE audio engine instead of opening its own browser microphone stream,
+So that I get lower-latency, higher-quality tuning that works reliably on all desktop platforms (including Linux where Chromium denies `getUserMedia` to localhost renderers), without needing to configure a separate audio device in the browser.
+
+**Acceptance Criteria:**
+
+> **⚠️ Revised 2026-06-04 — design changed during implementation.** The original ACs below described polling the engine's pre-computed pitch (`getPitchDetection` / `getRawPitch`) and gating on the ML detector. That produced a jittery readout, so the shipped design instead taps the engine's **raw audio stream** (`getRawAudioFrame`) and runs the tuner's **own YIN worker** over it; `getRawPitch`/`getPitchDetection` and all ML-gating were removed. The authoritative, current acceptance criteria live in `_bmad-output/implementation-artifacts/7-2-implement-juce-bridge-audio-input.md` (ACs 1–11). The summary below is kept in sync with that file.
+
+**Given** the plugin loads inside Slopsmith Desktop with the JUCE audio engine running
+**When** `startAudio()` is called and the probe passes (`isDesktop`, `isAvailable()` true, `getRawAudioFrame` present)
+**Then** bridge mode is activated: `usingDesktopBridge` is set; `audio.startAudio()` is called if the engine is not yet running; a 30 ms poll loop pulls `getRawAudioFrame(_TUNER_MIN_YIN_SAMPLES)` and feeds the frames to the tuner's own YIN Web Worker; `ScriptProcessorNode` and `getUserMedia` are not called
+
+**Given** the bridge poll loop is running
+**When** a raw audio frame is returned
+**Then** the frame is copied (not transferred) and posted to the YIN worker; the worker result flows through `_handleYinResult` → `_onResult` exactly as on the browser path; the sample rate is read once via `getSampleRate()` (fallback 48000); only one frame is in flight at a time (back-pressure guard with a watchdog)
+
+**Given** a poll throws, or returns a short/empty/non-`Float32Array` frame
+**When** the tick runs
+**Then** a throw is logged at `console.warn` with a `[tuner]` prefix and reported as no-signal (`{ smoothedFreq: null, rms: 0, hasSignal: false }`); a short/empty frame is skipped; the interval continues
+
+**Given** the addon does not expose `getRawAudioFrame` (downlevel build)
+**When** the bridge probe runs
+**Then** the probe returns false and the `getUserMedia` + YIN pipeline starts; no console warning is shown; `getRawPitch` is NOT used as a fallback
+
+**Given** the plugin loads in a regular browser (no `window.slopsmithDesktop`)
+**When** `startAudio()` runs
+**Then** the bridge probe is skipped entirely; `getUserMedia` + YIN pipeline starts as before — no regression
+
+**Given** `audioInputMode` is `"browser"` in `tuner.json`
+**When** `startAudio()` runs inside Slopsmith Desktop
+**Then** the bridge probe is bypassed regardless of bridge availability; the Web Audio pipeline starts
+
+**Given** bridge mode is active and the settings panel is open
+**When** the audio device selector and channel selector are rendered
+**Then** both controls are hidden (audio is provided by the desktop engine)
+
+**Given** the `audioInputMode` toggle in the Plugin Manager settings page is changed
+**When** the change is saved
+**Then** a `POST /api/plugins/tuner/config` partial update persists `{ audioInputMode }` and it survives a reload; the running tuner is NOT restarted from this page — the change takes effect the next time the tuner panel is opened
+
+**Given** the bridge poll loop is running
+**When** `stopAudio()` is called (panel close, navigation, or destroy)
+**Then** `clearInterval` fires on the poll interval AND the YIN worker is terminated; `usingDesktopBridge` resets to false; no orphaned interval or worker continues
+
+**Given** the YIN worker receives a frame
+**When** it selects the fundamental
+**Then** it uses the canonical absolute-threshold step (first local minimum below threshold), not the global minimum, so sub-octave / sub-harmonic errors are rejected at the source; the global minimum is only a no-crossing fallback
+
+**Given** auto mode with a selected tuning
+**When** a detected pitch is matched to a string
+**Then** matching is octave-aware (octave-folded distance, smallest-shift tie-break); displayed cents/frequency are folded into the matched octave; a 40-cent hysteresis prevents flicker; committed-target state resets on tuning change and signal loss

@@ -15,7 +15,7 @@
 
     // ── Constants ─────────────────────────────────────────────────────
     var _TUNER_TT_IN_TUNE_THR  = 2;
-    var _TUNER_TT_ASSET_BASE   = '/api/plugins/tuner/assets/';
+    var _TUNER_TT_ASSET_BASE   = '/api/plugins/tuner/viz-assets/';
 
     // Positions derived from Bathroom.svg 0-1024 coordinate space.
     // Bowl ellipse centre: x=512 (50%), y=673 (65.7%), semi-major=99 (9.7%).

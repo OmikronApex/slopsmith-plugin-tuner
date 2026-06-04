@@ -81,6 +81,13 @@ Access advanced settings via the Slopsmith Plugin Manager (Settings -> Plugins -
 
 ## Changelog
 
+### [1.3.1] - 2026-06-04
+- JUCE bridge audio input: when running inside Slopsmith Desktop the tuner taps the engine's raw audio stream (`getRawAudioFrame`) and runs its own tuning-optimised YIN over it, falling back to the browser microphone pipeline otherwise.
+- Fixed octave-low / sub-harmonic pitch errors (canonical YIN absolute-threshold selection) and added octave-aware nearest-string matching.
+- "Free Tune" is now remembered as your last tuning, so it persists across sessions instead of resetting to a preset each time.
+- Relocated visualization SVG assets to `visualization/assets/`, served via the dedicated `/api/plugins/tuner/viz-assets/` route (supersedes the 1.3.0 note about the root `assets/` directory).
+- Removed the legacy Tailwind stylesheet (`assets/plugin.css`) and its `styles` manifest entry — supersedes the 1.3.0 stylesheet note below.
+
 ### [1.3.0] - 2026-06-01
 - Added PP-Tiny visualization: inspired by the Fender PT-100 chromatic tuner panel, with a curved 11-LED arc, 8-segment note display with split centre bar, and always-on BATT. indicator.
 - Added CHEF MT-3 visualization: inspired by the BOSS TU-3, featuring a 90° curved glass gauge arc, 51 tick marks, red 7-segment display, and rubber mode/brightness buttons.

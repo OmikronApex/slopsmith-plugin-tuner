@@ -1,5 +1,9 @@
 # Deferred Work
 
+## Deferred from: code review of story 7-2 (2026-06-04)
+
+- **`_lastTuningRef` compared by reference** (`utils/ui.js`, committed-target reset) — An in-place mutation of the selected-tuning array, or re-selecting a tuning whose array object is cached in `state.tunings`, would not trigger the `_lastAutoTargetFreq` reset, so a stale committed target could survive the transition and pin the meter to a string not in the new tuning until the 40-cent hysteresis is overcome. Low likelihood — current call sites reassign `state.selectedTuning` on every change. Cheap hardening: also clear `_lastAutoTargetFreq` when it is no longer a member of `state.selectedTuning`.
+
 ## Deferred from: code review of stories 5.1 & 5.2 (2026-05-31)
 
 - **SVG file read unbounded** (`routes.py` `_serve_svg_from`) — `read_text()` loads entire file synchronously; large/malformed SVG blocks server thread. Pre-existing pattern identical to `_serve_js_from`; low risk for static assets under dev control.

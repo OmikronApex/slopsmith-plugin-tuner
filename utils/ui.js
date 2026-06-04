@@ -1,4 +1,39 @@
 window._tunerUI = function(state, actions) {
+    const _AUTO_TARGET_HYSTERESIS_CENTS = 40;
+    let _lastAutoTargetFreq = null;
+    let _lastTuningRef = null;
+
+    // Octave-aware nearest-string match. YIN frequently reports a sub-octave on
+    // low strings (D1 instead of D2) and a common sub-harmonic on polyphonic
+    // plucks (D+G together → G0), which a raw-distance match snaps to the wrong
+    // (lower) string. Fold the detected frequency into each candidate string's
+    // octave before measuring distance so an octave-off reading still resolves
+    // to the right string. Ties — a tuning with the same pitch class in two
+    // octaves, e.g. guitar E2/E4 — resolve to the smallest octave shift, i.e.
+    // the octave actually being played. Returns the matched string frequency
+    // and the detected frequency folded into that string's octave.
+    function _matchString(detected, strings) {
+        let bestFreq = null, bestResidual = Infinity, bestShift = Infinity;
+        for (const f of strings) {
+            if (!Number.isFinite(f) || f <= 0) continue; // skip malformed tuning entries
+            const shift = Math.round(Math.log2(f / detected));
+            const corrected = detected * Math.pow(2, shift);
+            const residual = Math.abs(Math.log2(corrected / f)) * 1200;
+            if (residual < bestResidual - 1
+                || (Math.abs(residual - bestResidual) <= 1 && Math.abs(shift) < bestShift)) {
+                bestFreq = f; bestResidual = residual; bestShift = Math.abs(shift);
+            }
+        }
+        return bestFreq; // null when no usable string frequency exists
+    }
+
+    // Fold a detected frequency into the same octave as a known target, so cents
+    // and the displayed Hz reflect deviation within the octave rather than a
+    // ±1200 swing when the detector reports the wrong octave.
+    function _foldToOctaveOf(detected, target) {
+        return detected * Math.pow(2, Math.round(Math.log2(target / detected)));
+    }
+
     const _INSTRUMENT_DISPLAY = {
         'guitar-6': 'Guitar (6)', 'guitar-7': 'Guitar (7)', 'guitar-8': 'Guitar (8)',
         'bass-4': 'Bass (4)', 'bass-5': 'Bass (5)',
@@ -232,29 +267,52 @@ window._tunerUI = function(state, actions) {
         const { smoothedFreq, rms, hasSignal } = result;
         const vizMode = state.manualTargetFreq ? 'manual' : (state.selectedTuning && state.selectedTuning.length > 0 ? 'auto' : 'free');
 
-        if (smoothedFreq === null) {
+        // Treat null / non-finite / non-positive as no-signal. A 0, NaN or
+        // negative frequency would otherwise propagate through log2/division
+        // below into NaN cents and a garbage readout.
+        if (smoothedFreq === null || !Number.isFinite(smoothedFreq) || smoothedFreq <= 0) {
+            _lastAutoTargetFreq = null;
             if (state.activeViz) state.activeViz.update(null, 0, 0, vizMode);
             _syncStringHighlight(state.manualTargetFreq);
             return;
         }
 
-        let targetFreq, isManual = false;
+        // Reset the committed target when the tuning selection changes.
+        if (state.selectedTuning !== _lastTuningRef) {
+            _lastAutoTargetFreq = null;
+            _lastTuningRef = state.selectedTuning;
+        }
+
+        let targetFreq, isManual = false, displayFreq = smoothedFreq;
         if (state.manualTargetFreq) {
             targetFreq = state.manualTargetFreq;
             isManual = true;
-        } else if (state.selectedTuning && state.selectedTuning.length > 0) {
-            targetFreq = state.selectedTuning.reduce(
-                (best, f) => Math.abs(smoothedFreq - f) < Math.abs(smoothedFreq - best) ? f : best,
-                state.selectedTuning[0]
-            );
+        } else if (state.selectedTuning && state.selectedTuning.length > 0
+                   && _matchString(smoothedFreq, state.selectedTuning) !== null) {
+            let nearest = _matchString(smoothedFreq, state.selectedTuning);
+            // Hysteresis: once committed to a string, only switch when the new
+            // match is clearly closer (≥40 cents), so a pluck that lands between
+            // two strings can't flicker. Octave-aware residuals keep an octave
+            // error from ever masquerading as a different string.
+            if (_lastAutoTargetFreq !== null && nearest !== _lastAutoTargetFreq) {
+                const residualNew = Math.abs(Math.log2(_foldToOctaveOf(smoothedFreq, nearest) / nearest)) * 1200;
+                const residualPrev = Math.abs(Math.log2(_foldToOctaveOf(smoothedFreq, _lastAutoTargetFreq) / _lastAutoTargetFreq)) * 1200;
+                if (residualPrev - residualNew < _AUTO_TARGET_HYSTERESIS_CENTS) nearest = _lastAutoTargetFreq;
+            }
+            _lastAutoTargetFreq = nearest;
+            targetFreq = nearest;
         } else {
             targetFreq = window._tunerUtils.midiToFreq(Math.round(window._tunerUtils.freqToMidi(smoothedFreq)));
         }
 
-        const cents = (window._tunerUtils.freqToMidi(smoothedFreq) - window._tunerUtils.freqToMidi(targetFreq)) * 100;
+        // Fold the reading into the target's octave so a sub-octave detection
+        // (D1 read for a D2 string) shows the right note and real cents.
+        if (!isManual && targetFreq) displayFreq = _foldToOctaveOf(smoothedFreq, targetFreq);
+
+        const cents = (window._tunerUtils.freqToMidi(displayFreq) - window._tunerUtils.freqToMidi(targetFreq)) * 100;
         const note = window._tunerUtils.midiToNote(window._tunerUtils.freqToMidi(targetFreq));
 
-        if (state.activeViz) state.activeViz.update(note, cents, smoothedFreq, vizMode, targetFreq);
+        if (state.activeViz) state.activeViz.update(note, cents, displayFreq, vizMode, targetFreq);
         _syncActiveStringFromFreq(targetFreq, isManual);
     }
 
@@ -298,16 +356,20 @@ window._tunerUI = function(state, actions) {
             <div class="mb-2">
                 <span class="text-gray-400 font-semibold uppercase tracking-tighter">Audio Settings</span>
             </div>
-            <label class="block text-gray-500 mb-1">Microphone</label>
-            <select class="tuner-device-select w-full bg-dark-800 border border-gray-700 rounded px-2 py-1 text-gray-200 mb-2 outline-none focus:border-accent">
-                <option value="">Default</option>
-            </select>
-            <label class="block text-gray-500 mb-1">Input Channel</label>
-            <select class="tuner-channel-select w-full bg-dark-800 border border-gray-700 rounded px-2 py-1 text-gray-200 outline-none focus:border-accent">
-                <option value="mono" ${state.selectedChannel === 'mono' ? 'selected' : ''}>Mono (mix both)</option>
-                <option value="left" ${state.selectedChannel === 'left' ? 'selected' : ''}>Left (Channel 1)</option>
-                <option value="right" ${state.selectedChannel === 'right' ? 'selected' : ''}>Right (Channel 2)</option>
-            </select>
+            <div class="tuner-mic-section">
+                <label class="block text-gray-500 mb-1">Microphone</label>
+                <select class="tuner-device-select w-full bg-dark-800 border border-gray-700 rounded px-2 py-1 text-gray-200 mb-2 outline-none focus:border-accent">
+                    <option value="">Default</option>
+                </select>
+            </div>
+            <div class="tuner-channel-section">
+                <label class="block text-gray-500 mb-1">Input Channel</label>
+                <select class="tuner-channel-select w-full bg-dark-800 border border-gray-700 rounded px-2 py-1 text-gray-200 outline-none focus:border-accent">
+                    <option value="mono" ${state.selectedChannel === 'mono' ? 'selected' : ''}>Mono (mix both)</option>
+                    <option value="left" ${state.selectedChannel === 'left' ? 'selected' : ''}>Left (Channel 1)</option>
+                    <option value="right" ${state.selectedChannel === 'right' ? 'selected' : ''}>Right (Channel 2)</option>
+                </select>
+            </div>
             <label class="block text-gray-500 mb-1 mt-2">Visualization</label>
             <select class="tuner-viz-select w-full bg-dark-800 border border-gray-700 rounded px-2 py-1 text-gray-200 outline-none focus:border-accent">
                 <option value="default" ${state.visualizationMode === 'default' ? 'selected' : ''}>Default</option>
@@ -341,6 +403,13 @@ window._tunerUI = function(state, actions) {
         };
 
         populateDevices(panel);
+
+        if (window._tunerAudio && window._tunerAudio.usingBridge) {
+            var micSec = panel.querySelector('.tuner-mic-section');
+            var chanSec = panel.querySelector('.tuner-channel-section');
+            if (micSec) micSec.classList.add('hidden');
+            if (chanSec) chanSec.classList.add('hidden');
+        }
     }
 
     async function populateDevices(panel) {
@@ -464,7 +533,9 @@ window._tunerUI = function(state, actions) {
             state.manualTargetFreq = null;
             renderStringNotes();
             _updateSaveAsCustomVisibility();
-            if (state.selectedTuningName !== '_current' && state.selectedTuningName !== 'free-tune') actions.saveConfig();
+            // Persist every choice except the live song tuning ('_current');
+            // 'free-tune' is a real preference and should be remembered.
+            if (state.selectedTuningName !== '_current') actions.saveConfig();
         };
         selectorRow.appendChild(state.tuningSelect);
         state.uiContainer.appendChild(selectorRow);
