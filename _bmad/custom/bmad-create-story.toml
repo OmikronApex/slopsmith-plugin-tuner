@@ -1,5 +1,41 @@
 [workflow]
 
+persistent_facts = [
+"""
+This project has an automated test suite. When writing a story, keep the following in mind:
+
+**Test suite layout:**
+- `tests/js/yin.unit.test.js` — unit tests for the YIN pitch detection algorithm (`_yinDetect`):
+  synthetic sine waves at each guitar string frequency, silence/sub-threshold rejection, confidence and rms checks.
+- `tests/js/yin.wav.test.js` — WAV fixture integration tests: auto-discovers every
+  `<Note><Octave>_<FreqHz>Hz.wav` file in `tests/fixtures/audio/` and asserts the detected
+  frequency is within 2% of the filename value. Add new fixtures by dropping a WAV file there
+  or running `python tests/fixtures/generate_audio.py`.
+- `tests/python/test_config.py` — unit and HTTP tests for `_migrate_custom_tuning` and the
+  config read/write/defaults logic in `routes.py`.
+- `tests/python/test_routes.py` — HTTP endpoint tests: file-serving routes, path traversal
+  guards, config POST/GET.
+- Run JS tests:  node --test tests/js/yin.unit.test.js tests/js/yin.wav.test.js
+- Run Python tests: pytest
+
+**When to expand the tests:**
+- Story touches YIN / pitch detection / audio accumulation logic → add or update unit tests
+  in `yin.unit.test.js`; if the change could affect detection accuracy for real audio, add a
+  WAV fixture and a corresponding entry in `yin.wav.test.js`.
+- Story changes config schema, defaults, or migration logic in `routes.py` → add or update
+  cases in `test_config.py`.
+- Story adds or changes an API route, file-serving endpoint, or path-traversal guard → add
+  or update cases in `test_routes.py`.
+- Story is purely UI/visualization with no audio or backend changes → no test changes needed.
+
+**Story authoring rules:**
+- If the story is in scope for tests, include an explicit acceptance criterion:
+  "All existing tests pass; new/modified tests added for the changed behaviour."
+- Add a concrete dev task: "Expand test suite — <describe what to test>" so the implementing
+  agent knows exactly what to cover.
+""",
+]
+
 on_complete = """
 Create a GitHub issue for the story file you just saved using the gh CLI.
 

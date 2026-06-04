@@ -5,10 +5,14 @@
  * { freq, confidence, rms }. The samples ArrayBuffer should be passed
  * as transferable so no copy occurs across the worker boundary.
  */
-self.onmessage = (e) => {
-    const { samples, sampleRate } = e.data;
-    self.postMessage(_yinDetect(samples, sampleRate));
-};
+// Guard allows the file to be required in Node.js test environments where
+// `self` is not defined; the worker message handler only runs in the browser.
+if (typeof self !== 'undefined') {
+    self.onmessage = (e) => {
+        const { samples, sampleRate } = e.data;
+        self.postMessage(_yinDetect(samples, sampleRate));
+    };
+}
 
 function _yinDetect(buffer, sampleRate) {
     const threshold = 0.15;
@@ -79,3 +83,7 @@ function _yinDetect(buffer, sampleRate) {
 
     return { freq: sampleRate / betterTau, confidence: 1 - yinBuffer[tau], rms };
 }
+
+// Allow direct import in Node.js test environments; harmless in browser workers
+// where the `module` global is undefined.
+if (typeof module !== 'undefined') module.exports = { _yinDetect };
