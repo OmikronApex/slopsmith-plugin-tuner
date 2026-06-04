@@ -32,6 +32,15 @@ activation_steps_prepend = [
 on_complete = """
 After the story status is set to "review", perform these steps:
 
+**Step 0 — Run the test suite:**
+- Run the JS tests:
+  node --test tests/js/yin.unit.test.js tests/js/yin.wav.test.js
+- Run the Python tests:
+  pytest
+- If either suite reports failures, STOP. Do not commit or push.
+  Report which tests failed and ask the user whether to fix them now or skip CI for this story.
+- Only proceed to Step 1 once both suites pass (or the user explicitly says to skip).
+
 **Step 1 — Commit story work:**
 - Run git status to identify all new and modified files produced by this story.
 - Stage only the relevant files (story file, any source files, planning artifacts).
