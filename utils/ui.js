@@ -533,7 +533,9 @@ window._tunerUI = function(state, actions) {
             state.manualTargetFreq = null;
             renderStringNotes();
             _updateSaveAsCustomVisibility();
-            if (state.selectedTuningName !== '_current' && state.selectedTuningName !== 'free-tune') actions.saveConfig();
+            // Persist every choice except the live song tuning ('_current');
+            // 'free-tune' is a real preference and should be remembered.
+            if (state.selectedTuningName !== '_current') actions.saveConfig();
         };
         selectorRow.appendChild(state.tuningSelect);
         state.uiContainer.appendChild(selectorRow);

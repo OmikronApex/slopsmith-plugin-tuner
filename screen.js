@@ -185,7 +185,10 @@
     window._tunerReloadConfig = loadConfig;
 
     async function saveConfig() {
-        const tuningToSave = (_state.selectedTuningName === '_current' || _state.selectedTuningName === 'free-tune')
+        // '_current' is the live song tuning and must not persist; everything
+        // else — named/custom tunings and 'free-tune' — is a real user choice
+        // worth restoring on the next open.
+        const tuningToSave = (_state.selectedTuningName === '_current')
             ? null : _state.selectedTuningName;
         try {
             await fetch('/api/plugins/tuner/config', {
