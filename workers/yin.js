@@ -48,8 +48,13 @@ function _yinDetect(buffer, sampleRate) {
     for (let t = 2; t < halfLen; t++) {
         if (yinBuffer[t] < minVal) { minVal = yinBuffer[t]; minTau = t; }
         if (yinBuffer[t] < threshold) {
-            // Descend to the bottom of this first qualifying dip.
-            while (t + 1 < halfLen && yinBuffer[t + 1] < yinBuffer[t]) t++;
+            // Descend to the bottom of this first qualifying dip, keeping the
+            // global-min tracker current for the indices we skip (otherwise the
+            // fallback below could interpolate around a non-minimum).
+            while (t + 1 < halfLen && yinBuffer[t + 1] < yinBuffer[t]) {
+                t++;
+                if (yinBuffer[t] < minVal) { minVal = yinBuffer[t]; minTau = t; }
+            }
             tau = t;
             break;
         }
@@ -66,7 +71,11 @@ function _yinDetect(buffer, sampleRate) {
     const s1 = yinBuffer[tau];
     const s2 = tau + 1 < halfLen ? yinBuffer[tau + 1] : yinBuffer[tau];
     const denom = s0 - 2 * s1 + s2;
-    const betterTau = denom === 0 ? tau : tau + (s0 - s2) / (2 * denom);
+    let betterTau = denom === 0 ? tau : tau + (s0 - s2) / (2 * denom);
+    // A near-zero (but nonzero) denom can fling the parabolic estimate far
+    // outside the bracket; the true minimum is within ±1 sample of tau. The
+    // negated test also rejects NaN.
+    if (!(betterTau >= tau - 1 && betterTau <= tau + 1)) betterTau = tau;
 
     return { freq: sampleRate / betterTau, confidence: 1 - yinBuffer[tau], rms };
 }

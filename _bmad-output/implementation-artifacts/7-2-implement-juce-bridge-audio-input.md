@@ -4,7 +4,7 @@
 baseline_commit: 7b91083d04a57521fb19af0980176d6405f06748
 ---
 
-Status: review
+Status: done
 
 ## Story
 
@@ -71,6 +71,34 @@ so that I get lower-latency, higher-quality tuning that works reliably on all de
   - [x] Add `_matchString()` — octave-folded nearest-string match with smallest-octave-shift tie-break
   - [x] Add `_foldToOctaveOf()`; compute cents and the displayed frequency from the octave-corrected reading
   - [x] Apply a 40-cent hysteresis to the committed target; reset on tuning change (`_lastTuningRef`) and on signal loss
+
+### Review Findings
+
+_Epic 7 adversarial code review (2026-06-04) — Blind Hunter + Edge Case Hunter + Acceptance Auditor. Spans stories 7-1 and 7-2._
+
+**Decision needed (resolved 2026-06-04):**
+
+- [x] [Review][Decision→Patch] `getRawAudioFrame` buffer ownership — **resolved: copy, don't transfer.** Post `samples.slice()` with no transfer list so the engine's buffer is never detached, regardless of its ownership contract. Tracked as a patch below. [utils/audio.js bridge interval]
+- [x] [Review][Decision→Patch] `plugin.json` dangling `styles` — **resolved: remove the entry + README mention** (the stylesheet is stale/intentionally removed). Tracked as a patch below. [plugin.json:7]
+
+**Patch (all 9 applied 2026-06-04):**
+
+- [x] [Review][Patch] Bridge raw-audio poll: copy the frame (`samples.slice()`) instead of transferring `samples.buffer`, with a `samples instanceof Float32Array` guard — avoids detaching an engine-owned buffer and avoids `DataCloneError` on a non-typed-array return. [utils/audio.js bridge interval] (resolved decision)
+- [x] [Review][Patch] Remove `"styles": "assets/plugin.css"` from `plugin.json` and the README mention of it (file deleted, `assets/` gone). [plugin.json:7, README.md:89] (resolved decision)
+
+- [x] [Review][Patch] Bridge start is not re-entrancy / double-start safe → orphaned YIN worker + 30 ms interval. `start()` never calls `_doStop` first and `enable()` sets `_state.enabled` only after the await; a re-entrant `restart()` during `_tryBridgeStart`'s awaits overwrites `_yinWorker`/`_bridgeInterval`, leaking the previous pair. [utils/audio.js _tryBridgeStart/_doStart/start] (blind+edge)
+- [x] [Review][Patch] `_processingFrame` can latch `true` forever if a posted frame never returns and never errors → poll guard blocks every tick, tuner freezes with no recovery. Add a watchdog/timeout. [utils/audio.js bridge interval; same risk on browser _detectInterval] (edge)
+- [x] [Review][Patch] Missing numeric-validity guard before `_matchString`/`_foldToOctaveOf` — `smoothedFreq` of 0/negative, or a custom-tuning string freq of 0/NaN, yields NaN cents/displayFreq and wrong-string selection. Gate on `Number.isFinite && > 0`. [utils/ui.js updateUI] (edge)
+- [x] [Review][Patch] YIN global-min fallback path: `minTau` is not updated for indices skipped by the descend `while`; near-zero (nonzero) `denom` can swing `betterTau` outside `[tau-1, tau+1]`; one-sided interpolation at the low-frequency boundary. Low-confidence path, modest impact. [workers/yin.js] (blind+edge)
+- [x] [Review][Patch] `epics.md` Epic 7 / Story 7.2 ACs still describe the removed `getPitchDetection`/`getRawPitch`/ML-gating design; the superseded inline sample in this story still shows the `getRawPitch` probe. Update to the raw-audio design. [_bmad-output/planning-artifacts/epics.md ~980–1014] (auditor)
+- [x] [Review][Patch] `_serve_asset_from` suffix lookup is case-sensitive — a request for `FOO.SVG` 404s because `_ASSET_MEDIA_TYPES` keys are lowercase. Lowercase `target.suffix` before lookup. [routes.py _serve_asset_from] (blind+edge)
+- [x] [Review][Patch] `_tryBridgeStart` swallows a `startAudio()` failure then proceeds to claim the bridge; if frames never arrive the tuner is silently dead with no fallback/diagnostic. Log a warning / consider a frame-arrival fallback. [utils/audio.js _tryBridgeStart] (blind)
+
+**Deferred:**
+
+- [x] [Review][Defer] `_lastTuningRef` is compared by reference — an in-place tuning mutation or re-selecting a tuning whose array object is cached won't reset the committed target. [utils/ui.js committed-target reset] — deferred, low likelihood (tuning arrays are reassigned at current call sites). (edge+auditor)
+
+**Dismissed (4):** YIN `yinBuffer[tau+1]` out-of-bounds (already guarded by `tau + 1 < halfLen ? … : yinBuffer[tau]`; `tau ≥ 2`); `audioInputMode` `str()` validation (no bug); `_ASSET_TYPES`→`_ASSET_MEDIA_TYPES` rename (cosmetic, acknowledged); `audioInputMode` absent from `screen.js saveConfig()` (by design — `settings.html save()` persists it, AC 8 met).
 
 ## Dev Notes
 

@@ -977,42 +977,48 @@ So that I get lower-latency, higher-quality tuning that works reliably on all de
 
 **Acceptance Criteria:**
 
-**Given** the plugin loads inside Slopsmith Desktop (Electron) with the JUCE audio engine running in YIN mode
-**When** `startAudio()` is called and all four probe conditions pass (`isDesktop`, `getPitchDetection` present, `isAvailable()` true, `isMlNoteDetection()` false)
-**Then** bridge mode is activated: `usingDesktopBridge` flag is set; `audio.startAudio()` is called if the engine is not yet running; a 30 ms `setInterval` poll loop begins calling `window.slopsmithDesktop.audio.getPitchDetection()`; the YIN Web Worker is not started; `ScriptProcessorNode` and `getUserMedia` are not called
+> **⚠️ Revised 2026-06-04 — design changed during implementation.** The original ACs below described polling the engine's pre-computed pitch (`getPitchDetection` / `getRawPitch`) and gating on the ML detector. That produced a jittery readout, so the shipped design instead taps the engine's **raw audio stream** (`getRawAudioFrame`) and runs the tuner's **own YIN worker** over it; `getRawPitch`/`getPitchDetection` and all ML-gating were removed. The authoritative, current acceptance criteria live in `_bmad-output/implementation-artifacts/7-2-implement-juce-bridge-audio-input.md` (ACs 1–11). The summary below is kept in sync with that file.
+
+**Given** the plugin loads inside Slopsmith Desktop with the JUCE audio engine running
+**When** `startAudio()` is called and the probe passes (`isDesktop`, `isAvailable()` true, `getRawAudioFrame` present)
+**Then** bridge mode is activated: `usingDesktopBridge` is set; `audio.startAudio()` is called if the engine is not yet running; a 30 ms poll loop pulls `getRawAudioFrame(_TUNER_MIN_YIN_SAMPLES)` and feeds the frames to the tuner's own YIN Web Worker; `ScriptProcessorNode` and `getUserMedia` are not called
 
 **Given** the bridge poll loop is running
-**When** `getPitchDetection()` returns `{ frequency: 82.4, cents: -3.2, midiNote: 40, confidence: 0.91 }`
-**Then** the tuner display updates with `freq = 82.4`, `cents = -3.2`, note class derived from `midiNote % 12` (e.g., `"E"`) — identical behaviour to a YIN Worker result; `rms`-equivalent gating uses `confidence < 0.15` as the no-signal threshold (matching the existing YIN confidence floor)
+**When** a raw audio frame is returned
+**Then** the frame is copied (not transferred) and posted to the YIN worker; the worker result flows through `_handleYinResult` → `_onResult` exactly as on the browser path; the sample rate is read once via `getSampleRate()` (fallback 48000); only one frame is in flight at a time (back-pressure guard with a watchdog)
 
-**Given** `getPitchDetection()` returns `midiNote: -1` or `frequency <= 0`
-**When** the poll fires
-**Then** the result is treated as no-signal for that tick — visualizations receive `update(null, 0, 0)` and the tuner shows no pitch detected; no error is thrown or displayed
+**Given** a poll throws, or returns a short/empty/non-`Float32Array` frame
+**When** the tick runs
+**Then** a throw is logged at `console.warn` with a `[tuner]` prefix and reported as no-signal (`{ smoothedFreq: null, rms: 0, hasSignal: false }`); a short/empty frame is skipped; the interval continues
 
-**Given** `getPitchDetection()` throws an exception during a poll
-**When** the catch block runs
-**Then** the exception is logged at `console.warn` level with a `[tuner]` prefix; the tick is treated as no-signal; the interval continues firing normally on the next tick
-
-**Given** the plugin loads inside Slopsmith Desktop but `isMlNoteDetection()` returns `true`
+**Given** the addon does not expose `getRawAudioFrame` (downlevel build)
 **When** the bridge probe runs
-**Then** bridge mode is NOT activated; the plugin falls through to `getUserMedia` + YIN Worker pipeline; a `console.log` notes `"[tuner] bridge skipped — ML detector active, using browser pipeline"`
+**Then** the probe returns false and the `getUserMedia` + YIN pipeline starts; no console warning is shown; `getRawPitch` is NOT used as a fallback
 
 **Given** the plugin loads in a regular browser (no `window.slopsmithDesktop`)
 **When** `startAudio()` runs
-**Then** the bridge probe is skipped entirely; `getUserMedia` + YIN Worker pipeline starts as before — no regression in existing browser behaviour
+**Then** the bridge probe is skipped entirely; `getUserMedia` + YIN pipeline starts as before — no regression
 
 **Given** `audioInputMode` is `"browser"` in `tuner.json`
 **When** `startAudio()` runs inside Slopsmith Desktop
-**Then** the bridge probe is bypassed regardless of bridge availability; the Web Audio pipeline starts; the settings panel shows the `audioInputMode` toggle in its "Browser" state
+**Then** the bridge probe is bypassed regardless of bridge availability; the Web Audio pipeline starts
 
 **Given** bridge mode is active and the settings panel is open
 **When** the audio device selector and channel selector are rendered
-**Then** both controls are hidden or visually disabled with a label indicating audio is provided by the desktop engine
+**Then** both controls are hidden (audio is provided by the desktop engine)
 
-**Given** `audioInputMode` is toggled in the settings panel from `"auto"` to `"browser"` (or vice versa)
+**Given** the `audioInputMode` toggle in the Plugin Manager settings page is changed
 **When** the change is saved
-**Then** a `POST /api/plugins/tuner/config` partial update is sent with `{ audioInputMode: "browser" }` (or `"auto"`); the audio pipeline restarts via the existing `restartAudio` pattern to apply the change; the new value survives a plugin reload
+**Then** a `POST /api/plugins/tuner/config` partial update persists `{ audioInputMode }` and it survives a reload; the running tuner is NOT restarted from this page — the change takes effect the next time the tuner panel is opened
 
-**Given** the bridge mode `setInterval` is running
+**Given** the bridge poll loop is running
 **When** `stopAudio()` is called (panel close, navigation, or destroy)
-**Then** `clearInterval` is called on the poll interval; `usingDesktopBridge` and `bridgeDesktop` are reset to their defaults; no orphaned interval continues firing
+**Then** `clearInterval` fires on the poll interval AND the YIN worker is terminated; `usingDesktopBridge` resets to false; no orphaned interval or worker continues
+
+**Given** the YIN worker receives a frame
+**When** it selects the fundamental
+**Then** it uses the canonical absolute-threshold step (first local minimum below threshold), not the global minimum, so sub-octave / sub-harmonic errors are rejected at the source; the global minimum is only a no-crossing fallback
+
+**Given** auto mode with a selected tuning
+**When** a detected pitch is matched to a string
+**Then** matching is octave-aware (octave-folded distance, smallest-shift tie-break); displayed cents/frequency are folded into the matched octave; a 40-cent hysteresis prevents flicker; committed-target state resets on tuning change and signal loss

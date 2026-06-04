@@ -13,8 +13,9 @@ window._tunerUI = function(state, actions) {
     // the octave actually being played. Returns the matched string frequency
     // and the detected frequency folded into that string's octave.
     function _matchString(detected, strings) {
-        let bestFreq = strings[0], bestResidual = Infinity, bestShift = Infinity;
+        let bestFreq = null, bestResidual = Infinity, bestShift = Infinity;
         for (const f of strings) {
+            if (!Number.isFinite(f) || f <= 0) continue; // skip malformed tuning entries
             const shift = Math.round(Math.log2(f / detected));
             const corrected = detected * Math.pow(2, shift);
             const residual = Math.abs(Math.log2(corrected / f)) * 1200;
@@ -23,7 +24,7 @@ window._tunerUI = function(state, actions) {
                 bestFreq = f; bestResidual = residual; bestShift = Math.abs(shift);
             }
         }
-        return bestFreq;
+        return bestFreq; // null when no usable string frequency exists
     }
 
     // Fold a detected frequency into the same octave as a known target, so cents
@@ -266,7 +267,10 @@ window._tunerUI = function(state, actions) {
         const { smoothedFreq, rms, hasSignal } = result;
         const vizMode = state.manualTargetFreq ? 'manual' : (state.selectedTuning && state.selectedTuning.length > 0 ? 'auto' : 'free');
 
-        if (smoothedFreq === null) {
+        // Treat null / non-finite / non-positive as no-signal. A 0, NaN or
+        // negative frequency would otherwise propagate through log2/division
+        // below into NaN cents and a garbage readout.
+        if (smoothedFreq === null || !Number.isFinite(smoothedFreq) || smoothedFreq <= 0) {
             _lastAutoTargetFreq = null;
             if (state.activeViz) state.activeViz.update(null, 0, 0, vizMode);
             _syncStringHighlight(state.manualTargetFreq);
@@ -283,7 +287,8 @@ window._tunerUI = function(state, actions) {
         if (state.manualTargetFreq) {
             targetFreq = state.manualTargetFreq;
             isManual = true;
-        } else if (state.selectedTuning && state.selectedTuning.length > 0) {
+        } else if (state.selectedTuning && state.selectedTuning.length > 0
+                   && _matchString(smoothedFreq, state.selectedTuning) !== null) {
             let nearest = _matchString(smoothedFreq, state.selectedTuning);
             // Hysteresis: once committed to a string, only switch when the new
             // match is clearly closer (≥40 cents), so a pluck that lands between

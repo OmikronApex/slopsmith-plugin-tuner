@@ -4,7 +4,6 @@
   "version": "1.3.0",
   "private": false,
   "script": "screen.js",
-  "styles": "assets/plugin.css",
   "settings": { "html": "settings.html" },
   "routes": "routes.py"
 }

@@ -142,7 +142,7 @@ def setup(app: FastAPI, context: dict):
             target.relative_to(base_dir.resolve())
         except ValueError:
             return Response("", status_code=404)
-        media_type = _ASSET_MEDIA_TYPES.get(target.suffix)
+        media_type = _ASSET_MEDIA_TYPES.get(target.suffix.lower())
         if media_type and target.is_file():
             return Response(target.read_bytes(), media_type=media_type)
         return Response("", status_code=404)
