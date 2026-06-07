@@ -1,5 +1,5 @@
 ---
-stepsCompleted: ['step-01', 'step-02', 'step-03', 'step-04', 'epic2-step-01', 'epic2-step-02', 'epic2-step-03', 'epic3-step-01', 'epic3-step-02', 'epic3-step-03', 'epic4-step-01', 'epic4-step-02', 'epic4-step-03', 'epic5-step-01', 'epic5-step-02', 'epic6-step-01', 'epic6-step-02', 'epic7-step-01', 'epic7-step-02']
+stepsCompleted: ['step-01', 'step-02', 'step-03', 'step-04', 'epic2-step-01', 'epic2-step-02', 'epic2-step-03', 'epic3-step-01', 'epic3-step-02', 'epic3-step-03', 'epic4-step-01', 'epic4-step-02', 'epic4-step-03', 'epic5-step-01', 'epic5-step-02', 'epic6-step-01', 'epic6-step-02', 'epic7-step-01', 'epic7-step-02', 'epic8-step-01']
 inputDocuments:
   - _bmad-output/planning-artifacts/prds/prd-slopsmith-plugin-tuner-2026-05-30/prd.md
   - _bmad-output/project-context.md
@@ -185,6 +185,7 @@ No UX Design document exists yet. Story 2.1 will produce `_bmad-output/planning-
 ### Epic 5: Toilet Tuner Visualization
 ### Epic 6: PP-Tiny Visualization
 ### Epic 7: Infrastructure — Asset Endpoint Isolation & JUCE Audio Bridge
+### Epic 8: Real-Instrument Audio Test Suite
 
 Establish a formal architecture document for the slopsmith-plugin-tuner using the BMad workflow, providing AI agents and contributors with authoritative system design guidance; then implement code corrections surfaced during the architectural review.
 
@@ -1022,3 +1023,73 @@ So that I get lower-latency, higher-quality tuning that works reliably on all de
 **Given** auto mode with a selected tuning
 **When** a detected pitch is matched to a string
 **Then** matching is octave-aware (octave-folded distance, smallest-shift tie-break); displayed cents/frequency are folded into the matched octave; a 40-cent hysteresis prevents flicker; committed-target state resets on tuning change and signal loss
+
+---
+
+### New Functional Requirements (Epic 8 — Real-Instrument Audio Test Suite)
+
+- **FR-RI-01:** A dedicated directory `tests/fixtures/audio/real/` shall exist to hold WAV recordings captured from real instruments (e.g. guitar, bass, microphone). The directory shall include a `README.md` explaining the naming convention and how to add recordings.
+- **FR-RI-02:** WAV files dropped into `tests/fixtures/audio/real/` shall be auto-discovered by the test runner using the same naming convention as the existing synthetic fixtures: `<NoteClass><Octave>_<FreqHz>Hz.wav` (e.g. `E2_82.41Hz.wav`, `A#3_233.08Hz.wav`). The expected frequency is parsed from the filename.
+- **FR-RI-03:** For each discovered WAV, the test shall extract a `MIN_FRAME` (4096-sample) window from the middle of the file (skipping attack/release transients) and feed it to `_yinDetect`. The test shall assert that a frequency is detected (freq > 0) and that the cents error is within ±20 cents: `cents_error = 1200 * |log2(detected / expected)| ≤ 20`.
+- **FR-RI-04:** If `tests/fixtures/audio/real/` contains no `.wav` files, the test suite shall skip gracefully with a human-readable message explaining how to add recordings — identical skip pattern to the existing `yin.wav.test.js`.
+- **FR-RI-05:** The new test file shall be wired into the GitHub Actions CI workflow (`.github/workflows/test.yml`) so it runs automatically on every push and PR alongside the existing JS tests.
+- **FR-RI-06:** The new test file shall support multi-channel WAV files (stereo recordings from audio interfaces) by mixing all channels down to mono before running YIN detection, since `_yinDetect` expects a mono `Float32Array`.
+
+### Applicable NFRs (Epic 8)
+
+- **NFR-04** — YIN must run in a Worker in production; for test purposes, calling `_yinDetect` directly from Node.js (as the existing test suite already does) is acceptable.
+- **NFR-05** — No unhandled exceptions from malformed WAV files; invalid WAV format should fail the test with a descriptive assertion error, not throw.
+
+### Additional Requirements (Epic 8)
+
+- Real WAV files **are committed to the repository** alongside the synthetic fixtures — they are first-class regression assets. The `README.md` in `tests/fixtures/audio/real/` explains the naming convention and recording guidelines (short clips, sustain portion only, 16-bit PCM or 32-bit float, mono or stereo).
+- The test file uses `node:test` and `node:assert/strict` (same as existing JS tests) — no new test framework dependencies.
+- The cents-tolerance assertion message must include the note name, expected Hz, detected Hz, and computed cents error to aid debugging of marginal detections.
+- Keep WAV clips short (≤ 2 seconds) to control repository size. If the recording corpus grows large, consider Git LFS — document this in `README.md` as a future option but do not set it up in this epic.
+
+---
+
+## Epic 8: Real-Instrument Audio Test Suite
+
+Add a test fixture workflow that lets developers record notes from real instruments, drop the WAV files into a dedicated folder, and have the automated test suite verify that YIN pitch detection stays within ±20 cents of the expected pitch encoded in the filename. The tolerance is expressed in cents (not percentage) to match how musicians reason about pitch accuracy, and is intentionally tighter than the existing synthetic-fixture tolerance (~34 cents at 2%) to surface any regression in real-world detection quality.
+
+**FRs covered:** FR-RI-01 through FR-RI-06
+**NFRs:** NFR-04, NFR-05
+
+---
+
+### Story 8.1: Real-Instrument Test Infrastructure
+
+As a developer working on the YIN pitch detector,
+I want to drop WAV recordings from real instruments into `tests/fixtures/audio/real/` and have the test suite automatically validate detection accuracy to ±20 cents,
+So that algorithm regressions on real-world audio are caught in CI before they reach main.
+
+**Acceptance Criteria:**
+
+**Given** the repository is freshly cloned
+**When** `tests/fixtures/audio/real/` is inspected
+**Then** the directory exists and contains `README.md` explaining the naming convention, recording guidelines (short clips ≤ 2 s, sustain portion, 16-bit PCM or 32-bit float, mono or stereo), and the Git LFS note for future growth; WAV files in this directory **are committed** and travel with the repo as regression fixtures
+
+**Given** `tests/fixtures/audio/real/` contains no `.wav` files (empty directory on a first-time setup before any recordings are added)
+**When** the test runner executes `tests/js/yin.realinstrument.test.js`
+**Then** all tests are skipped with the message: `No real-instrument WAV fixtures found in tests/fixtures/audio/real/ — record a note and name it e.g. E2_82.41Hz.wav`
+
+**Given** a mono WAV file named `E2_82.41Hz.wav` is placed in `tests/fixtures/audio/real/`
+**When** the test runner executes
+**Then** a test named `Real WAV E2_82.41Hz.wav: detects 82.41 Hz (E2)` is generated and run automatically
+
+**Given** the test runs with a valid WAV and `_yinDetect` returns `freq > 0`
+**When** the cents error is computed as `1200 * Math.abs(Math.log2(detectedFreq / expectedHz))`
+**Then** the test passes if `cents_error <= 20` and fails with a message of the form: `E2_82.41Hz.wav: expected 82.41 Hz, got <X> Hz (<Y> cents off — limit 20 cents)`
+
+**Given** a stereo (2-channel) WAV file is placed in `tests/fixtures/audio/real/`
+**When** the WAV is parsed
+**Then** both channels are averaged sample-by-sample into a single mono `Float32Array` before being passed to `_yinDetect` — no assertion error is thrown for stereo files
+
+**Given** a WAV file that is shorter than `MIN_FRAME` (4096 samples)
+**When** the test runs
+**Then** the test fails with the message: `WAV too short: need ≥4096 samples, got <N>` (same pattern as `yin.wav.test.js`)
+
+**Given** the new test file exists
+**When** `.github/workflows/test.yml` runs
+**Then** `tests/js/yin.realinstrument.test.js` is included in the `node --test` invocation alongside `yin.unit.test.js` and `yin.wav.test.js`; CI passes on a clean clone (no WAV files = all tests skipped, skips are not failures)
