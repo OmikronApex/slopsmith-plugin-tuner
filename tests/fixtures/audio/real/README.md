@@ -5,15 +5,18 @@ Drop WAV recordings from your actual instruments here and they will be picked up
 ## Naming Convention
 
 ```text
-<NoteClass><Octave>_<FreqHz>Hz.wav
+<NoteClass><Octave>_<FreqHz>Hz[_label].wav
 ```
+
+An optional label suffix (e.g. `_8string`, `_guitar`, `_take2`) can be added between `Hz` and `.wav` — it is ignored by the test runner.
 
 Examples:
 
 | File | Note | Expected frequency |
 |------|------|--------------------|
 | `E2_82.41Hz.wav` | E2 | 82.41 Hz |
-| `A2_110Hz.wav` | A2 | 110.00 Hz |
+| `E2_82.41Hz_8string.wav` | E2 | 82.41 Hz |
+| `A2_110Hz_bass.wav` | A2 | 110.00 Hz |
 | `A#3_233.08Hz.wav` | A#3 | 233.08 Hz |
 | `D3_146.83Hz.wav` | D3 | 146.83 Hz |
 

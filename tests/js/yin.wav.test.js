@@ -20,7 +20,7 @@ const { _yinDetect } = require('../../workers/yin.js');
 const { parseWav } = require('./helpers/wav-parser.js');
 
 const FIXTURES_DIR = path.join(__dirname, '../fixtures/audio');
-const WAV_NAME_RE = /^([A-G]#?[0-9])_([\d.]+)Hz\.wav$/i;
+const WAV_NAME_RE = /^([A-G]#?[0-9])_([\d.]+)Hz[^.]*\.wav$/i;
 const MIN_FRAME = 4096;
 // 2% tolerance ≈ 35 cents — generous enough for real recordings, tight enough
 // to catch octave errors or misidentified notes.

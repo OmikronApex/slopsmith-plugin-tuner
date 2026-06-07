@@ -26,7 +26,7 @@ const { _yinDetect } = require('../../workers/yin.js');
 const { parseWav } = require('./helpers/wav-parser.js');
 
 const FIXTURES_DIR = path.join(__dirname, '../fixtures/audio/real');
-const WAV_NAME_RE = /^([A-G]#?[0-9])_([\d.]+)Hz\.wav$/i;
+const WAV_NAME_RE = /^([A-G]#?[0-9])_([\d.]+)Hz[^.]*\.wav$/i;
 const MIN_FRAME = 4096;
 const TOLERANCE_CENTS = 20;
 
