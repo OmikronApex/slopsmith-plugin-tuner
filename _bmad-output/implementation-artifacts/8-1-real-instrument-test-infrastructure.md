@@ -4,7 +4,7 @@ baseline_commit: a50fc8ac4baea2ef0d660ea155c21378be713951
 
 # Story 8.1: Real-Instrument Test Infrastructure
 
-Status: review
+Status: done
 
 ## Story
 
@@ -170,3 +170,11 @@ claude-sonnet-4-6
 - `tests/js/yin.realinstrument.test.js` (new)
 - `.github/workflows/test.yml` (modified — added new test file)
 - `_bmad-output/implementation-artifacts/8-1-real-instrument-test-infrastructure.md` (story file)
+
+### Review Findings
+
+- [x] [Review][Decision] 24-bit PCM support added to `wav-parser.js` — ratified as intentional extension; real-instrument fixtures require 24-bit PCM support.
+- [x] [Review][Decision] AC 3 test name: `parseFloat` drops trailing zeros — fixed: test label now uses raw `freqStr` from filename instead of `expectedHz`. `parseFloat` still used for math only.
+- [x] [Review][Defer] `numChannels === 0` in malformed WAV → `bytesPerFrame = 0` → `nFrames = Infinity` → `Float32Array(Infinity)` RangeError [tests/js/helpers/wav-parser.js:52-53] — deferred, pre-existing guard gap; only affects corrupt/synthetic WAV files outside the test fixture set
+- [x] [Review][Defer] `result.rms.toFixed(4)` in error message can throw TypeError if `_yinDetect` returns unexpected shape [tests/js/yin.realinstrument.test.js:57] — deferred, pre-existing pattern mirrored from `yin.wav.test.js`
+- [x] [Review][Defer] `fs.readdirSync(FIXTURES_DIR)` throws (not skips) if the `real/` directory is absent [tests/js/yin.realinstrument.test.js:33] — deferred, low impact since directory is committed to the repo

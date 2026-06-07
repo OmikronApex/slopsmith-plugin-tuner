@@ -41,7 +41,7 @@ if (wavFiles.length === 0) {
         const [, note, freqStr] = filename.match(WAV_NAME_RE);
         const expectedHz = parseFloat(freqStr);
 
-        test(`Real WAV ${filename}: detects ${expectedHz} Hz (${note})`, () => {
+        test(`Real WAV ${filename}: detects ${freqStr} Hz (${note})`, () => {
             const fileBuffer = fs.readFileSync(path.join(FIXTURES_DIR, filename));
             const { samples, sampleRate } = parseWav(fileBuffer);
 

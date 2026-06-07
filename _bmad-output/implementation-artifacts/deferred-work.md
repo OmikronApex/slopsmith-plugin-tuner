@@ -1,5 +1,11 @@
 # Deferred Work
 
+## Deferred from: code review of 8-1-real-instrument-test-infrastructure (2026-06-07)
+
+- **`numChannels === 0` unguarded in `wav-parser.js`** — `bytesPerFrame = 0` → `nFrames = Infinity` → `Float32Array(Infinity)` throws RangeError. Only reachable with malformed/synthetic WAVs; all committed fixtures are valid.
+- **`result.rms.toFixed(4)` in no-pitch error message** (`yin.realinstrument.test.js:57`) — If `_yinDetect` returns an unexpected shape, the error message construction throws TypeError, masking the real assertion failure. Mirrors the pre-existing pattern in `yin.wav.test.js`.
+- **`fs.readdirSync(FIXTURES_DIR)` crashes instead of skipping when `real/` is absent** (`yin.realinstrument.test.js:33`) — Low impact since the directory is committed; would only surface if someone manually removes the dir locally.
+
 ## Deferred from: code review of story 7-2 (2026-06-04)
 
 - **`_lastTuningRef` compared by reference** (`utils/ui.js`, committed-target reset) — An in-place mutation of the selected-tuning array, or re-selecting a tuning whose array object is cached in `state.tunings`, would not trigger the `_lastAutoTargetFreq` reset, so a stale committed target could survive the transition and pin the meter to a string not in the new tuning until the 40-cent hysteresis is overcome. Low likelihood — current call sites reassign `state.selectedTuning` on every change. Cheap hardening: also clear `_lastAutoTargetFreq` when it is no longer a member of `state.selectedTuning`.
