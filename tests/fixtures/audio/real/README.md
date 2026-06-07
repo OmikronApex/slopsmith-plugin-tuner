@@ -4,7 +4,7 @@ Drop WAV recordings from your actual instruments here and they will be picked up
 
 ## Naming Convention
 
-```
+```text
 <NoteClass><Octave>_<FreqHz>Hz.wav
 ```
 

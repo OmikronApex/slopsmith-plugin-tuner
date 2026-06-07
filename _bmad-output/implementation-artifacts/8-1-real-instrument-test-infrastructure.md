@@ -99,11 +99,11 @@ Both test files import `{ parseWav }` from `./helpers/wav-parser.js`. After the 
 ### CI change is minimal
 
 `.github/workflows/test.yml` line 21 currently reads:
-```
+```bash
 run: node --test tests/js/yin.unit.test.js tests/js/yin.wav.test.js
 ```
 Add the new file as a third argument:
-```
+```bash
 run: node --test tests/js/yin.unit.test.js tests/js/yin.wav.test.js tests/js/yin.realinstrument.test.js
 ```
 No other CI changes needed. The skip-when-empty behaviour means CI passes on a clean clone.
