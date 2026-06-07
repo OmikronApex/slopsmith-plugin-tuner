@@ -51,6 +51,9 @@ function parseWav(nodeBuffer) {
     const bytesPerSample = bitsPerSample >> 3;
     const bytesPerFrame = numChannels * bytesPerSample;
     const nFrames = Math.floor(dataSize / bytesPerFrame);
+    if (dataStart + nFrames * bytesPerFrame > ab.byteLength) {
+        throw new Error('WAV data chunk extends beyond end of file');
+    }
     const samples = new Float32Array(nFrames);
 
     for (let i = 0; i < nFrames; i++) {

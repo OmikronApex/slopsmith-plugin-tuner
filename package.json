@@ -4,6 +4,6 @@
   "scripts": {
     "test:js": "node --test tests/js/yin.unit.test.js tests/js/yin.wav.test.js tests/js/yin.realinstrument.test.js",
     "test:py": "pytest",
-    "test": "node --test tests/js/yin.unit.test.js tests/js/yin.wav.test.js tests/js/yin.realinstrument.test.js && pytest"
+    "test": "npm run test:js && npm run test:py"
   }
 }
