@@ -3,7 +3,7 @@
 /**
  * Minimal PCM WAV parser for Node.js test environments.
  * Supports: mono/stereo, 16-bit signed PCM (audio format 1).
- * Returns channel 0 (left/only channel) as a normalized Float32Array in [-1, 1].
+ * Mixes all channels down to mono and returns a normalized Float32Array in [-1, 1].
  */
 function parseWav(nodeBuffer) {
     // Node.js Buffer.buffer is a pooled ArrayBuffer; slice to get an exact view.
@@ -50,7 +50,11 @@ function parseWav(nodeBuffer) {
     const nFrames = Math.floor(dataSize / bytesPerFrame);
     const samples = new Float32Array(nFrames);
     for (let i = 0; i < nFrames; i++) {
-        samples[i] = view.getInt16(dataStart + i * bytesPerFrame, true) / 32768.0;
+        let sum = 0;
+        for (let ch = 0; ch < numChannels; ch++) {
+            sum += view.getInt16(dataStart + i * bytesPerFrame + ch * 2, true);
+        }
+        samples[i] = (sum / numChannels) / 32768.0;
     }
     return { samples, sampleRate };
 }
