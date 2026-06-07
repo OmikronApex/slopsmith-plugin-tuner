@@ -18,7 +18,7 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
       - name: Run JS tests
-        run: node --test tests/js/yin.unit.test.js tests/js/yin.wav.test.js
+        run: node --test tests/js/yin.unit.test.js tests/js/yin.wav.test.js tests/js/yin.realinstrument.test.js
 
   python:
     name: Python (3.11)
