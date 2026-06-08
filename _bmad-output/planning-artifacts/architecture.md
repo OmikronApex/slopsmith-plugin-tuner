@@ -7,13 +7,14 @@ inputDocuments:
   - routes.py
   - workers/yin.js
   - utils/tuning-utils.js
+  - utils/audio.js
   - visualization/default.js
   - visualization/strobe.js
   - plugin.json
 workflowType: architecture
 project_name: slopsmith-plugin-tuner
 user_name: OmikronApex
-date: '2026-05-30'
+date: '2026-06-08'
 ---
 
 # Architecture Decision Document — Slopsmith Tuner Plugin
@@ -48,15 +49,24 @@ The plugin must be self-contained. All runtime JS is either implemented in-repo 
 │  ┌──────────────────────────────────────────────────┐   │
 │  │  screen.js  (IIFE — all state, entry point)      │   │
 │  │                                                  │   │
-│  │  ┌──────────────┐  ┌──────────────────────────┐  │   │
-│  │  │  Audio       │  │  UI / Tuning             │  │   │
-│  │  │  Pipeline    │  │  State                   │  │   │
-│  │  └──────┬───────┘  └──────────────────────────┘  │   │
-│  │         │ postMessage (transferable ArrayBuffer)  │   │
-│  │  ┌──────▼───────┐  ┌──────────────────────────┐  │   │
-│  │  │  yin.js      │  │  visualization/<name>.js  │  │   │
-│  │  │  (Worker)    │  │  (lazy-loaded IIFE)       │  │   │
-│  │  └──────────────┘  └──────────────────────────┘  │   │
+│  │  ┌──────────────────────────┐  ┌──────────────┐  │   │
+│  │  │  window._tunerAudio      │  │  UI / Tuning │  │   │
+│  │  │  (audio.js, IIFE)        │  │  State       │  │   │
+│  │  │  ┌──────────────────┐    │  └──────────────┘  │   │
+│  │  │  │  Web Audio path  │    │                   │   │
+│  │  │  │  getUserMedia +  │    │  ┌──────────────┐  │   │
+│  │  │  │  ScriptProcessor │    │  │visualization/│  │   │
+│  │  │  └───────┬──────────┘    │  │<name>.js     │  │   │
+│  │  │          │ OR            │  │(lazy IIFE)   │  │   │
+│  │  │  ┌───────┴──────────┐    │  └──────────────┘  │   │
+│  │  │  │  JUCE Bridge     │    │                   │   │
+│  │  │  │  getRawAudioFrame│    │                   │   │
+│  │  │  └──────────────────┘    │                   │   │
+│  │  │       │ postMessage      │                   │   │
+│  │  │  ┌────▼────────────┐     │                   │   │
+│  │  │  │  yin.js (Worker)│     │                   │   │
+│  │  │  └─────────────────┘     │                   │   │
+│  │  └──────────────────────────┘                   │   │
 │  │                                                  │   │
 │  │  window._tunerUtils  (tuning-utils.js, IIFE)     │   │
 │  └──────────────────────────────────────────────────┘   │
@@ -68,6 +78,7 @@ The plugin must be self-contained. All runtime JS is either implemented in-repo 
 │  routes.py  (FastAPI, inside Slopsmith backend)       │
 │  GET/POST /api/plugins/tuner/config                  │
 │  GET /api/plugins/tuner/visualization/{filename}     │
+│  GET /api/plugins/tuner/viz-assets/{filename}        │
 │  GET /api/plugins/tuner/workers/{filename}           │
 │  GET /api/plugins/tuner/utils/{filename}             │
 └──────────────────────────────────────────────────────┘
@@ -77,12 +88,14 @@ The plugin must be self-contained. All runtime JS is either implemented in-repo 
 
 | Component | File | Role |
 |---|---|---|
-| Plugin entry point | `screen.js` | IIFE; owns all runtime state, audio pipeline, UI injection, viz management, button lifecycle, Slopsmith event hooks |
-| Backend routes | `routes.py` | `setup(app, context)` registers FastAPI routes; config CRUD + static JS file serving |
-| YIN worker | `workers/yin.js` | Pitch detection; isolated from main thread; `postMessage` interface only |
+| Plugin entry point | `screen.js` | IIFE; owns all runtime state, UI injection, viz management, button lifecycle, Slopsmith event hooks; delegates audio to `_tunerAudio` |
+| Audio pipeline | `utils/audio.js` | IIFE; manages both audio input paths (Web Audio + JUCE Bridge); exposes `window._tunerAudio` |
+| Backend routes | `routes.py` | `setup(app, context)` registers FastAPI routes; config CRUD + static file serving (JS + assets) |
+| YIN worker | `workers/yin.js` | Pitch detection; isolated from main thread; `postMessage` interface only; used by both audio input paths |
 | Tuning utilities | `utils/tuning-utils.js` | Frequency math, note names, `offsetsToFreqs`, `getTuningName`; exposed as `window._tunerUtils` |
 | Visualization: Default | `visualization/default.js` | Needle/gauge factory; implements viz contract |
 | Visualization: Strobe | `visualization/strobe.js` | Strobe phase factory; implements viz contract |
+| Visualization assets | `visualization/assets/` | Static SVG/PNG files used by visualizations; served via `/viz-assets/` route |
 | Settings UI | `settings.html` | Plugin Manager settings page; separate browsing context |
 | Plugin manifest | `plugin.json` | Slopsmith plugin descriptor: id, name, version, script, settings.html, routes |
 
@@ -90,18 +103,24 @@ The plugin must be self-contained. All runtime JS is either implemented in-repo 
 
 ## 3. Audio Pipeline Data Flow
 
+The audio pipeline is implemented in `utils/audio.js` and exposed as `window._tunerAudio`. `screen.js` calls `_tunerAudio.start(options, onResult)` with the device/channel/mode from config; all audio concerns live inside `utils/audio.js`.
+
+There are two mutually exclusive audio input paths, selected at start time by `_tryBridgeStart`:
+
+### Path A — Web Audio (default / browser)
+
 ```
 User Gesture (button click)
         │
         ▼
   enable() in screen.js
         │
-        ├── Load tuning-utils.js (if not already loaded)
+        ├── Load audio.js, tuning-utils.js (if not already loaded)
         ├── loadConfig() → GET /api/plugins/tuner/config
         ├── initUI()
-        └── _startAudio()
+        └── window._tunerAudio.start(options, onResult)
                 │
-                ▼
+                ▼ (bridge probe fails or audioInputMode == "browser")
         getUserMedia({ audio: { echoCancellation: false,
                                 noiseSuppression: false,
                                 autoGainControl: false,
@@ -123,34 +142,66 @@ User Gesture (button click)
          setInterval (30 ms) ──────────────────────────────────────────────────┐
                                                                                 │
                                 ┌───────────────────────────────────────────────▼──────┐
-                                │  if pendingBuffer && !processingFrame                 │
+                                │  if pendingBuffer && !frameBusy()                     │
                                 │  → yinWorker.postMessage({samples, sampleRate},      │
                                 │                           [samples.buffer])           │
                                 │    (ArrayBuffer transferred, zero-copy)               │
                                 └──────────────────────────────────────────────────────┘
-                                                                                │
-                                                                  yinWorker.onmessage
-                                                                                │
-                                                                         { freq, confidence, rms }
-                                                                                │
-                                                                         updateUI()
-                                                                                │
-                                                              ┌─────────────────▼──────────────────┐
-                                                              │ rms < 0.01 || confidence < 0.5     │
-                                                              │   → activeViz.update(null, 0, 0)   │
-                                                              │ else                               │
-                                                              │   → compute cents deviation        │
-                                                              │   → activeViz.update(note,cents,f) │
-                                                              │   → _syncActiveStringFromFreq()    │
-                                                              └────────────────────────────────────┘
+```
+
+### Path B — JUCE Desktop Bridge
+
+Used when running inside Slopsmith Desktop and `audioInputMode` is `"auto"` (default).
+
+```
+_tryBridgeStart() probe sequence:
+  1. window.slopsmithDesktop?.isDesktop === true
+  2. typeof desktop.audio.isAvailable === 'function'
+  3. await desktop.audio.isAvailable() === true
+  4. typeof desktop.audio.getRawAudioFrame === 'function'
+  → All pass: bridge mode activated; getUserMedia and ScriptProcessorNode are NOT started
+
+Bridge poll loop (setInterval 30 ms):
+  await desktop.audio.getRawAudioFrame(4096)
+        │ returns Float32Array (copied, not transferred — engine may reuse the buffer)
+        ▼
+  yinWorker.postMessage({ samples: frame, sampleRate }, [frame.buffer])
+```
+
+**Bridge fallback rule:** If any probe condition fails, or if `getRawPitch` / `getPitchDetection` is the only available API (no `getRawAudioFrame`), the plugin falls back to Path A silently. A `console.log` notes the active path; no user-facing indication.
+
+### Common downstream (both paths)
+
+```
+yinWorker.onmessage → { freq, confidence, rms }
+        │
+        ▼
+  _handleYinResult(result) in audio.js
+        │  octave-fold, median smoothing, warmup frames
+        ▼
+  _onResult({ smoothedFreq, rms, hasSignal })
+        │
+        ▼  (callback registered by screen.js)
+  updateUI() in screen.js
+        │
+  ┌─────▼──────────────────────────────────────┐
+  │ hasSignal false                             │
+  │   → activeViz.update(null, 0, 0)           │
+  │ else                                        │
+  │   → compute cents deviation                 │
+  │   → activeViz.update(note, cents, freq)     │
+  │   → _syncActiveStringFromFreq()             │
+  └────────────────────────────────────────────┘
 ```
 
 ### Key Invariants (NFR-02, NFR-04)
 
-- Detection loop fires every **30 ms**; stale `pendingBuffer` is discarded each cycle.
-- **No audio processing on main thread** — accumulation happens in `ScriptProcessorNode.onaudioprocess`, YIN runs in the Web Worker. The main thread only handles DOM updates.
-- Minimum buffer: **4096 samples** (`_TUNER_MIN_YIN_SAMPLES`). Frames smaller than this are accumulated before dispatch.
+- Detection loop fires every **30 ms** on both paths; stale `pendingBuffer` is discarded each cycle on Path A.
+- **No audio processing on main thread** — accumulation happens in `ScriptProcessorNode.onaudioprocess` (Path A) or the JUCE engine thread (Path B). YIN always runs in the Web Worker. The main thread only handles DOM updates.
+- Minimum buffer: **4096 samples** (`_TUNER_MIN_YIN_SAMPLES`). Path A accumulates until this threshold; Path B requests exactly this many samples per frame.
 - Minimum detectable frequency: **20 Hz** (`_TUNER_MIN_DETECTABLE_HZ`), covering 5-string bass (FR-03, NFR-01).
+- **Back-pressure guard** (`_frameBusy()` + 500 ms watchdog): only one frame is in-flight to the YIN worker at a time on both paths. If the worker takes longer than the watchdog, the guard resets and the next frame is dispatched normally.
+- **Re-entrancy guard** (`_startGen`): each `start()` / `stop()` increments a generation counter; async operations (bridge probe, mic permission) abort if the generation changes mid-flight, preventing orphaned workers or intervals from superseded calls.
 
 ---
 
@@ -163,11 +214,21 @@ User Gesture (button click)
 | Category | Naming Pattern | Examples |
 |---|---|---|
 | Public API object | `window.tuner` | `window.tuner.toggle()`, `window.tuner.enable()` |
+| Audio pipeline | `window._tunerAudio` | `window._tunerAudio.start(opts, cb)`, `.stop()`, `.usingBridge` |
 | Utility namespace | `window._tunerUtils` | `window._tunerUtils.freqToMidi()` |
 | Viz factories | `window._tunerViz_<name>` | `window._tunerViz_default`, `window._tunerViz_strobe` |
 | Reload hook | `window._tunerReloadConfig` | Called by settings.html after config save |
 | Constants | `_TUNER_*` (inside IIFE) | `_TUNER_MIN_YIN_SAMPLES`, `_TUNER_FRAME_SIZE` |
 | localStorage key | `slopsmith_tuner_settings` | Device ID and channel preference |
+
+**`window._tunerAudio` API** (exported by `utils/audio.js`):
+
+| Member | Type | Description |
+|---|---|---|
+| `start(opts, onResult)` | async function | Start audio capture. `opts`: `{deviceId, channel, audioInputMode}`. `onResult(result)` called on each detection. |
+| `stop()` | function | Stop all audio capture, terminate YIN worker. |
+| `restart(opts, onResult)` | async function | Convenience: stop then start. |
+| `usingBridge` | boolean | `true` if the JUCE Desktop Bridge is active; `false` for Web Audio path. Read-only after `start()` resolves. |
 
 **IIFE-only constraint:** All JS files are served as plain scripts with no bundler. `import`/`export` will break silently or throw. Every file must use the IIFE pattern `(function() { ... })()`.
 
@@ -242,21 +303,26 @@ Response: `{ "ok": true }`
 
 ### 6.2 Static File Serving
 
-Three endpoints serve plugin-local JS files, all guarded against path traversal:
+Four endpoints serve plugin-local static files, all guarded against path traversal:
 
 ```
 GET /api/plugins/tuner/visualization/{filename}  → visualization/<filename>
 GET /api/plugins/tuner/workers/{filename}         → workers/<filename>
 GET /api/plugins/tuner/utils/{filename}           → utils/<filename>
+GET /api/plugins/tuner/viz-assets/{filename}      → visualization/assets/<filename>
 ```
 
-**Path traversal guard pattern (all three routes):**
+**Path traversal guard pattern (all four routes):**
 ```python
 target = (base_dir / filename).resolve()
 target.relative_to(base_dir.resolve())  # raises ValueError if outside base_dir
 ```
 
-Only `.js` files are served; non-JS or missing files return HTTP 404.
+The first three routes serve only `.js` files; non-JS or missing files return HTTP 404.
+
+The `/viz-assets/` route serves SVG, PNG, and other binary assets from `visualization/assets/`. It uses the same path-traversal guard but is **not** restricted to `.js` — any file type under `visualization/assets/` is served with an appropriate `Content-Type`.
+
+**Why a separate route?** Slopsmith's host already exposes `/api/assets/` for its own asset pipeline. Using `/viz-assets/` avoids a namespace collision that would require URL disambiguation in every asset reference inside visualization scripts.
 
 ---
 
@@ -270,11 +336,12 @@ Stored in `context["config_dir"] / "tuner.json"`. Persists across container rest
 |---|---|---|---|---|
 | `lastTuning` | string | `"Guitar Standard"` | `screen.js` (`saveConfig`) | Name of last selected tuning. `"_current"` is ephemeral and never written. |
 | `visualizationMode` | string | `"default"` | `screen.js` (`saveConfig`) | Active viz name; canonical default is `"default"` |
+| `audioInputMode` | string | `"auto"` | `settings.html` | Audio input source: `"auto"` tries JUCE bridge first, falls back to Web Audio; `"browser"` always uses Web Audio. |
 | `customTunings` | object | `{}` | `settings.html` | User-defined tunings; merged with built-in at read time |
 | `disabledTunings` | array | `[]` | `settings.html` | Names of built-in tunings hidden from selector |
 | `showFloatingButton` | bool | `true` | `settings.html` | Whether the floating button is visible |
 
-**Write responsibility split:** `screen.js` (`saveConfig()`) only persists the two fields that change during normal tuner use — `lastTuning` and `visualizationMode`. All other fields (`customTunings`, `disabledTunings`, `showFloatingButton`) are written exclusively by `settings.html` via the Plugin Manager. This is intentional: real-time state is owned by `screen.js`; persistent configuration preferences are owned by the Plugin Manager UI.
+**Write responsibility split:** `screen.js` (`saveConfig()`) only persists the two fields that change during normal tuner use — `lastTuning` and `visualizationMode`. All other fields (`customTunings`, `disabledTunings`, `showFloatingButton`, `audioInputMode`) are written exclusively by `settings.html` via the Plugin Manager. This is intentional: real-time state is owned by `screen.js`; persistent configuration preferences are owned by the Plugin Manager UI.
 
 `defaultTunings` is computed server-side and **never stored**.
 
@@ -347,20 +414,19 @@ Server-side config survives container restarts and is accessible from both `scre
 
 4. **Trigger condition:** Begin migration when browser vendors start enforcing `ScriptProcessorNode` removal (browser console deprecation warnings escalating to hard errors).
 
-### Absence of Automated Test Suite
+### Automated Test Suite
 
-**Status:** No test framework exists. Manual testing is the current practice.
+**Status:** Implemented (Epic 8). CI runs on GitHub Actions on every push and PR.
 
-**Recommended testing strategy:**
+| Layer | Framework | Files | What is tested |
+|---|---|---|---|
+| Python backend | `pytest` | `tests/python/test_config.py`, `test_routes.py` | Config CRUD, `defaultTunings` exclusion from writes, partial update merge, path traversal guard, missing/malformed config defaults |
+| JS — YIN unit | `node:test` | `tests/js/yin.unit.test.js` | Synthetic buffer at known frequencies; frequency accuracy within tolerance |
+| JS — YIN WAV fixtures | `node:test` | `tests/js/yin.wav.test.js` | Pre-generated WAV fixtures with known fundamental; verifies end-to-end pipeline result |
+| JS — Real instrument | `node:test` | `tests/js/yin.realinstrument.test.js` | WAV recordings in `tests/fixtures/audio/real/` (`<NoteClass><Octave>_<FreqHz>Hz.wav`); ±20 cent tolerance; stereo-to-mono mixing |
+| Visualization | Manual | — | Factory contract still manual-tested |
 
-| Layer | Framework | What to Test |
-|---|---|---|
-| Python backend | `pytest` + `httpx` (FastAPI test client) | Config CRUD, `defaultTunings` exclusion from writes, partial update merge, path traversal guard, missing/malformed config defaults |
-| JS utilities | `jsdom` + script loader (e.g., `vm.runInContext`) | `tuning-utils.js` pure functions: `freqToMidi`, `midiToNote`, `offsetsToFreqs`, `getTuningName` |
-| JS audio pipeline | Manual only (requires mic hardware) | YIN accuracy, accumulation logic, channel routing |
-| Visualization | Manual + `jsdom` | Factory contract: `update(null,0,0)` clears state; `destroy()` removes all DOM; no `rAF` leak |
-
-Priority: Python backend tests are highest-value because they protect config invariants (especially the `defaultTunings` write-guard). The YIN worker is a pure function and is easily unit-testable with synthetic buffers once a JS test runner is set up.
+WAV fixture naming convention: `<NoteClass><Octave>_<FreqHz>Hz.wav` (e.g., `E2_82Hz.wav`). The real-instrument test auto-discovers all fixtures in that directory and derives expected frequency from the filename.
 
 ---
 
@@ -380,3 +446,5 @@ The following constraints are non-negotiable. Any implementation change that vio
 | 8 | **Viz factory contract**: `window._tunerViz_<name>(container)` → `{ update, destroy }` | Core-viz decoupling; enables extension without touching core |
 | 9 | **AudioContext after user gesture** | Browser autoplay policy; violating this causes silent failure |
 | 10 | **Null-check `activeViz` before `update()`** | Viz switches are async; calling update after destroy throws |
+| 11 | **Audio pipeline via `window._tunerAudio`** — no direct `getUserMedia` calls in `screen.js` | All audio concerns (bridge probe, mic capture, worker lifecycle) are owned by `utils/audio.js`; bypassing it splits the pipeline and breaks the bridge path |
+| 12 | **Bridge mode requires all three probes to pass** — `isDesktop && isAvailable() && getRawAudioFrame present` | Partial probe match indicates API mismatch; silently falling back to Web Audio is correct; activating bridge on partial match causes garbled or missing audio |
